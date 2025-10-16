@@ -431,8 +431,8 @@ export class BancoGateway extends PaymentGatewayBase {
   /**
    * Map Banco refund status to our standard status
    */
-  private mapRefundStatus(bancoStatus: string): string {
-    const statusMap: Record<string, string> = {
+  private mapRefundStatus(bancoStatus: string): 'pending' | 'completed' | 'failed' {
+    const statusMap: Record<string, 'pending' | 'completed' | 'failed'> = {
       pending: 'pending',
       processing: 'pending',
       completed: 'completed',

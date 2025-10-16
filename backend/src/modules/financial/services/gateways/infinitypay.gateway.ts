@@ -351,8 +351,8 @@ export class InfinityPayGateway extends PaymentGatewayBase {
   /**
    * Map InfinityPay refund status to our standard status
    */
-  private mapRefundStatus(infinityPayStatus: string): string {
-    const statusMap: Record<string, string> = {
+  private mapRefundStatus(infinityPayStatus: string): 'pending' | 'completed' | 'failed' {
+    const statusMap: Record<string, 'pending' | 'completed' | 'failed'> = {
       pending: 'pending',
       processing: 'pending',
       completed: 'completed',

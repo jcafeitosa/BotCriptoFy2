@@ -281,7 +281,7 @@ export class StripeGateway extends PaymentGatewayBase {
   /**
    * Create customer in Stripe
    */
-  async createCustomer(userId: string, metadata?: Record<string, any>): Promise<string> {
+  override async createCustomer(userId: string, metadata?: Record<string, any>): Promise<string> {
     try {
       const response = await this.makeStripeRequest<{ id: string }>(
         '/customers',
@@ -307,7 +307,7 @@ export class StripeGateway extends PaymentGatewayBase {
   /**
    * Save payment method in Stripe
    */
-  async savePaymentMethod(customerId: string, paymentMethodData: any): Promise<string> {
+  override async savePaymentMethod(customerId: string, paymentMethodData: any): Promise<string> {
     try {
       // Create payment method
       const paymentMethod = await this.makeStripeRequest<{ id: string }>(
@@ -389,7 +389,7 @@ export class StripeGateway extends PaymentGatewayBase {
       throw new Error(`Stripe request failed: ${error}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   /**
@@ -457,8 +457,8 @@ export class StripeGateway extends PaymentGatewayBase {
   /**
    * Map Stripe refund status to our standard status
    */
-  private mapRefundStatus(stripeStatus: string): string {
-    const statusMap: Record<string, string> = {
+  private mapRefundStatus(stripeStatus: string): 'pending' | 'completed' | 'failed' {
+    const statusMap: Record<string, 'pending' | 'completed' | 'failed'> = {
       pending: 'pending',
       succeeded: 'completed',
       failed: 'failed',

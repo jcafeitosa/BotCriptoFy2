@@ -130,7 +130,7 @@ export interface GatewayPaymentRequest {
  */
 export interface GatewayPaymentResponse {
   externalId: string;
-  status: string;
+  status: PaymentStatus;
   gatewayStatus?: string;
   paymentUrl?: string;
   qrCode?: string;
@@ -153,7 +153,7 @@ export interface GatewayRefundRequest {
  */
 export interface GatewayRefundResponse {
   externalId: string;
-  status: string;
+  status: RefundStatus;
   processedAt?: Date;
   response: Record<string, any>;
 }
