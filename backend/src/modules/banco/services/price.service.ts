@@ -98,7 +98,7 @@ export class PriceService {
         throw new Error(`CoinGecko API error: ${response.status}`);
       }
 
-      const data: CoinGeckoPriceResponse = await response.json();
+      const data = (await response.json()) as CoinGeckoPriceResponse;
       const coinData = data[coinId];
 
       if (!coinData) {
@@ -185,7 +185,7 @@ export class PriceService {
         throw new Error(`CoinGecko API error: ${response.status}`);
       }
 
-      const data: CoinGeckoPriceResponse = await response.json();
+      const data = (await response.json()) as CoinGeckoPriceResponse;
 
       // Process each coin
       for (const [coinId, coinData] of Object.entries(data)) {

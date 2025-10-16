@@ -20,7 +20,7 @@ export const activitiesRoutes = new Elysia({ prefix: '/api/v1/sales/activities' 
         const tenantId = (session as any)?.activeOrganizationId;
         const userId = (session as any)?.userId;
 
-        const activity = await ActivitiesService.createActivity(body, userId, tenantId);
+        const activity = await ActivitiesService.createActivity(body as any, userId, tenantId);
 
         return { success: true, data: activity };
       } catch (error) {

@@ -58,7 +58,7 @@ export class TicketsService {
 
     if (slaPolicy) {
       slaId = slaPolicy.id;
-      dueDate = calculateSLADueDate(new Date(), slaPolicy, false);
+      dueDate = calculateSLADueDate(new Date(), slaPolicy as any, false);
     }
 
     // Create ticket
@@ -88,7 +88,7 @@ export class TicketsService {
 
     // Execute automations
     try {
-      await AutomationsService.executeAutomation(ticket, 'on_create');
+      await AutomationsService.executeAutomation(ticket as any, 'on_create');
     } catch (error) {
       logger.error('Error executing automation on ticket creation', { error, ticketId: ticket.id });
     }
@@ -211,13 +211,14 @@ export class TicketsService {
     }
 
     if (filters.search) {
-      conditions.push(
-        or(
-          like(tickets.subject, `%${filters.search}%`),
-          like(tickets.description, `%${filters.search}%`),
-          like(tickets.ticketNumber, `%${filters.search}%`)
-        )
+      const searchCondition = or(
+        like(tickets.subject, `%${filters.search}%`),
+        like(tickets.description, `%${filters.search}%`),
+        like(tickets.ticketNumber, `%${filters.search}%`)
       );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
 
     // Get total count
@@ -609,6 +610,6 @@ export class TicketsService {
    * Invalidate tickets cache
    */
   private static async invalidateCache(_tenantId: string): Promise<void> {
-    await cacheManager.invalidate(CacheNamespace.SUPPORT, `tickets:*`);
+    await cacheManager.invalidate({ namespace: CacheNamespace.SUPPORT, pattern: `tickets:*` });
   }
 }

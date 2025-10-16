@@ -353,6 +353,6 @@ export class KnowledgeBaseService {
    * Invalidate knowledge base cache
    */
   private static async invalidateCache(_tenantId: string): Promise<void> {
-    await cacheManager.invalidate(CacheNamespace.SUPPORT, `kb:*`);
+    await cacheManager.invalidate({ namespace: CacheNamespace.SUPPORT, pattern: `kb:*` });
   }
 }

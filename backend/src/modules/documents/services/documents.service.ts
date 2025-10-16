@@ -220,8 +220,8 @@ export class DocumentsService {
       const details: DocumentWithDetails = {
         ...document,
         fileSizeFormatted: formatFileSize(document.fileSize),
-        folderName: document.folder?.name,
-        folderPath: document.folder?.path,
+        folderName: (document.folder as any)?.name,
+        folderPath: (document.folder as any)?.path,
         uploadedByName: (document.uploadedByUser as any)?.name,
       };
 
@@ -323,8 +323,8 @@ export class DocumentsService {
       const documentsList: DocumentWithDetails[] = results.map((doc) => ({
         ...doc,
         fileSizeFormatted: formatFileSize(doc.fileSize),
-        folderName: doc.folder?.name,
-        folderPath: doc.folder?.path,
+        folderName: (doc.folder as any)?.name,
+        folderPath: (doc.folder as any)?.path,
         uploadedByName: (doc.uploadedByUser as any)?.name,
       }));
 
@@ -835,7 +835,7 @@ export class DocumentsService {
         },
       });
 
-      if (!share || share.document.tenantId !== tenantId) {
+      if (!share || (share.document as any).tenantId !== tenantId) {
         return {
           success: false,
           error: 'Share not found',
@@ -951,7 +951,7 @@ export class DocumentsService {
     return {
       id: share.id,
       documentId: share.documentId,
-      documentName: share.document.name,
+      documentName: (share.document as any).name,
       sharedWithUserId: share.sharedWithUserId || undefined,
       sharedWithUserName: (share.sharedWithUser as any)?.name,
       sharedWithTenantId: share.sharedWithTenantId || undefined,

@@ -197,7 +197,7 @@ export class FoldersService {
         subfolderCount,
         totalSize: Number(totalSize),
         createdByName: (folder.createdByUser as any)?.name,
-      };
+      } as FolderWithDetails;
 
       // Cache result
       await cacheManager.set(this.CACHE_NAMESPACE, cacheKey, details, this.CACHE_TTL);
@@ -269,11 +269,11 @@ export class FoldersService {
             subfolderCount,
             totalSize: Number(totalSize),
             createdByName: (folder.createdByUser as any)?.name,
-          };
+          } as FolderWithDetails;
         })
       );
 
-      return { success: true, data: foldersWithDetails };
+      return { success: true, data: foldersWithDetails as FolderWithDetails[] };
     } catch (error) {
       logger.error('List folders failed', {
         error: error instanceof Error ? error.message : String(error),
@@ -452,22 +452,22 @@ export class FoldersService {
 
         // Delete all documents in all folders
         const folderIds = [id, ...subfolders.map((f) => f.id)];
-        const { count: docsDeleted } = await db
+        const docsResult = await db
           .update(documents)
           .set({ deletedAt: new Date() })
           .where(and(eq(documents.tenantId, tenantId), sql`folder_id = ANY(${folderIds})`))
           .returning();
 
-        deletedDocuments = docsDeleted || 0;
+        deletedDocuments = docsResult.length;
 
         // Delete all subfolders
-        const { count: foldersDeleted } = await db
+        const foldersResult = await db
           .update(folders)
           .set({ deletedAt: new Date() })
           .where(and(eq(folders.tenantId, tenantId), sql`id = ANY(${folderIds})`))
           .returning();
 
-        deletedFolders = foldersDeleted || 0;
+        deletedFolders = foldersResult.length;
       } else {
         // Just delete the empty folder
         await db
@@ -522,7 +522,7 @@ export class FoldersService {
     try {
       return await this.updateFolder(
         id,
-        { parentFolderId: newParentId },
+        { parentFolderId: newParentId || undefined },
         userId,
         tenantId
       );

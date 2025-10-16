@@ -231,6 +231,6 @@ export class CannedResponsesService {
   private static async invalidateCache(userId: string, tenantId: string): Promise<void> {
     await cacheManager.delete(CacheNamespace.SUPPORT, `canned:${tenantId}:${userId}`);
     // Also invalidate shared responses for all users
-    await cacheManager.invalidate(CacheNamespace.SUPPORT, `canned:${tenantId}:*`);
+    await cacheManager.invalidate({ namespace: CacheNamespace.SUPPORT, pattern: `canned:${tenantId}:*` });
   }
 }
