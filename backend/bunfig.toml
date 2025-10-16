@@ -1,0 +1,79 @@
+# Bun Runtime Configuration
+# Optimized for BotCriptoFy2 Backend
+
+[install]
+# Faster dependency resolution with caching
+cache = true
+frozen = false
+production = false
+
+# Registry configuration
+registry = "https://registry.npmjs.org"
+
+# Auto-install missing packages during development
+auto = false
+
+# Cache directory location
+cacheDir = "~/.bun/install/cache"
+
+[run]
+# Shell to use for scripts
+shell = "bun"
+
+# Inject environment variables from .env files
+bun = true
+smol = true
+
+[test]
+# Test runner configuration
+# Coverage settings
+coverage = true
+coverageThreshold = 80
+coverageDir = "./coverage"
+coverageReporters = ["text", "json", "html"]
+
+# Watch mode
+watch = false
+
+[build]
+# Build optimizations for production
+minify = true
+sourcemap = "external"
+target = "bun"
+
+# Loader configuration
+loader = { ".ts" = "ts", ".tsx" = "tsx", ".js" = "js", ".jsx" = "jsx" }
+
+# External packages (not bundled)
+external = []
+
+[dev]
+# Development server configuration
+port = 3000
+hot = true
+
+# Environment
+env = { NODE_ENV = "development" }
+
+[define]
+# Global constants (replaced at build time)
+# "process.env.NODE_ENV" = "production"
+
+[loader]
+# File type loaders
+".ts" = "ts"
+".tsx" = "tsx"
+".js" = "js"
+".jsx" = "jsx"
+".json" = "json"
+".toml" = "toml"
+".txt" = "text"
+".wasm" = "wasm"
+
+# [macro]
+# Macro configuration (if needed)
+# react-refresh = "react-refresh/babel"
+
+# [telemetry]
+# Anonymous usage data (set to false for privacy)
+# enabled = false

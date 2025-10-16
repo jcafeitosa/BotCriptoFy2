@@ -1,0 +1,192 @@
+{
+  "timestamp": "2025-10-16T21:54:18.950Z",
+  "authenticated": false,
+  "summary": {
+    "total": 20,
+    "passed": 0,
+    "failed": 20,
+    "successRate": "0.00"
+  },
+  "results": [
+    {
+      "module": "ceo",
+      "endpoint": "/api/v1/ceo/dashboard",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 4,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "ceo",
+      "endpoint": "/api/v1/ceo/kpis",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "ceo",
+      "endpoint": "/api/v1/ceo/revenue",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 3,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/invoices",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 6,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/invoices/overdue/list",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/expenses",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 2,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/expenses/pending-approvals/list",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/expenses/categories/list",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/ledger/accounts",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/ledger/trial-balance?fiscalPeriod=2025-01",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax/obligations",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax/rates",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax/records?fiscalPeriod=2025-01",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/reports/profit-loss?fiscalPeriod=2025-01",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/reports/balance-sheet?date=2025-01-31",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/reports/cash-flow?fiscalPeriod=2025-01",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "users",
+      "endpoint": "/api/user/profile",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 2,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "tenants",
+      "endpoint": "/api/tenants/me",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "departments",
+      "endpoint": "/api/departments/",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 2,
+      "response": "Invalid or expired session"
+    },
+    {
+      "module": "notifications",
+      "endpoint": "/api/notifications/",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 3,
+      "response": "Invalid or expired session"
+    }
+  ]
+}

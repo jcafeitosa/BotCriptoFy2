@@ -1,0 +1,46 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist
+build
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Testing
+coverage
+.nyc_output
+
+# Drizzle
+drizzle/meta
+*.db
+*.db-journal
+
+# Misc
+.eslintcache
+.prettierrc
+tsconfig.json

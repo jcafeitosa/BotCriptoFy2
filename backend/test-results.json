@@ -1,0 +1,211 @@
+{
+  "summary": {
+    "total": 25,
+    "passed": 7,
+    "failed": 18,
+    "skipped": 0,
+    "byModule": {}
+  },
+  "results": [
+    {
+      "module": "auth",
+      "endpoint": "/api/auth/status",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 11
+    },
+    {
+      "module": "subscriptions",
+      "endpoint": "/subscriptions/plans/public",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 22
+    },
+    {
+      "module": "subscriptions",
+      "endpoint": "/subscriptions/features",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 6
+    },
+    {
+      "module": "rate-limiting",
+      "endpoint": "/api/rate-limit/stats",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax-jurisdiction/available",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax-jurisdiction/current",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 1
+    },
+    {
+      "module": "auth",
+      "endpoint": "/api/dev/auth/users",
+      "method": "GET",
+      "status": 200,
+      "success": true,
+      "responseTime": 5
+    },
+    {
+      "module": "ceo",
+      "endpoint": "/api/v1/ceo/dashboard",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 4
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/invoices",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 0
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/expenses",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/budgets/123",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 2
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/ledger/accounts",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax/obligations",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/reports/profit-loss?fiscalPeriod=2025-01",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "users",
+      "endpoint": "/api/user/profile",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 3
+    },
+    {
+      "module": "tenants",
+      "endpoint": "/api/tenants/me",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "departments",
+      "endpoint": "/api/departments/",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 2
+    },
+    {
+      "module": "configurations",
+      "endpoint": "/api/configurations/",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "notifications",
+      "endpoint": "/api/notifications/",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "audit",
+      "endpoint": "/api/audit/logs",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 3
+    },
+    {
+      "module": "security",
+      "endpoint": "/api/security/roles",
+      "method": "GET",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/invoices/",
+      "method": "POST",
+      "status": 401,
+      "success": false,
+      "responseTime": 3
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/expenses/",
+      "method": "POST",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax/calculate",
+      "method": "POST",
+      "status": 401,
+      "success": false,
+      "responseTime": 1
+    },
+    {
+      "module": "financial",
+      "endpoint": "/api/v1/tax-reports/generate",
+      "method": "POST",
+      "status": 422,
+      "success": false,
+      "responseTime": 3
+    }
+  ]
+}
