@@ -118,6 +118,9 @@ const app = new Elysia()
           { name: 'Configurations', description: 'System-wide configurations' },
 
           // Financial & Tax
+          { name: 'Payments', description: 'Multi-gateway payment processing (InfinityPay, Stripe, Banco)' },
+          { name: 'Payment Gateways', description: 'Payment gateway management and configuration' },
+          { name: 'Webhooks', description: 'Payment webhook endpoints (public, no auth)' },
           { name: 'Tax Jurisdiction', description: 'Tax jurisdiction configuration (CEO only)' },
           { name: 'Tax Reports', description: 'Automated fiscal report generation' },
 
