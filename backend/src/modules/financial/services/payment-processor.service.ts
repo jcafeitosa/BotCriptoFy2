@@ -20,6 +20,7 @@ import { gatewaySelector } from './gateway-selector.service';
 import { InfinityPayGateway } from './gateways/infinitypay.gateway';
 import { StripeGateway } from './gateways/stripe.gateway';
 import { BancoGateway } from './gateways/banco.gateway';
+import { logAuditEvent } from '@/modules/audit/services/audit-logger.service';
 import type {
   IPaymentGateway,
   PaymentRequest,
@@ -71,6 +72,25 @@ export class PaymentProcessor {
         })
         .returning();
 
+      // Audit: Transaction created
+      await logAuditEvent({
+        eventType: 'financial.transaction_created',
+        severity: 'medium',
+        status: 'success',
+        userId: request.userId,
+        tenantId: request.tenantId,
+        resource: 'payment_transactions',
+        resourceId: transaction[0].id,
+        action: 'create',
+        metadata: {
+          amount: request.amount,
+          currency: request.currency,
+          paymentMethod: request.paymentMethod,
+          gateway: gatewayConfig.slug,
+        },
+        complianceCategory: 'pci_dss',
+      });
+
       try {
         // Process payment through gateway
         const gatewayResponse = await gateway.processPayment({
@@ -100,6 +120,27 @@ export class PaymentProcessor {
           })
           .where(eq(paymentTransactions.id, transaction[0].id));
 
+        // Audit: Payment processed successfully
+        await logAuditEvent({
+          eventType: 'financial.payment_processed',
+          severity: 'high',
+          status: 'success',
+          userId: request.userId,
+          tenantId: request.tenantId,
+          resource: 'payment_transactions',
+          resourceId: transaction[0].id,
+          action: 'process',
+          metadata: {
+            transactionId: transaction[0].id,
+            externalId: gatewayResponse.externalId,
+            amount: request.amount,
+            currency: request.currency,
+            gateway: gatewayConfig.slug,
+            paymentStatus: gatewayResponse.status,
+          },
+          complianceCategory: 'pci_dss',
+        });
+
         return {
           success: true,
           data: {
@@ -126,6 +167,27 @@ export class PaymentProcessor {
             updatedAt: new Date(),
           })
           .where(eq(paymentTransactions.id, transaction[0].id));
+
+        // Audit: Payment failed
+        await logAuditEvent({
+          eventType: 'financial.payment_failed',
+          severity: 'high',
+          status: 'failure',
+          userId: request.userId,
+          tenantId: request.tenantId,
+          resource: 'payment_transactions',
+          resourceId: transaction[0].id,
+          action: 'process',
+          metadata: {
+            transactionId: transaction[0].id,
+            amount: request.amount,
+            currency: request.currency,
+            gateway: gatewayConfig.slug,
+          },
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorStack: error instanceof Error ? error.stack : undefined,
+          complianceCategory: 'pci_dss',
+        });
 
         // Create dunning record for retry
         if (request.metadata?.enableDunning !== false) {
@@ -222,6 +284,28 @@ export class PaymentProcessor {
             .where(eq(paymentTransactions.id, request.transactionId));
         }
 
+        // Audit: Refund issued
+        await logAuditEvent({
+          eventType: 'financial.refund_issued',
+          severity: 'high',
+          status: 'success',
+          userId: tx.userId,
+          tenantId: tx.tenantId,
+          resource: 'payment_refunds',
+          resourceId: refund[0].id,
+          action: 'refund',
+          metadata: {
+            refundId: refund[0].id,
+            transactionId: request.transactionId,
+            externalId: gatewayResponse.externalId,
+            amount: parseFloat(refund[0].amount),
+            originalAmount: parseFloat(tx.amount),
+            reason: request.reason,
+            isFullRefund: !request.amount || request.amount >= parseFloat(tx.amount),
+          },
+          complianceCategory: 'pci_dss',
+        });
+
         return {
           success: true,
           data: {
@@ -299,6 +383,13 @@ export class PaymentProcessor {
         const result = await gateway.processWebhook(event);
 
         if (result.success && result.transactionId && result.status) {
+          // Get transaction details for audit
+          const [transaction] = await db
+            .select()
+            .from(paymentTransactions)
+            .where(eq(paymentTransactions.externalId, event.externalId))
+            .limit(1);
+
           // Update transaction status
           await db
             .update(paymentTransactions)
@@ -307,6 +398,32 @@ export class PaymentProcessor {
               updatedAt: new Date(),
             })
             .where(eq(paymentTransactions.externalId, event.externalId));
+
+          // Audit: Webhook processed
+          if (transaction) {
+            await logAuditEvent({
+              eventType:
+                result.status === 'completed'
+                  ? 'financial.payment_processed'
+                  : 'financial.payment_failed',
+              severity: 'medium',
+              status: 'success',
+              userId: transaction.userId,
+              tenantId: transaction.tenantId,
+              resource: 'payment_webhooks',
+              resourceId: webhook[0].id,
+              action: 'webhook_processed',
+              metadata: {
+                webhookId: webhook[0].id,
+                transactionId: transaction.id,
+                externalId: event.externalId,
+                eventType: event.eventType,
+                gateway: gatewaySlug,
+                paymentStatus: result.status,
+              },
+              complianceCategory: 'pci_dss',
+            });
+          }
         }
 
         // Mark webhook as processed

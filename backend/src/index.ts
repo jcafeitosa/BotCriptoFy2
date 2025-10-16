@@ -40,6 +40,7 @@ import {
   adminSubscriptionRoutes,
 } from './modules/subscriptions';
 import { ceoRoutes } from './modules/ceo';
+import { walletRoutes, portfolioRoutes } from './modules/banco';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -138,6 +139,13 @@ const app = new Elysia()
           // Executive Dashboard
           { name: 'CEO Dashboard', description: 'Executive dashboard with aggregated metrics and KPIs (CEO only)' },
 
+          // Banco & Wallet System
+          { name: 'Banco - Wallets', description: 'Multi-asset wallet management (main, savings, trading, staking)' },
+          { name: 'Banco - Transactions', description: 'Deposits, withdrawals, and transfers' },
+          { name: 'Banco - Portfolio', description: 'Portfolio analytics and performance tracking' },
+          { name: 'Banco - Prices', description: 'Asset prices from CoinGecko' },
+          { name: 'Banco - Admin', description: 'Withdrawal approvals and admin operations' },
+
           // Future Modules
           { name: 'Trading', description: 'Trading operations (coming soon)' },
         ],
@@ -229,6 +237,10 @@ const app = new Elysia()
 
   // CEO Dashboard Routes (requires CEO/admin role)
   .use(ceoRoutes)
+
+  // Banco/Wallet Routes (requires authentication)
+  .use(walletRoutes)
+  .use(portfolioRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)

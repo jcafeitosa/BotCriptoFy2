@@ -8,7 +8,7 @@ import { Elysia, t } from 'elysia';
 import { expenseService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
 import logger from '@/utils/logger';
-import type { ExpenseCategory, PaymentMethod } from '../schema/expenses.schema';
+import type { ExpenseCategory, ExpensePaymentMethod } from '../schema/expenses.schema';
 
 export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .use(sessionGuard)
@@ -41,7 +41,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
         subcategory: body.subcategory,
         taxAmount: body.taxAmount,
         supplierTaxId: body.supplierTaxId,
-        paymentMethod: (body.paymentMethod as PaymentMethod | undefined) || null,
+        paymentMethod: (body.paymentMethod as ExpensePaymentMethod | undefined) || null,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         departmentId: body.departmentId || null,
         projectId: body.projectId || null,

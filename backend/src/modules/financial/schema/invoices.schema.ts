@@ -33,9 +33,9 @@ export type InvoiceStatus =
   | 'refunded';
 
 /**
- * Payment Status
+ * Invoice Payment Status
  */
-export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'failed';
+export type InvoicePaymentStatus = 'pending' | 'partial' | 'paid' | 'failed';
 
 /**
  * Invoices Table
@@ -78,7 +78,7 @@ export const invoices = pgTable('invoices', {
   // Payment tracking
   paidAmount: decimal('paid_amount', { precision: 18, scale: 2 }).default('0.00'),
   remainingAmount: decimal('remaining_amount', { precision: 18, scale: 2 }).notNull(),
-  paymentStatus: text('payment_status').notNull().default('pending').$type<PaymentStatus>(),
+  paymentStatus: text('payment_status').notNull().default('pending').$type<InvoicePaymentStatus>(),
   paymentMethod: text('payment_method'), // credit_card, boleto, pix, wire_transfer, etc.
   paymentTerms: text('payment_terms'), // Net 30, Net 60, etc.
 

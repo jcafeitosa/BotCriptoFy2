@@ -48,9 +48,9 @@ export type ExpenseCategory =
   | 'other';
 
 /**
- * Payment Methods
+ * Expense Payment Methods
  */
-export type PaymentMethod =
+export type ExpensePaymentMethod =
   | 'credit_card'
   | 'debit_card'
   | 'bank_transfer'
@@ -86,7 +86,7 @@ export const expenses = pgTable('expenses', {
   totalAmount: decimal('total_amount', { precision: 18, scale: 2 }).notNull(),
 
   // Payment info
-  paymentMethod: text('payment_method').$type<PaymentMethod>(),
+  paymentMethod: text('payment_method').$type<ExpensePaymentMethod>(),
   paymentDate: timestamp('payment_date'),
   dueDate: timestamp('due_date'),
 
