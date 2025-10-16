@@ -766,7 +766,7 @@ async function seedComprehensive() {
         expenseNumber: `EXP-2024-${String(i + 1).padStart(5, '0')}`,
         title: `${randomElement(['Monthly', 'Annual', 'Quarterly'])} ${randomElement(expenseCategories)} expense`,
         description: 'Business operational expense',
-        category: randomElement(expenseCategories),
+        category: randomElement(expenseCategories) as any,
         status: status as any,
         currency: 'BRL',
         amount,
@@ -1019,8 +1019,8 @@ async function seedComprehensive() {
     }
 
     // Alerts (50 total)
-    const alertTypes = ['revenue_drop', 'churn_spike', 'system_error', 'payment_failure'] as const;
-    const alertSeverities = ['critical', 'warning', 'info'] as const;
+    const alertTypes: string[] = ['revenue_drop', 'churn_spike', 'system_error', 'payment_failure'];
+    const alertSeverities: string[] = ['critical', 'warning', 'info'];
 
     for (let i = 0; i < 50; i++) {
       const tenant = randomElement(allTenants.slice(0, 10));

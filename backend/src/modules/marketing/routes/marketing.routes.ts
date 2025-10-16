@@ -41,7 +41,8 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
             tenantId,
             createdBy: userId,
             ...body,
-          })
+            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
+          } as any)
           .returning();
 
         logger.info('Campaign created', { campaignId: campaign.id, tenantId });
@@ -159,8 +160,9 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
           .update(campaigns)
           .set({
             ...body,
+            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
           .returning();
 
@@ -492,7 +494,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
       try {
         const tenantId = (session as any)?.activeOrganizationId;
 
-        const lead = await LeadsService.updateLead(params.id, body, tenantId);
+        const lead = await LeadsService.updateLead(params.id, body as any, tenantId);
 
         return { success: true, data: lead };
       } catch (error) {
@@ -666,16 +668,17 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
     try {
       const tenantId = (session as any)?.activeOrganizationId;
 
-      let queryBuilder = db
-        .select()
-        .from(emailTemplates)
-        .where(eq(emailTemplates.tenantId, tenantId));
-
+      const conditions = [eq(emailTemplates.tenantId, tenantId)];
+      
       if (query.category) {
-        queryBuilder = queryBuilder.where(eq(emailTemplates.category, query.category));
+        conditions.push(eq(emailTemplates.category, query.category));
       }
 
-      const templates = await queryBuilder.orderBy(desc(emailTemplates.createdAt));
+      const templates = await db
+        .select()
+        .from(emailTemplates)
+        .where(and(...conditions))
+        .orderBy(desc(emailTemplates.createdAt));
 
       return { success: true, data: templates };
     } catch (error) {

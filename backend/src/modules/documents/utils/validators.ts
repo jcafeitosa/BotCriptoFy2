@@ -81,7 +81,7 @@ export const documentUploadSchema = z.object({
   description: z.string().max(1000).optional(),
   accessLevel: z.enum(['public', 'tenant', 'private', 'role_based']).optional(),
   allowedRoles: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -93,7 +93,7 @@ export const documentUpdateSchema = z.object({
   folderId: z.string().uuid().optional(),
   accessLevel: z.enum(['public', 'tenant', 'private', 'role_based']).optional(),
   allowedRoles: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -105,7 +105,7 @@ export const folderCreateSchema = z.object({
   parentFolderId: z.string().uuid().optional(),
   accessLevel: z.enum(['public', 'tenant', 'private', 'role_based']).optional(),
   allowedRoles: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -117,7 +117,7 @@ export const folderUpdateSchema = z.object({
   parentFolderId: z.string().uuid().optional(),
   accessLevel: z.enum(['public', 'tenant', 'private', 'role_based']).optional(),
   allowedRoles: z.array(z.string()).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
