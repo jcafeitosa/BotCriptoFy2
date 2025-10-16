@@ -18,6 +18,13 @@ import * as configurationSchema from '../modules/configurations/schema/configura
 import * as notificationSchema from '../modules/notifications/schema/notifications.schema';
 import * as auditSchema from '../modules/audit/schema/audit.schema';
 import * as financialSchema from '../modules/financial/schema';
+import * as documentsSchema from '../modules/documents/schema';
+import * as subscriptionsSchema from '../modules/subscriptions/schema/subscription-plans.schema';
+import * as ceoSchema from '../modules/ceo/schema/ceo.schema';
+import * as marketingSchema from '../modules/marketing/schema';
+import * as salesSchema from '../modules/sales/schema';
+import * as supportSchema from '../modules/support/schema';
+import * as bancoSchema from '../modules/banco/schema';
 
 /**
  * PostgreSQL Connection Pool
@@ -42,6 +49,13 @@ const schema = {
   ...notificationSchema,
   ...auditSchema,
   ...financialSchema,
+  ...documentsSchema,
+  ...subscriptionsSchema,
+  ...ceoSchema,
+  ...marketingSchema,
+  ...salesSchema,
+  ...supportSchema,
+  ...bancoSchema,
 };
 
 /**

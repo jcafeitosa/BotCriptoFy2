@@ -10,12 +10,12 @@ import {
   walletAssets,
   walletTransactions,
   withdrawalRequests,
-  type Wallet,
-  type WalletAsset,
+  // type Wallet,
+  // type WalletAsset,
   type WalletTransaction,
   type WithdrawalRequest,
 } from '../schema/wallet.schema';
-import { eq, and, sql, desc, gte, lte } from 'drizzle-orm';
+import { eq, and, /* sql, */ desc, gte, lte } from 'drizzle-orm';
 import { priceService } from './price.service';
 import { logAuditEvent } from '@/modules/audit/services/audit-logger.service';
 import type {

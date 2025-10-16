@@ -5,8 +5,8 @@
  */
 
 import { db } from '@/db';
-import { wallets, walletAssets, walletTransactions, assetPriceHistory } from '../schema/wallet.schema';
-import { eq, and, sql, desc, between } from 'drizzle-orm';
+import { wallets, walletAssets, walletTransactions /* , assetPriceHistory */ } from '../schema/wallet.schema';
+import { eq, and, sql /* , desc, between */ } from 'drizzle-orm';
 import { priceService } from './price.service';
 import type {
   AssetType,
@@ -155,10 +155,10 @@ export class PortfolioService {
     change30dPercent: number;
   }> {
     try {
-      const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      // const now = new Date();
+      // const _oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      // const _sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // const _thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       // Get historical values (simplified - in production, store snapshots)
       const value24hAgo = currentValueUsd * 0.98; // Example: -2%
