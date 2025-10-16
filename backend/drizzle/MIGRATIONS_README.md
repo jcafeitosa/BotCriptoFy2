@@ -28,7 +28,7 @@ Estas migrations foram geradas automaticamente pelo `drizzle-kit generate`.
 | 0009 | `living_bloodscream.sql` | Type corrections (text for FK) | 2024-12-16 |
 | 0010 | `migrate_subscription_plans_to_multi_period.sql` | Multi-period support | 2024-12-16 |
 
-### Migrations Manuais Organizadas (0011-0015)
+### Migrations Manuais Organizadas (0011-0016)
 
 Estas migrations foram criadas manualmente e reorganizadas para manter ordem cronológica.
 
@@ -39,6 +39,7 @@ Estas migrations foram criadas manualmente e reorganizadas para manter ordem cro
 | 0013 | `create_marketing_tables.sql` | Marketing module (leads, campaigns, templates) | `migrations/0008` | 2024-10-16 |
 | 0014 | `create_tax_jurisdiction_tables.sql` | Tax jurisdiction tables | `migrations/001` | 2024-10-16 |
 | 0015 | `create_subscriptions_corrected.sql` | Subscriptions complete (manual correction) | Manual | 2024-10-16 |
+| 0016 | `sales_crm.sql` | Sales CRM (contacts, deals, pipeline, forecasts) | `migrations/008` | 2024-10-16 |
 
 ---
 
@@ -95,6 +96,16 @@ Estas migrations foram criadas manualmente e reorganizadas para manter ordem cro
 - `subscription_invoices` - Billing records
 - `subscription_notifications` - Notifications
 - `subscription_usage` - Usage tracking
+
+### Sales CRM Module (0016)
+**Tabelas**: 7
+- `contacts` - Contact management (people & companies)
+- `deals` - Sales deals tracking
+- `pipeline_stages` - Sales pipeline stages
+- `activities` - Sales activities (calls, meetings, emails)
+- `notes` - Contact and deal notes
+- `sales_targets` - Sales targets and quotas
+- `sales_forecasts` - Revenue forecasting
 
 ---
 
@@ -188,9 +199,9 @@ bun drizzle-kit check
 
 ## 📊 Estatísticas
 
-**Total de Tabelas**: ~50+  
-**Total de Migrations**: 16  
-**Última Migration**: 0015_create_subscriptions_corrected  
+**Total de Tabelas**: ~60+  
+**Total de Migrations**: 17  
+**Última Migration**: 0016_sales_crm  
 **Status**: ✅ Organizado e Sequencial  
 
 ---
@@ -204,9 +215,9 @@ Quando criar novas migrations:
    bun drizzle-kit generate
    ```
 
-2. Ou criar manualmente com próximo número (0016+):
+2. Ou criar manualmente com próximo número (0017+):
    ```bash
-   touch drizzle/0016_my_feature.sql
+   touch drizzle/0017_my_feature.sql
    ```
 
 3. Atualizar este README
