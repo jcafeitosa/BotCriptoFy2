@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Bun
+.bun/
+bun.lockb
+
+# Testing
+coverage/
+.nyc_output
+*.log
+
+# Production
+dist/
+build/
+.output/
+
+# Environment
+.env
+.env.local
+.env.production.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Astro
+.astro/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.cache/
+.temp/
+.tmp/
+
+# Database
+*.db
+*.db-journal
+postgres-data/
+
+# Docker
+.docker/
+
+# Secrets (CRITICAL)
+*.key
+*.pem
+*.p12
+*.pfx
+mnemonic.txt
+private-keys/
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+test-results/
+playwright-report/
+

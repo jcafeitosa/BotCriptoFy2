@@ -1,0 +1,84 @@
+---
+/**
+ * @fileoverview Dashboard Root - Auto Redirect
+ * @description Redireciona automaticamente para o dashboard correto baseado no perfil
+ * @security Validação server-side via middleware
+ * @performance Redirect rápido baseado em profile type
+ */
+
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard - BotCriptoFy">
+  <div class="min-h-screen bg-black text-white flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+      <p class="text-xl text-gray-300">Loading your dashboard...</p>
+      <p class="text-sm text-gray-400 mt-2">Detecting your profile...</p>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Auto-redirect baseado em perfil
+     * @security Validação via API backend
+     * @performance < 200ms total
+     */
+    import { authClient } from '../../lib/auth-client';
+
+    async function autoRedirect() {
+      try {
+        console.log('🔍 Dashboard index - Auto-redirect starting...');
+
+        // 1. Verificar sessão
+        const session = await authClient.getSession();
+        
+        if (!session.data) {
+          console.error('❌ No session found');
+          window.location.href = '/login';
+          return;
+        }
+
+        console.log('✅ Session found:', session.data.user.email);
+
+        // 2. Buscar perfil via API
+        const response = await fetch("http://localhost:3000/api/user/profile", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        console.log('Profile API status:', response.status);
+
+        if (!response.ok) {
+          console.error('❌ Failed to fetch profile, defaulting to trader');
+          window.location.href = '/dashboard/trader';
+          return;
+        }
+
+        const profile = await response.json();
+        console.log('✅ Profile:', profile);
+
+        // 3. Determinar dashboard
+        const dashboardMap: Record<string, string> = {
+          company: "/dashboard/admin",
+          trader: "/dashboard/trader",
+          influencer: "/dashboard/influencer",
+        };
+
+        const dashboardUrl = dashboardMap[profile.profileType] || "/dashboard/trader";
+        
+        console.log(`🎯 Redirecting to: ${dashboardUrl}`);
+        window.location.href = dashboardUrl;
+
+      } catch (error) {
+        console.error('❌ Auto-redirect error:', error);
+        // Fallback: redirecionar para trader dashboard
+        window.location.href = '/dashboard/trader';
+      }
+    }
+
+    // Executar redirect imediatamente
+    autoRedirect();
+  </script>
+</Layout>
+

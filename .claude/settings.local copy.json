@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(bun --env-file=.env.test test src/modules/financial/ap/ap.service.test.ts)",
+      "Bash(bun --env-file=.env.test test --coverage src/modules/financial/ap/ap.service.test.ts)",
+      "Bash(bun run:*)",
+      "Bash(tsc:*)",
+      "Bash(bun --env-file=.env.test test src/modules/financial/ap/ap.statistics.service.test.ts)",
+      "Bash(bun test:*)",
+      "Bash(bun --env-file=.env.test test test-date-debug.ts)",
+      "Bash(bun --env-file=.env.test test ./test-date-debug.ts)",
+      "Bash(bun --env-file=.env.test test src/modules/financial/ap/*.test.ts)",
+      "Bash(bun --env-file=.env.test test --coverage src/modules/financial/ap/ap.statistics.service.test.ts)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

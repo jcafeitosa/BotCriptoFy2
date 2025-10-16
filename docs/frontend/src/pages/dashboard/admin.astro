@@ -1,0 +1,136 @@
+---
+/**
+ * @fileoverview Admin Dashboard (Company)
+ * @description Dashboard para perfil company/admin com foco em performance e segurança
+ * @security Middleware de autenticação + validação de role
+ * @performance Carregamento assíncrono de componentes
+ */
+
+import Layout from '../../layouts/Layout.astro';
+import { ProfileCard } from '../../components/dashboard/ProfileCard';
+import { LogoutButton } from '../../components/dashboard/LogoutButton';
+
+// SECURITY: Middleware de autenticação (implementado via client-side)
+---
+
+<Layout title="Admin Dashboard - BotCriptoFy">
+  <div class="min-h-screen bg-black text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-100">Admin Dashboard</h1>
+            <p class="text-sm text-gray-300">Company Management</p>
+          </div>
+          
+          <div class="flex items-center gap-4">
+            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-full text-sm font-medium">
+              Admin
+            </span>
+            <LogoutButton client:load variant="danger" size="sm" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+      <!-- Profile Card -->
+      <div class="mb-8">
+        <ProfileCard client:load />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Stats Cards -->
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-300 text-sm font-medium mb-2">Total Users</h3>
+          <p class="text-3xl font-bold text-gray-100" id="total-users">-</p>
+        </div>
+        
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-300 text-sm font-medium mb-2">Active Bots</h3>
+          <p class="text-3xl font-bold text-gray-100" id="active-bots">-</p>
+        </div>
+        
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-300 text-sm font-medium mb-2">Revenue (MRR)</h3>
+          <p class="text-3xl font-bold text-gray-100" id="revenue">$-</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-xl font-bold mb-4 text-gray-100">Quick Actions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <a href="/users" class="bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1 text-gray-100">Manage Users</h3>
+            <p class="text-sm text-gray-300">View and manage all users</p>
+          </a>
+          
+          <a href="/subscriptions" class="bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1 text-gray-100">Subscriptions</h3>
+            <p class="text-sm text-gray-300">Manage billing and plans</p>
+          </a>
+          
+          <a href="/settings" class="bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1 text-gray-100">Settings</h3>
+            <p class="text-sm text-gray-300">Company configuration</p>
+          </a>
+          
+          <a href="/analytics" class="bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1 text-gray-100">Analytics</h3>
+            <p class="text-sm text-gray-300">Platform metrics</p>
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // SECURITY: Validar autenticação ao carregar página
+    import { authClient } from '../../lib/auth-client';
+    import { fetchUserProfile } from '../../lib/auth-utils';
+
+    async function validateAuth() {
+      try {
+        // PERFORMANCE: Buscar sessão e perfil em paralelo
+        const [session, profile] = await Promise.all([
+          authClient.getSession(),
+          fetchUserProfile(),
+        ]);
+
+        // SECURITY: Redirecionar se não autenticado
+        if (!session.data) {
+          window.location.href = '/login';
+          return;
+        }
+
+        // SECURITY: Validar role/profileType
+        if (profile?.profileType !== 'company') {
+          console.warn('⚠️ Unauthorized access attempt to admin dashboard');
+          window.location.href = `/dashboard/${profile?.profileType || 'trader'}`;
+          return;
+        }
+
+        // PERFORMANCE: Carregar dados assíncronos (não bloquear UI)
+        loadDashboardData();
+      } catch (error) {
+        console.error('Auth validation error:', error);
+        window.location.href = '/login';
+      }
+    }
+
+    async function loadDashboardData() {
+      // PERFORMANCE: Carregar stats em paralelo
+      // TODO: Implementar chamadas reais à API
+      document.getElementById('total-users')!.textContent = '0';
+      document.getElementById('active-bots')!.textContent = '0';
+      document.getElementById('revenue')!.textContent = '$0';
+    }
+
+    // SECURITY: Executar validação imediatamente
+    validateAuth();
+  </script>
+</Layout>
+

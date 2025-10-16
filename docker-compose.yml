@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with TimescaleDB extension
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: botcriptofy2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-botcriptofy2}
+      POSTGRES_USER: ${POSTGRES_USER:-botcriptofy2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botcriptofy2}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botcriptofy2}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - botcriptofy2-network
+
+  # Redis (Standalone for development, Cluster for production)
+  redis:
+    image: redis:7.2-alpine
+    container_name: botcriptofy2-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-botcriptofy2}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - botcriptofy2-network
+
+  # Ollama (AI Model Server)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: botcriptofy2-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - botcriptofy2-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Backend API (Elysia + Bun)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: botcriptofy2-backend
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-botcriptofy2}:${POSTGRES_PASSWORD:-botcriptofy2}@postgres:5432/${POSTGRES_DB:-botcriptofy2}
+
+      # Redis
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-botcriptofy2}@redis:6379
+
+      # Better-Auth
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+
+      # Ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+
+      # Application
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:4321}
+
+      # Stripe (optional)
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+
+      # Telegram (optional)
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - botcriptofy2-network
+    profiles:
+      - full  # Only start with --profile full
+
+  # Frontend (Astro + React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: botcriptofy2-frontend
+    restart: unless-stopped
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "${FRONTEND_PORT:-4321}:4321"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - botcriptofy2-network
+    profiles:
+      - full  # Only start with --profile full
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  botcriptofy2-network:
+    driver: bridge

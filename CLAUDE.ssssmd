@@ -1,0 +1,475 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+BotCriptoFy2 is a SaaS Multi-Tenant cryptocurrency trading platform with autonomous AI agents. The system combines trading automation, business management, and artificial intelligence in a single integrated solution.
+
+### Tech Stack
+- **Backend**: Elysia v1.4.12 + Bun v1.0.0 + Better-Auth + TimescaleDB + Drizzle ORM
+- **Frontend**: Astro v5.1.5 + React 19 + Tailwind CSS v4
+- **AI**: Mastra.ai + Ollama (Qwen3:0.6b)
+- **Cache**: Redis 7.2
+- **Communication**: Telegram Bot API
+- **Billing**: Stripe
+
+### Official Documentation Links
+- **Bun**: https://bun.com/docs
+- **Elysia**: https://elysiajs.com/at-glance.html
+- **Better Auth**: https://www.better-auth.com/docs/introduction
+- **Astro**: https://docs.astro.build/en/install-and-setup/
+- **Mastra AI**: https://mastra.ai/en/docs
+- **Drizzle ORM**: https://orm.drizzle.team/docs/overview
+- **PostgreSQL**: https://www.postgresql.org/docs/
+- **TimescaleDB**: https://docs.timescale.com/
+- **Tailwind CSS**: https://tailwindcss.com/docs
+- **Scalar**: https://guides.scalar.com/scalar/introduction
+
+## Common Commands
+
+- os agente devem seguir os protocolos de /Users/myminimac/Desenvolvimento/BotCriptoFy2/.cursor/rules/active-rules.md e /Users/myminimac/Desenvolvimento/BotCriptoFy2/CURSOR-AGENT-INDEX.md
+
+### Development
+
+```bash
+# Install dependencies (root installs both backend and frontend)
+bun install
+
+# Start development servers (both backend and frontend)
+bun run dev
+
+# Start backend only
+bun run dev:backend
+
+# Start frontend only
+bun run dev:frontend
+```
+
+### Database Operations
+
+```bash
+# Generate database migrations
+bun run db:generate
+
+# Run migrations
+bun run db:migrate
+
+# Push schema changes directly (development only)
+bun run db:push
+
+# Open Drizzle Studio (database GUI)
+bun run db:studio
+
+# Seed database with initial data
+bun run db:seed
+
+# Reset database (WARNING: destructive)
+cd backend && bun run db:reset
+```
+
+### Testing
+
+```bash
+# Run all tests (backend + frontend)
+bun run test
+
+# Run backend tests only
+bun run test:backend
+
+# Run frontend tests only
+bun run test:frontend
+
+# Run tests with coverage
+bun run test:coverage
+
+# Watch mode for tests (backend)
+cd backend && bun run test:watch
+```
+
+### Code Quality
+
+```bash
+# Lint all code
+bun run lint
+
+# Lint and fix
+bun run lint:fix
+
+# Format code
+bun run format
+
+# Check formatting
+cd backend && bun run format:check
+
+# Type checking
+cd backend && bun run type-check
+cd frontend && bun run type-check
+```
+
+### Build & Deploy
+
+```bash
+# Build both backend and frontend
+bun run build
+
+# Start production servers
+bun run start
+
+# Docker operations
+bun run docker:up      # Start containers
+bun run docker:down    # Stop containers
+bun run docker:build   # Build images
+bun run docker:restart # Restart services
+bun run docker:logs    # View logs
+```
+
+### Clean
+
+```bash
+# Clean all build artifacts and node_modules
+bun run clean
+
+# Clean backend only
+bun run clean:backend
+
+# Clean frontend only
+bun run clean:frontend
+```
+
+## Architecture
+
+### Multi-Tenant Structure (Hybrid: 1:N + 1:1)
+
+1. **Company Tenant (1:N)** - Single company with multiple employees
+   - CEO: Julio Cezar Aquino Feitosa (Super Admin)
+   - 9 Departments with dedicated agents and employees
+
+2. **Trader Tenants (1:1)** - Individual traders with subscription plans
+   - Plans: Free, Pro, Enterprise
+   - Isolated data and resources
+
+3. **Influencer Tenants (1:1)** - Special access users
+   - Internal plan (free)
+   - Limited access and separate data isolation
+
+### Core Modules
+
+**Administrative Modules (9 modules)**
+1. CEO Dashboard - Executive overview
+2. Financeiro - Billing and payments
+3. Marketing - Campaigns and analytics
+4. Vendas - Leads and prospects
+5. Segurança - Monitoring and security
+6. SAC - Customer support
+7. Auditoria - Compliance and audit logs
+8. Documentos - Document management
+9. Configurações - System settings
+10. Assinaturas - Subscription management
+
+**Trading Modules (12 modules)**
+1. Core Trading Engine - Order execution and position management
+2. Orders Module - Order management system
+3. Exchanges Integration - Multi-exchange support (Binance, Coinbase, Kraken)
+4. Bot Management - Trading bot creation and monitoring
+5. Strategy Engine - Visual strategy builder and backtesting
+6. AI/ML Integration - Market predictions and sentiment analysis
+7. Risk Management - Risk assessment and limits
+8. Portfolio - Portfolio management
+9. Analytics - Performance reports
+10. Social Trading - Copy trading
+11. Education - Courses and certification
+12. Mobile - Mobile application
+
+### Autonomous Agents
+
+10 AI agents powered by Mastra.ai + Ollama (Qwen3:0.6b):
+- Each department has a dedicated autonomous agent
+- Real-time data access through database
+- Communication via Telegram Bot
+- Proactive actions and preventive measures
+- Independent decision-making within scope
+
+### Directory Structure
+
+```
+BotCriptoFy2/
+├── backend/                  # Elysia backend server
+│   ├── src/
+│   │   ├── config/          # Environment and configuration
+│   │   ├── db/              # Database schema and connections
+│   │   │   └── schema/      # Drizzle schema definitions
+│   │   ├── middleware/      # Express-style middleware
+│   │   ├── routes/          # API route handlers
+│   │   ├── services/        # Business logic services
+│   │   └── utils/           # Utility functions
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/                 # Astro frontend
+│   ├── src/
+│   │   └── pages/           # Astro pages
+│   ├── package.json
+│   └── tsconfig.json
+├── docs/                     # Comprehensive documentation
+│   ├── ORDEM-DE-DESENVOLVIMENTO.md  # Development order (START HERE)
+│   ├── RESUMO-EXECUTIVO.md         # Executive summary
+│   ├── architecture/         # Architecture documentation
+│   ├── departments/          # Department specifications
+│   ├── trading/              # Trading module specs
+│   ├── affiliate/            # Affiliate system
+│   ├── mmn/                  # Multi-level marketing
+│   ├── banco/                # Wallet and assets
+│   ├── p2p/                  # Peer-to-peer trading
+│   ├── audit/                # Audit system
+│   └── payments/             # Payment gateway integrations
+├── .cursor/                  # Cursor AI rules and workflows
+│   ├── rules/               # Active development rules
+│   ├── workflows/           # Development workflows
+│   └── guides/              # Tool-specific guides
+├── package.json             # Root package (workspace)
+└── README.md
+```
+
+## Development Workflow
+
+### Important: Agente-CTO v2.0 Protocol
+
+This project follows the **Agente-CTO v2.0** protocol with **50 Golden Rules**. Before starting any task:
+
+1. **Planning Phase**
+   - Define technical context and clear objectives
+   - Create mission prompt and define scope
+   - Generate Mermaid workflow/decision tree
+   - Break task into max 6 subtasks with clear owners
+   - Validate compliance with 50 Golden Rules checklist
+
+2. **Development Phase**
+   - Zero tolerance for mocks, placeholders, or incomplete code
+   - Complete CRUD implementations (Create, Read, Update, Delete)
+   - Use latest stable dependency versions
+   - Follow lint, formatter, and type checking requirements
+   - Document functions with JSDoc or equivalent
+   - Use Zod for schema validation on all endpoints
+
+3. **Review Phase**
+   - No code to main without peer review
+   - Validate quality, performance, and security
+   - Check cyclomatic complexity and duplications
+   - Clear PR descriptions required
+   - Mandatory review checklist: lint, tests, docs, security, standards
+
+4. **QA Phase**
+   - Automated tests with minimum 80% coverage
+   - Test positive, negative, and edge cases
+   - Real integrations (no mocks in QA)
+   - Generate versioned and signed QA report
+   - Bugs create linked issues with reproduction steps
+
+**Quality Gates** (must pass before merge):
+- 0 errors (lint, type, build, runtime)
+- 0 warnings
+- 0 mocks/placeholders/TODOs
+- 100% tests passing
+- >= 80% coverage
+- Complete code review by 2+ reviewers
+- Updated documentation
+- ADR (Architecture Decision Record) for technical decisions
+
+See `.cursor/rules/active-rules.md` for full protocol details.
+
+## FASE 0 - Infrastructure (✅ COMPLETED 100%)
+
+### Authentication & Authorization
+
+**Better-Auth Integration** (`backend/src/modules/auth/`)
+- ✅ Better-Auth configured with Drizzle adapter
+- ✅ Email/password authentication
+- ✅ Session management (7-day expiration)
+- ✅ Auth service with user management methods
+- ✅ Auth middleware (requireAuth, requireVerifiedEmail, optionalAuth)
+- Files: `services/auth.config.ts`, `services/auth.service.ts`, `middleware/auth.ts`
+
+**RBAC System** (`backend/src/modules/security/` + `middleware/rbac.ts`)
+- ✅ Full Role-Based Access Control implementation
+- ✅ RBAC Service with permission checks
+- ✅ Role and permission management
+- ✅ Middleware guards: requirePermission, requireRole, requireAnyRole, requireAllRoles
+- ✅ System roles: super_admin, admin, manager, user, viewer
+- ✅ Granular permissions by resource and action
+
+**Multi-Tenancy** (`middleware/tenant.ts`)
+- ✅ Tenant context middleware
+- ✅ Tenant identification (header, subdomain, query param)
+- ✅ Tenant membership validation
+- ✅ Guards: requireTenant, requireTenantMember, requireTenantRole, requireTenantOwner, requireTenantAdmin
+- ✅ Hybrid 1:N (company) + 1:1 (traders/influencers) architecture
+
+### Database Infrastructure
+
+**Drizzle ORM + TimescaleDB**
+- ✅ 81 tables fully defined with Drizzle ORM
+- ✅ Complete schema for all 14 modules
+- ✅ Foreign key relationships configured
+- ✅ Indexes and constraints properly set
+- Location: `backend/src/modules/*/schema/*.schema.ts`
+
+**Migrations System**
+- ✅ Drizzle Kit configured (`drizzle.config.ts`)
+- ✅ First migration generated with all 81 tables
+- ✅ Migration commands: `db:generate`, `db:migrate`, `db:push`
+- ✅ Drizzle Studio available: `bun run db:studio`
+
+**Database Seeds**
+- ✅ System roles and permissions seed (`001-system-roles-permissions.ts`)
+- ✅ Demo data seed (`002-demo-data.ts`)
+  - 2 demo tenants (company + trader)
+  - 3 demo users (admin, manager, user) with roles
+  - 5 demo departments
+- ✅ Seed command: `bun run db:seed`
+
+### Module Structure
+
+All 14 modules organized in modular structure (`backend/src/modules/`):
+- auth, tenants, departments, sales, security
+- subscriptions, notifications, support, audit
+- documents, configurations, ceo, financial, marketing
+
+Each module includes:
+- `schema/` - Drizzle ORM schema
+- `types/` - TypeScript interfaces
+- `services/` - Business logic (ready to implement)
+- `routes/` - Elysia routes (ready to implement)
+- `controllers/` - Request handlers (ready to implement)
+- `utils/` - Module utilities
+- `index.ts` - Barrel exports
+
+## Database Schema
+
+Uses Drizzle ORM with TimescaleDB (PostgreSQL with time-series optimization).
+
+**Core Tables:**
+- `users` - User accounts
+- `accounts` - OAuth accounts
+- `sessions` - User sessions
+- `tenants` - Multi-tenant structure
+- `departments` - Department definitions
+- `financial_transactions` - Financial records (hypertable)
+- `subscriptions` - Subscription plans
+- `audit_logs` - Immutable audit trail (hypertable)
+
+**Schema Location:** `backend/src/db/schema/`
+
+**TimescaleDB Hypertables:** Used for time-series data (financial transactions, audit logs, trading data) with automatic compression and optimized queries.
+
+## Key Technical Patterns
+
+### Authentication Flow
+```
+User → Better-Auth → JWT Token → Redis Cache → Elysia Middleware → Route Handler
+```
+
+### Data Processing Flow
+```
+Request → Elysia → Validation (Zod) → Drizzle ORM → TimescaleDB → Response
+```
+
+### Agent Workflow
+```
+Event → Mastra.ai → Ollama (Qwen3:0.6b) → Decision → Action → Telegram Notification
+```
+
+### Caching Strategy
+- Redis Cluster for distributed cache
+- Write-through, write-behind, and write-around strategies
+- Automatic cache invalidation by patterns
+- 70% improvement in response time (target)
+
+### Rate Limiting
+- Global middleware protection on all routes
+- Adaptive limits based on user behavior
+- DDoS protection
+- Per-module and per-action limits
+
+## Testing Strategy
+
+- **Unit Tests**: Individual function/component testing
+- **Integration Tests**: Module interaction testing
+- **E2E Tests**: Full user flow testing (planned)
+- **Coverage Target**: >= 80%
+- **Test Framework**: Vitest for both backend and frontend
+
+## Environment Variables
+
+Required environment variables (see `.env.example` in backend/frontend):
+
+**Backend:**
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/botcriptofy2
+REDIS_URL=redis://localhost:6379
+
+# Better-Auth
+BETTER_AUTH_SECRET=your-secret-key
+BETTER_AUTH_URL=http://localhost:3000
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your-bot-token
+
+# Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+
+# API
+PORT=3000
+FRONTEND_URL=http://localhost:4321
+```
+
+## Performance Targets
+
+- **API Response Time**: < 100ms (P95)
+- **Database Query**: < 10ms (P95)
+- **Cache Hit Rate**: > 95%
+- **Uptime**: 99.9%
+- **Throughput**: > 10,000 requests/min
+
+## Security Considerations
+
+- HTTPS mandatory in production
+- Better-Auth + JWT for authentication
+- RBAC (Role-Based Access Control) by department
+- AES-256 encryption for sensitive data
+- Rate limiting and input validation on all endpoints
+- Complete audit logging for compliance
+- LGPD (Brazilian privacy law) and GDPR compliance
+
+## Documentation Reference
+
+**Start here:** `docs/ORDEM-DE-DESENVOLVIMENTO.md` - Contains the complete development order with 9 phases.
+
+**Key documents:**
+- `docs/RESUMO-EXECUTIVO.md` - Executive summary
+- `docs/architecture/README.md` - Architecture overview
+- `docs/database-schema.md` - Complete database schema
+- `docs/environment-setup.md` - Environment setup guide
+- `.cursor/README.md` - Cursor AI system documentation
+- `.cursor/rules/active-rules.md` - Active development rules (Agente-CTO v2.0)
+
+## Important Notes
+
+1. **Bun Runtime**: This project uses Bun instead of Node.js for ~10x better performance
+2. **Monorepo**: Backend and frontend are separate workspaces managed from root
+3. **Portuguese Documentation**: Most documentation is in Portuguese (Brazilian)
+4. **Database Migrations**: Always generate and run migrations, never push directly to production
+5. **No Mocks in Production Code**: Zero tolerance policy - all code must be complete
+6. **Drizzle Studio**: Use `bun run db:studio` for GUI database management during development
+7. **Cursor Integration**: Follow protocols in `.cursor/` directory for AI-assisted development
+8. **Development Order**: Follow `docs/ORDEM-DE-DESENVOLVIMENTO.md` for implementation sequence (9 phases, 28-32 weeks)
+
+## Contact
+
+- **CEO**: Julio Cezar Aquino Feitosa
+- **Email**: jcafeitosa@icloud.com
+- **Telegram**: @BotCriptoFy2

@@ -1,0 +1,1239 @@
+---
+/**
+ * @fileoverview Nova Landing Page - Design Único
+ * @description Landing page redesenhada com foco em conversão e impacto visual
+ * @version 2.0.0
+ */
+
+import Layout from '../layouts/Layout.astro';
+import { HighlightText } from '../components/ui/HighlightBracket';
+import TradingChart from '../components/charts/TradingChart';
+---
+
+<Layout title="BotCriptoFy - Invista com Inteligência Artificial">
+  <main class="relative min-h-screen overflow-x-hidden bg-black">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 backdrop-blur-md bg-black/80">
+      <div class="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <span class="text-2xl sm:text-3xl font-bold tracking-tight">
+              <span class="text-gray-100">Bot</span><span class="text-cyan-400">Cripto</span><span class="text-gray-100">Fy</span>
+            </span>
+          </div>
+
+          <div class="hidden lg:flex items-center space-x-8">
+            <a href="#demo" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Demo</a>
+            <a href="#beneficios" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Benefícios</a>
+            <a href="#simulador" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Simulador</a>
+            <a href="#depoimentos" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Depoimentos</a>
+          </div>
+
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <a href="/login" class="text-gray-200 hover:text-gray-100 transition-colors text-sm font-medium px-3 sm:px-4 py-2">
+              Login
+            </a>
+            <a href="/register" class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500 transition-all text-sm font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg shadow-lg shadow-cyan-500/25 hover:scale-105 transform duration-200">
+              Começar agora
+            </a>
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-btn" class="lg:hidden text-gray-100 p-2" aria-label="Menu">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden mt-4 pb-4 border-t border-white/10 pt-4">
+          <div class="flex flex-col space-y-4">
+            <a href="#demo" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Demo</a>
+            <a href="#beneficios" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Benefícios</a>
+            <a href="#simulador" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Simulador</a>
+            <a href="#depoimentos" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Depoimentos</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 🧭 1. HERO SECTION (impacto imediato) -->
+    <section class="relative z-10 pt-32 sm:pt-40 pb-20 sm:pb-32 min-h-screen flex items-center">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto fade-in">
+
+          <!-- Badge de credibilidade -->
+          <div class="flex justify-center mb-8">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-sm">
+              <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+              </span>
+              <span class="text-cyan-400 font-medium">+5.000 traders automatizados</span>
+            </div>
+          </div>
+
+          <!-- Headline Principal -->
+          <h1 class="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-center mb-6 sm:mb-8 leading-tight sm:leading-none tracking-tight">
+            <span class="text-gray-100">Invista com</span>
+            <br />
+            <span class="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient">
+              Inteligência Artificial
+            </span>
+          </h1>
+
+          <!-- Subheadline -->
+          <p class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-center text-gray-200 mb-8 sm:mb-12 max-w-4xl mx-auto font-light leading-relaxed">
+            Bots que operam <span class="text-cyan-400 font-semibold">24h por você.</span>
+            <br class="hidden sm:block" />
+            Rentabilidade automatizada, 100% transparente e segura.
+          </p>
+
+          <!-- CTAs Duplos -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-12 sm:mb-16">
+            <!-- CTA Principal -->
+            <a
+              href="/register"
+              class="w-full sm:w-auto group relative inline-flex items-center justify-center px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg font-bold text-black bg-white hover:bg-gray-100 transition-all rounded-xl shadow-2xl shadow-white/25 overflow-hidden hover:scale-105 transform duration-200"
+              aria-label="Criar conta"
+            >
+              <span class="relative z-10">Começar agora</span>
+              <svg class="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+
+            <!-- CTA Secundário -->
+            <button
+              data-modal-trigger
+              class="w-full sm:w-auto inline-flex items-center justify-center px-8 sm:px-10 py-4 sm:py-5 text-base sm:text-lg font-semibold text-white border-2 border-white/20 hover:border-cyan-400 hover:bg-cyan-400/10 transition-all rounded-xl hover:scale-105 transform duration-200"
+              aria-label="Assistir vídeo demonstrativo"
+            >
+              <svg class="mr-2 w-5 sm:w-6 h-5 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Ver como funciona
+            </button>
+          </div>
+
+          <!-- Indicadores de Confiança -->
+          <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 pt-8 sm:pt-12 border-t border-white/10">
+            <div class="flex items-center gap-2 text-gray-300">
+              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-xs sm:text-sm font-medium">Licenciado na Estônia</span>
+            </div>
+            <div class="flex items-center gap-2 text-gray-300">
+              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-xs sm:text-sm font-medium">Auditado independentemente</span>
+            </div>
+            <div class="flex items-center gap-2 text-gray-300">
+              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-xs sm:text-sm font-medium">103+ exchanges integradas</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Efeito de brilho no fundo -->
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/20 rounded-full blur-[120px]"></div>
+        <div class="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]"></div>
+      </div>
+    </section>
+
+    <!-- ⚙️ 2. DEMONSTRAÇÃO DO BOT (interativo) -->
+    <section id="demo" class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto fade-in-section">
+
+          <!-- Header da Seção -->
+          <div class="text-center mb-12 sm:mb-16">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight">
+              Veja o <HighlightText color="cyan" client:load>Bot</HighlightText> em ação
+            </h2>
+            <p class="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4">
+              Tecnologia de IA com aprendizado contínuo e execução automática
+            </p>
+          </div>
+
+          <!-- Demo Container -->
+          <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-8 shadow-2xl">
+
+            <!-- Strategy Selector -->
+            <div class="flex flex-wrap gap-4 mb-8">
+              <button class="px-6 py-3 rounded-lg bg-cyan-500 text-white font-semibold shadow-lg shadow-cyan-500/30">
+                Scalper AI
+              </button>
+              <button class="px-6 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-semibold transition-all">
+                Swing Trader
+              </button>
+              <button class="px-6 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-semibold transition-all">
+                AI Hedged
+              </button>
+              <button class="px-6 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-semibold transition-all">
+                Arbitrage
+              </button>
+            </div>
+
+            <!-- TradingView Lightweight Charts com CCXWS - Dados Reais da Binance -->
+            <div class="bg-black/50 rounded-xl p-4 sm:p-8 mb-8 border border-white/5">
+              <TradingChart 
+                symbol="BTC/USDT" 
+                height={500}
+                client:load
+              />
+            </div>
+
+            <!-- Stats da Estratégia -->
+            <div class="grid md:grid-cols-4 gap-6">
+              <div class="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div class="text-3xl font-bold text-cyan-400 mb-2">+127%</div>
+                <div class="text-sm text-gray-400">Retorno 30d</div>
+              </div>
+              <div class="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div class="text-3xl font-bold text-green-400 mb-2">89.2%</div>
+                <div class="text-sm text-gray-400">Taxa de acerto</div>
+              </div>
+              <div class="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div class="text-3xl font-bold text-white mb-2">1.247</div>
+                <div class="text-sm text-gray-400">Operações ativas</div>
+              </div>
+              <div class="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div class="text-3xl font-bold text-purple-400 mb-2">24/7</div>
+                <div class="text-sm text-gray-400">Uptime garantido</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 🧩 3. BENEFÍCIOS (com storytelling) -->
+    <section id="beneficios" class="relative z-10 py-16 sm:py-24 md:py-32">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto fade-in-section">
+
+          <!-- Header da Seção -->
+          <div class="text-center mb-12 sm:mb-16 md:mb-20">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight px-4">
+              Por que escolher <HighlightText color="neon" client:load>BotCriptoFy</HighlightText>?
+            </h2>
+            <p class="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4">
+              Tecnologia de ponta, controle total e segurança garantida
+            </p>
+          </div>
+
+          <!-- Cards de Benefícios -->
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+            <!-- Benefício 1 -->
+            <div class="group relative p-8 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-transparent border border-white/10 hover:border-cyan-400/50 transition-all duration-300">
+              <div class="w-14 h-14 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg class="w-7 h-7 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3">Inteligência Real</h3>
+              <p class="text-gray-400 leading-relaxed">
+                Bots com autoaprendizado que evoluem com o mercado, sem precisar de ajustes manuais.
+              </p>
+            </div>
+
+            <!-- Benefício 2 -->
+            <div class="group relative p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 to-transparent border border-white/10 hover:border-purple-400/50 transition-all duration-300">
+              <div class="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg class="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3">Controle Total</h3>
+              <p class="text-gray-400 leading-relaxed">
+                Você escolhe a estratégia, o risco e pode pausar a qualquer momento. Seu dinheiro, suas regras.
+              </p>
+            </div>
+
+            <!-- Benefício 3 -->
+            <div class="group relative p-8 rounded-2xl bg-gradient-to-br from-green-500/10 to-transparent border border-white/10 hover:border-green-400/50 transition-all duration-300">
+              <div class="w-14 h-14 rounded-xl bg-green-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg class="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3">Segurança Bancária</h3>
+              <p class="text-gray-400 leading-relaxed">
+                Auditoria em blockchain, 2FA obrigatório, e custódia segregada. Seus fundos sempre protegidos.
+              </p>
+            </div>
+
+            <!-- Benefício 4 -->
+            <div class="group relative p-8 rounded-2xl bg-gradient-to-br from-orange-500/10 to-transparent border border-white/10 hover:border-orange-400/50 transition-all duration-300">
+              <div class="w-14 h-14 rounded-xl bg-orange-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg class="w-7 h-7 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-3">Transparência Total</h3>
+              <p class="text-gray-400 leading-relaxed">
+                Histórico completo de todas operações, métricas em tempo real e relatórios detalhados.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 💰 4. SIMULADOR DE GANHOS (interativo) -->
+    <section id="simulador" class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto fade-in-section">
+
+          <!-- Header da Seção -->
+          <div class="text-center mb-12 sm:mb-16">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight px-4">
+              Calcule seu <HighlightText color="coral" client:load>potencial</HighlightText>
+            </h2>
+            <p class="text-base sm:text-lg md:text-xl text-gray-400 px-4">
+              Simule quanto seus bots podem render com seu capital
+            </p>
+          </div>
+
+          <!-- Simulador Card -->
+          <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-12 shadow-2xl">
+
+            <!-- Investimento Slider -->
+            <div class="mb-12">
+              <label class="block text-white text-lg font-semibold mb-4">
+                Investimento inicial: <span id="investment-value" class="text-cyan-400">R$ 10.000</span>
+              </label>
+              <input
+                id="investment-slider"
+                type="range"
+                min="1000"
+                max="100000"
+                step="1000"
+                value="10000"
+                class="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+              <div class="flex justify-between text-sm text-gray-500 mt-2">
+                <span>R$ 1.000</span>
+                <span>R$ 100.000</span>
+              </div>
+            </div>
+
+            <!-- Perfil de Risco -->
+            <div class="mb-12">
+              <label class="block text-white text-lg font-semibold mb-4">Perfil de risco</label>
+              <div class="grid grid-cols-3 gap-4">
+                <button class="risk-btn px-6 py-4 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500 text-gray-400 hover:text-white transition-all" data-risk="low">
+                  <div class="font-bold text-lg mb-1">Conservador</div>
+                  <div class="text-xs">3-5% ao mês</div>
+                </button>
+                <button class="risk-btn px-6 py-4 rounded-lg bg-cyan-500/20 border-2 border-cyan-500 text-white transition-all" data-risk="medium">
+                  <div class="font-bold text-lg mb-1">Moderado</div>
+                  <div class="text-xs">8-12% ao mês</div>
+                </button>
+                <button class="risk-btn px-6 py-4 rounded-lg bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500 text-gray-400 hover:text-white transition-all" data-risk="high">
+                  <div class="font-bold text-lg mb-1">Agressivo</div>
+                  <div class="text-xs">15-25% ao mês</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Resultados da Simulação -->
+            <div class="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl p-8 border border-cyan-400/20">
+              <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                  <div class="text-gray-400 text-sm mb-2">Retorno em 6 meses</div>
+                  <div id="result-6m" class="text-4xl font-bold text-cyan-400">R$ 17.200</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-gray-400 text-sm mb-2">Retorno em 1 ano</div>
+                  <div id="result-1y" class="text-4xl font-bold text-green-400">R$ 31.800</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-gray-400 text-sm mb-2">Lucro líquido</div>
+                  <div id="result-profit" class="text-4xl font-bold text-purple-400">+218%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CTA do Simulador -->
+            <div class="text-center mt-8">
+              <a href="/register" class="inline-block bg-white text-black hover:bg-gray-100 transition-colors text-lg font-bold px-12 py-4 rounded-xl shadow-lg">
+                Criar minha conta e começar →
+              </a>
+              <p class="text-gray-500 text-sm mt-4">* Simulação baseada em performance histórica. Rentabilidade passada não garante resultados futuros.</p>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 🧠 5. PROVA SOCIAL E AUTORIDADE -->
+    <section id="depoimentos" class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto fade-in-section">
+
+          <!-- Header da Seção -->
+          <div class="text-center mb-12 sm:mb-16">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight px-4">
+              <HighlightText color="purple" client:load>5.000+ traders</HighlightText> confiam em nós
+            </h2>
+            <p class="text-base sm:text-lg md:text-xl text-gray-400 px-4">
+              Resultados reais de quem já automatizou seus investimentos
+            </p>
+          </div>
+
+          <!-- Contador Dinâmico -->
+          <div class="flex justify-center mb-16">
+            <div class="bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-full px-8 py-4 inline-flex items-center gap-3">
+              <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-400"></span>
+              </span>
+              <span class="text-white font-bold text-xl">
+                <span id="active-traders">5.247</span> traders operando agora
+              </span>
+            </div>
+          </div>
+
+          <!-- Grid de Depoimentos -->
+          <div class="grid md:grid-cols-3 gap-8 mb-16">
+
+            <!-- Depoimento 1 -->
+            <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-xl p-8 hover:border-cyan-400/50 transition-all">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl">
+                  RC
+                </div>
+                <div>
+                  <div class="text-white font-bold">Rafael Costa</div>
+                  <div class="text-gray-500 text-sm">Trader há 3 anos</div>
+                </div>
+              </div>
+              <p class="text-gray-400 mb-4 leading-relaxed">
+                "Em 6 meses, meu portfólio cresceu <span class="text-cyan-400 font-semibold">+187%</span>. O bot opera enquanto eu durmo. Nunca pensei que seria tão fácil."
+              </p>
+              <div class="flex items-center gap-1">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Depoimento 2 -->
+            <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-xl p-8 hover:border-purple-400/50 transition-all">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-600 flex items-center justify-center text-white font-bold text-xl">
+                  AS
+                </div>
+                <div>
+                  <div class="text-white font-bold">Ana Silva</div>
+                  <div class="text-gray-500 text-sm">Investidora iniciante</div>
+                </div>
+              </div>
+              <p class="text-gray-400 mb-4 leading-relaxed">
+                "Nunca tinha investido em cripto. Com o BotCriptoFy, fiz <span class="text-purple-400 font-semibold">R$ 12k</span> em 4 meses sem precisar entender análise técnica."
+              </p>
+              <div class="flex items-center gap-1">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Depoimento 3 -->
+            <div class="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-xl p-8 hover:border-green-400/50 transition-all">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white font-bold text-xl">
+                  PM
+                </div>
+                <div>
+                  <div class="text-white font-bold">Pedro Martins</div>
+                  <div class="text-gray-500 text-sm">Day trader profissional</div>
+                </div>
+              </div>
+              <p class="text-gray-400 mb-4 leading-relaxed">
+                "Migrei minha operação inteira. A IA identifica oportunidades que eu jamais veria. <span class="text-green-400 font-semibold">Melhor decisão</span> da minha carreira."
+              </p>
+              <div class="flex items-center gap-1">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Logos de Exchanges -->
+          <div class="border-t border-white/5 pt-16">
+            <p class="text-center text-gray-400 text-sm mb-12 uppercase tracking-wider font-medium">Integrações com as principais exchanges</p>
+            
+            <!-- Grid de Logos das Exchanges -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8 items-center justify-items-center">
+              
+              <!-- Binance -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Binance_logo.svg" alt="Binance" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-yellow-400 transition-colors">Binance</span>
+              </div>
+
+              <!-- Coinbase -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-blue-400/30 hover:bg-blue-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/6/6c/Coinbase_Logo.png" alt="Coinbase" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-blue-400 transition-colors">Coinbase</span>
+              </div>
+
+              <!-- Kraken -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-purple-400/30 hover:bg-purple-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Kraken_logo.svg" alt="Kraken" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-purple-400 transition-colors">Kraken</span>
+              </div>
+
+              <!-- Bybit -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-orange-400/30 hover:bg-orange-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bybit_logo.svg" alt="Bybit" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-orange-400 transition-colors">Bybit</span>
+              </div>
+
+              <!-- OKX -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-cyan-400/30 hover:bg-cyan-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/9/9a/OKX_logo.svg" alt="OKX" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-cyan-400 transition-colors">OKX</span>
+              </div>
+
+            </div>
+
+            <!-- Segunda linha de exchanges -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-8 items-center justify-items-center mt-8">
+              
+              <!-- KuCoin -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/KuCoin_logo.svg" alt="KuCoin" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-blue-500 transition-colors">KuCoin</span>
+              </div>
+
+              <!-- Huobi -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-red-400/30 hover:bg-red-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2b/Huobi_logo.svg" alt="Huobi" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-red-400 transition-colors">Huobi</span>
+              </div>
+
+              <!-- Gate.io -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-green-400/30 hover:bg-green-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/3/37/Gate.io_logo.svg" alt="Gate.io" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-green-400 transition-colors">Gate.io</span>
+              </div>
+
+              <!-- Bitget -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-indigo-400/30 hover:bg-indigo-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Bitget_logo.svg" alt="Bitget" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-indigo-400 transition-colors">Bitget</span>
+              </div>
+
+              <!-- MEXC -->
+              <div class="group flex items-center justify-center w-full h-16 p-4 bg-gray-900/30 rounded-xl border border-gray-800 hover:border-pink-400/30 hover:bg-pink-400/5 transition-all duration-300">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/MEXC_logo.svg" alt="MEXC" class="w-8 h-8 group-hover:scale-110 transition-transform filter brightness-0 invert opacity-70 group-hover:opacity-100" />
+                <span class="ml-2 text-gray-300 font-semibold group-hover:text-pink-400 transition-colors">MEXC</span>
+              </div>
+
+            </div>
+
+            <!-- Texto de apoio -->
+            <div class="text-center mt-12">
+              <p class="text-gray-400 text-sm max-w-2xl mx-auto leading-relaxed">
+                Conectamos com <span class="text-cyan-400 font-semibold">100+ exchanges</span> globalmente para garantir 
+                <span class="text-purple-400 font-semibold">liquidez máxima</span> e 
+                <span class="text-green-400 font-semibold">melhores preços</span> para seus trades automatizados.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 🧭 6. ARQUITETURA DE CONFIANÇA E COMPLIANCE -->
+    <section class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5 bg-gradient-to-b from-transparent to-gray-900/50 scroll-mt-20">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto fade-in-section">
+
+          <!-- Header da Seção -->
+          <div class="text-center mb-12 sm:mb-16">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 tracking-tight px-4">
+              Segurança e <HighlightText color="green" client:load>Compliance</HighlightText>
+            </h2>
+            <p class="text-base sm:text-lg md:text-xl text-gray-400 px-4">
+              Licenciado, auditado e regulamentado internacionalmente
+            </p>
+          </div>
+
+          <!-- Grid de Compliance -->
+          <div class="grid md:grid-cols-3 gap-8 mb-16">
+
+            <!-- Licenças Regulatórias -->
+            <div class="bg-gradient-to-br from-green-500/10 to-transparent border border-green-400/20 rounded-xl p-8">
+              <div class="w-16 h-16 rounded-xl bg-green-500/20 flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-4">Licenças Regulatórias</h3>
+              <ul class="space-y-3 text-gray-400">
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>FIU Estônia (MSB)</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>FINTRAC Canadá</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>CVM Brasil (em processo)</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Auditorias e Certificações -->
+            <div class="bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-400/20 rounded-xl p-8">
+              <div class="w-16 h-16 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-4">Auditorias Independentes</h3>
+              <ul class="space-y-3 text-gray-400">
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>SOC 2 Type II certificado</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>ISO 27001 compliance</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Pentest trimestral</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Garantias de Custódia -->
+            <div class="bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-400/20 rounded-xl p-8">
+              <div class="w-16 h-16 rounded-xl bg-purple-500/20 flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-white mb-4">Custódia Segregada</h3>
+              <ul class="space-y-3 text-gray-400">
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Cold storage 95% dos fundos</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>Seguro de até $100M</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span>MFA obrigatório</span>
+                </li>
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- Métricas de Confiança -->
+          <div class="grid md:grid-cols-4 gap-6">
+            <div class="text-center p-6 bg-white/5 rounded-lg border border-white/10">
+              <div class="text-4xl font-bold text-cyan-400 mb-2">99.98%</div>
+              <div class="text-gray-400 text-sm">Uptime histórico</div>
+            </div>
+            <div class="text-center p-6 bg-white/5 rounded-lg border border-white/10">
+              <div class="text-4xl font-bold text-green-400 mb-2">$2.5B+</div>
+              <div class="text-gray-400 text-sm">Volume transacionado</div>
+            </div>
+            <div class="text-center p-6 bg-white/5 rounded-lg border border-white/10">
+              <div class="text-4xl font-bold text-purple-400 mb-2">103+</div>
+              <div class="text-gray-400 text-sm">Exchanges integradas</div>
+            </div>
+            <div class="text-center p-6 bg-white/5 rounded-lg border border-white/10">
+              <div class="text-4xl font-bold text-orange-400 mb-2">0</div>
+              <div class="text-gray-400 text-sm">Hacks reportados</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 🔥 7. CTA FINAL (emocional) -->
+    <section class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5 scroll-mt-20">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-5xl mx-auto text-center fade-in-section">
+
+          <!-- Copy Emocional -->
+          <h2 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 sm:mb-8 leading-tight tracking-tight">
+            Deixe seus bots
+            <br />
+            <span class="bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              trabalharem
+            </span>
+            <br />
+            enquanto você <HighlightText color="neon" client:load>vive</HighlightText>
+          </h2>
+
+          <p class="text-lg sm:text-xl md:text-2xl text-gray-400 mb-12 sm:mb-16 max-w-3xl mx-auto font-light leading-relaxed">
+            Mais de 5.000 traders já automatizaram seus investimentos.
+            <br class="hidden sm:block" />
+            <span class="text-white font-semibold">Você será o próximo?</span>
+          </p>
+
+          <!-- CTA Principal Gigante -->
+          <a
+            href="/register"
+            class="group relative inline-flex items-center justify-center px-10 sm:px-16 py-6 sm:py-8 text-xl sm:text-2xl font-bold text-black bg-white hover:bg-gray-100 transition-all rounded-2xl shadow-2xl shadow-white/30 mb-8 hover:scale-105 transform duration-200 w-full sm:w-auto"
+            aria-label="Criar conta e ativar bots"
+          >
+            <span class="relative z-10">Ativar meus bots agora</span>
+            <svg class="ml-2 sm:ml-3 w-6 sm:w-7 h-6 sm:h-7 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+
+          <!-- Garantia -->
+          <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-2 text-green-400">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-lg font-semibold">14 dias de garantia ou seu dinheiro de volta</span>
+            </div>
+            <p class="text-gray-500 text-sm">Sem letras miúdas. Sem perguntas. Sem burocracia.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Efeito de brilho no fundo -->
+      <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px]"></div>
+      </div>
+    </section>
+
+    <!-- 📚 8. FOOTER INTELIGENTE -->
+    <footer class="relative z-10 border-t border-white/5 py-20 bg-gray-900/50">
+      <div class="container mx-auto px-6">
+        <div class="max-w-7xl mx-auto">
+
+          <!-- Grid Principal -->
+          <div class="grid md:grid-cols-5 gap-12 mb-16">
+
+            <!-- Coluna 1: Brand -->
+            <div class="md:col-span-2">
+              <span class="text-3xl font-bold tracking-tight mb-4 inline-block">
+                <span class="text-white">Bot</span><span class="text-cyan-400">Cripto</span><span class="text-white">Fy</span>
+              </span>
+              <p class="text-gray-400 mb-6 leading-relaxed">
+                Plataforma SaaS multi-tenant para automação de trading de criptomoedas com IA.
+              </p>
+              <div class="flex gap-4">
+                <a href="#" class="w-10 h-10 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400 flex items-center justify-center transition-all">
+                  <svg class="w-5 h-5 text-gray-400 hover:text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400 flex items-center justify-center transition-all">
+                  <svg class="w-5 h-5 text-gray-400 hover:text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                </a>
+                <a href="#" class="w-10 h-10 rounded-lg bg-white/5 hover:bg-cyan-500/20 border border-white/10 hover:border-cyan-400 flex items-center justify-center transition-all">
+                  <svg class="w-5 h-5 text-gray-400 hover:text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+
+            <!-- Coluna 2: Produto -->
+            <div>
+              <h4 class="text-white font-bold mb-4">Produto</h4>
+              <ul class="space-y-3">
+                <li><a href="#features" class="text-gray-400 hover:text-white transition-colors">Features</a></li>
+                <li><a href="#demo" class="text-gray-400 hover:text-white transition-colors">Demo</a></li>
+                <li><a href="#simulador" class="text-gray-400 hover:text-white transition-colors">Simulador</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Changelog</a></li>
+              </ul>
+            </div>
+
+            <!-- Coluna 3: Recursos -->
+            <div>
+              <h4 class="text-white font-bold mb-4">Recursos</h4>
+              <ul class="space-y-3">
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Documentação</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">API</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Integrações</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Blog</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Tutoriais</a></li>
+              </ul>
+            </div>
+
+            <!-- Coluna 4: Empresa -->
+            <div>
+              <h4 class="text-white font-bold mb-4">Empresa</h4>
+              <ul class="space-y-3">
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Sobre</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Carreiras</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Compliance</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Terms</a></li>
+                <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy</a></li>
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- Chatbot Placeholder -->
+          <div class="border-t border-white/5 pt-8 mb-8">
+            <div class="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/20 rounded-xl p-6 flex items-center justify-between">
+              <div>
+                <h4 class="text-white font-bold mb-2">Precisa de ajuda?</h4>
+                <p class="text-gray-400 text-sm">Nosso assistente de IA está disponível 24/7</p>
+              </div>
+              <button class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-semibold rounded-lg transition-colors">
+                Conversar agora
+              </button>
+            </div>
+          </div>
+
+          <!-- Copyright -->
+          <div class="border-t border-white/5 pt-8 text-center text-gray-500 text-sm">
+            <p>© 2025 BotCriptoFy. Todos os direitos reservados.</p>
+            <p class="mt-2">Licenciado e regulamentado por FIU Estônia • FINTRAC Canadá</p>
+          </div>
+
+        </div>
+      </div>
+    </footer>
+
+    <!-- Script para modal de vídeo -->
+    <div id="video-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div class="relative max-w-4xl w-full mx-4">
+        <button id="close-modal" class="absolute -top-12 right-0 text-white hover:text-cyan-400 transition-colors">
+          <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div class="bg-black rounded-2xl overflow-hidden border border-white/10">
+          <div class="aspect-video flex items-center justify-center">
+            <p class="text-gray-400">Vídeo explicativo será inserido aqui</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</Layout>
+
+<style>
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Scroll offset para centralizar seções */
+  section[id] {
+    scroll-margin-top: 50vh;
+    scroll-snap-align: center;
+  }
+
+  /* Scroll snap para navegação suave */
+  main {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 50vh;
+  }
+
+  /* Ajustes para mobile */
+  @media (max-width: 768px) {
+    section[id] {
+      scroll-margin-top: 30vh;
+    }
+    
+    main {
+      scroll-padding-top: 30vh;
+    }
+  }
+
+  /* Background grid pattern */
+  main {
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Fade in animation */
+  .fade-in {
+    animation: fadeIn 1s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Fade in on scroll */
+  .fade-in-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .fade-in-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Gradient animation */
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Navbar shadow on scroll */
+  .nav-scrolled {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Fix for very large text on mobile */
+  @media (max-width: 640px) {
+    h1 {
+      font-size: clamp(2rem, 8vw, 3rem) !important;
+    }
+    h2 {
+      font-size: clamp(1.5rem, 6vw, 2.5rem) !important;
+    }
+  }
+
+  /* Prevent horizontal scroll */
+  * {
+    max-width: 100%;
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+</style>
+
+<script>
+  // ============================================
+  // 0. MOBILE MENU TOGGLE
+  // ============================================
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  mobileMenuBtn?.addEventListener('click', () => {
+    mobileMenu?.classList.toggle('hidden');
+  });
+
+  // Close mobile menu when clicking a link
+  const mobileMenuLinks = mobileMenu?.querySelectorAll('a');
+  mobileMenuLinks?.forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu?.classList.add('hidden');
+    });
+  });
+
+  // ============================================
+  // 0.5. SMOOTH SCROLL FOR NAVIGATION
+  // ============================================
+  document.querySelectorAll('.scroll-link').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('href');
+      const targetElement = document.querySelector(targetId);
+      
+      if (targetElement) {
+        // Calcular posição para centralizar a seção na tela
+        const windowHeight = window.innerHeight;
+        const elementHeight = targetElement.offsetHeight;
+        const elementTop = targetElement.offsetTop;
+        
+        // Centralizar: elemento no meio da tela
+        const scrollPosition = elementTop - (windowHeight / 2) + (elementHeight / 2);
+        
+        window.scrollTo({
+          top: Math.max(0, scrollPosition), // Não permitir scroll negativo
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+
+  // ============================================
+  // 0.6. NAVBAR BACKGROUND ON SCROLL
+  // ============================================
+  const navbar = document.querySelector('nav');
+  
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 50) {
+      navbar?.classList.add('nav-scrolled');
+    } else {
+      navbar?.classList.remove('nav-scrolled');
+    }
+  });
+
+  // ============================================
+  // 0.7. INTERSECTION OBSERVER FOR FADE-IN
+  // ============================================
+  const fadeInSections = document.querySelectorAll('.fade-in-section');
+  
+  const observerOptions = {
+    threshold: 0.15,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, observerOptions);
+
+  fadeInSections.forEach(section => {
+    observer.observe(section);
+  });
+
+  // ============================================
+  // 1. MODAL DE VÍDEO
+  // ============================================
+  const modalTrigger = document.querySelector('[data-modal-trigger]');
+  const modal = document.getElementById('video-modal');
+  const closeModal = document.getElementById('close-modal');
+
+  modalTrigger?.addEventListener('click', () => {
+    modal?.classList.remove('hidden');
+    modal?.classList.add('flex');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  });
+
+  closeModal?.addEventListener('click', () => {
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+    document.body.style.overflow = ''; // Restore scrolling
+  });
+
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  });
+
+  // ============================================
+  // 2. SIMULADOR DE ROI INTERATIVO
+  // ============================================
+
+  // Estado do simulador
+  let investment = 10000;
+  let riskProfile = 'medium';
+
+  // Perfis de risco (taxa mensal)
+  const riskProfiles = {
+    low: 0.04,      // 4% ao mês (conservador)
+    medium: 0.10,   // 10% ao mês (moderado)
+    high: 0.20      // 20% ao mês (agressivo)
+  };
+
+  // Função para formatar moeda
+  function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  }
+
+  // Função para calcular retornos compostos
+  function calculateReturns() {
+    const monthlyRate = riskProfiles[riskProfile];
+
+    // Cálculo composto: FV = PV * (1 + r)^n
+    const return6m = investment * Math.pow(1 + monthlyRate, 6);
+    const return1y = investment * Math.pow(1 + monthlyRate, 12);
+    const profit = ((return1y - investment) / investment) * 100;
+
+    // Atualizar UI
+    const result6m = document.getElementById('result-6m');
+    const result1y = document.getElementById('result-1y');
+    const resultProfit = document.getElementById('result-profit');
+
+    if (result6m) result6m.textContent = formatCurrency(return6m);
+    if (result1y) result1y.textContent = formatCurrency(return1y);
+    if (resultProfit) resultProfit.textContent = `+${profit.toFixed(0)}%`;
+  }
+
+  // Slider de investimento
+  const investmentSlider = document.getElementById('investment-slider');
+  const investmentValue = document.getElementById('investment-value');
+
+  investmentSlider?.addEventListener('input', (e) => {
+    investment = parseInt(e.target.value);
+    if (investmentValue) {
+      investmentValue.textContent = formatCurrency(investment);
+    }
+    calculateReturns();
+  });
+
+  // Botões de perfil de risco
+  const riskButtons = document.querySelectorAll('.risk-btn');
+
+  riskButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Remove estado ativo de todos
+      riskButtons.forEach(btn => {
+        btn.classList.remove('bg-cyan-500/20', 'border-cyan-500', 'border-2', 'text-white');
+        btn.classList.remove('bg-green-500/20', 'border-green-500', 'border-2');
+        btn.classList.remove('bg-red-500/20', 'border-red-500', 'border-2');
+        btn.classList.add('bg-white/5', 'border', 'border-white/10', 'text-gray-400');
+      });
+
+      // Adiciona estado ativo ao botão clicado
+      const risk = button.getAttribute('data-risk');
+      riskProfile = risk;
+
+      button.classList.remove('bg-white/5', 'border', 'border-white/10', 'text-gray-400');
+      button.classList.add('text-white', 'border-2');
+
+      if (risk === 'low') {
+        button.classList.add('bg-green-500/20', 'border-green-500');
+      } else if (risk === 'medium') {
+        button.classList.add('bg-cyan-500/20', 'border-cyan-500');
+      } else if (risk === 'high') {
+        button.classList.add('bg-red-500/20', 'border-red-500');
+      }
+
+      calculateReturns();
+    });
+  });
+
+  // Calcular valores iniciais
+  calculateReturns();
+
+  // ============================================
+  // 3. CONTADOR DINÂMICO DE TRADERS
+  // ============================================
+
+  const traderCounterEl = document.getElementById('active-traders');
+  let traderCount = 5247;
+
+  // Atualiza o contador a cada 3-8 segundos com variação aleatória
+  function updateTraderCounter() {
+    const variation = Math.floor(Math.random() * 10) - 5; // -5 a +5
+    traderCount = Math.max(5200, Math.min(5300, traderCount + variation));
+
+    if (traderCounterEl) {
+      traderCounterEl.textContent = traderCount.toLocaleString('pt-BR');
+    }
+
+    // Próxima atualização em 3-8 segundos
+    const nextUpdate = 3000 + Math.random() * 5000;
+    setTimeout(updateTraderCounter, nextUpdate);
+  }
+
+  // Inicia o contador após 3 segundos
+  setTimeout(updateTraderCounter, 3000);
+</script>

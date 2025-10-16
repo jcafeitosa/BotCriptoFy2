@@ -1,0 +1,159 @@
+---
+/**
+ * @fileoverview Influencer Dashboard
+ * @description Dashboard para perfil influencer com foco em performance e segurança
+ * @security Middleware de autenticação + validação de role
+ * @performance Carregamento otimizado de métricas de referral
+ */
+
+import Layout from '../../layouts/Layout.astro';
+import { ProfileCard } from '../../components/dashboard/ProfileCard';
+import { LogoutButton } from '../../components/dashboard/LogoutButton';
+
+// SECURITY: Middleware de autenticação (implementado via client-side)
+---
+
+<Layout title="Influencer Dashboard - BotCriptoFy">
+  <div class="min-h-screen bg-black text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-100">Influencer Dashboard</h1>
+            <p class="text-sm text-gray-300">Referral & Earnings Management</p>
+          </div>
+          
+          <div class="flex items-center gap-4">
+            <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium">
+              Influencer
+            </span>
+            <LogoutButton client:load variant="danger" size="sm" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+      <!-- Profile Card -->
+      <div class="mb-8">
+        <ProfileCard client:load />
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <!-- Referral Stats -->
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-400 text-sm font-medium mb-2">Total Referrals</h3>
+          <p class="text-3xl font-bold" id="total-referrals">-</p>
+        </div>
+        
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-400 text-sm font-medium mb-2">Active Users</h3>
+          <p class="text-3xl font-bold" id="active-users">-</p>
+        </div>
+        
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-400 text-sm font-medium mb-2">Total Earnings</h3>
+          <p class="text-3xl font-bold" id="total-earnings">$-</p>
+        </div>
+        
+        <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+          <h3 class="text-gray-400 text-sm font-medium mb-2">This Month</h3>
+          <p class="text-3xl font-bold" id="month-earnings">$-</p>
+        </div>
+      </div>
+
+      <!-- Referral Link -->
+      <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">Your Referral Link</h2>
+        <div class="flex gap-4">
+          <input 
+            type="text" 
+            readonly 
+            id="referral-link"
+            value="https://botcriptofy.com/ref/YOUR_CODE"
+            class="flex-1 bg-black border border-gray-700 rounded-lg px-4 py-3 text-gray-300"
+          />
+          <button 
+            id="copy-link"
+            class="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold px-6 py-3 rounded-lg transition-colors"
+          >
+            Copy Link
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <a href="/referrals" class="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1">View Referrals</h3>
+            <p class="text-sm text-gray-400">Track your referred users</p>
+          </a>
+          
+          <a href="/payouts" class="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1">Payouts</h3>
+            <p class="text-sm text-gray-400">Withdraw earnings</p>
+          </a>
+          
+          <a href="/marketing" class="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-lg p-4 transition-colors">
+            <h3 class="font-semibold mb-1">Marketing Materials</h3>
+            <p class="text-sm text-gray-400">Banners, videos & content</p>
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // SECURITY: Validar autenticação ao carregar página
+    import { authClient } from '../../lib/auth-client';
+    import { fetchUserProfile } from '../../lib/auth-utils';
+
+    async function validateAuth() {
+      try {
+        const [session, profile] = await Promise.all([
+          authClient.getSession(),
+          fetchUserProfile(),
+        ]);
+
+        if (!session.data) {
+          window.location.href = '/login';
+          return;
+        }
+
+        // SECURITY: Validar profileType
+        if (profile?.profileType !== 'influencer') {
+          window.location.href = `/dashboard/${profile?.profileType || 'trader'}`;
+          return;
+        }
+
+        loadInfluencerData();
+      } catch (error) {
+        console.error('Auth validation error:', error);
+        window.location.href = '/login';
+      }
+    }
+
+    async function loadInfluencerData() {
+      // TODO: Implementar chamadas à API
+      document.getElementById('total-referrals')!.textContent = '0';
+      document.getElementById('active-users')!.textContent = '0';
+      document.getElementById('total-earnings')!.textContent = '$0.00';
+      document.getElementById('month-earnings')!.textContent = '$0.00';
+    }
+
+    // Copy referral link
+    document.getElementById('copy-link')?.addEventListener('click', () => {
+      const link = document.getElementById('referral-link') as HTMLInputElement;
+      link.select();
+      document.execCommand('copy');
+      alert('Referral link copied!');
+    });
+
+    validateAuth();
+  </script>
+</Layout>
+
