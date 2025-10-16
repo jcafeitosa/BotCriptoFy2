@@ -617,8 +617,8 @@ async function seedComprehensive() {
       { plan: 'internal', count: 5 },
     ];
 
-    const statuses = ['active', 'past_due', 'trialing'] as const;
-    const periods = ['monthly', 'yearly'] as const;
+    const statuses: string[] = ['active', 'past_due', 'trialing'];
+    const periods: string[] = ['monthly', 'yearly'];
 
     for (const { plan, count } of subscriptionDistribution) {
       for (let i = 0; i < count; i++) {
@@ -698,7 +698,7 @@ async function seedComprehensive() {
     console.log('💰 Seeding Financial Data...');
 
     // 9.1 Invoices (200 total)
-    const invoiceStatuses = ['paid', 'pending', 'overdue'] as const;
+    const invoiceStatuses: string[] = ['paid', 'pending', 'overdue'];
     for (let i = 0; i < 200; i++) {
       const tenant = randomElement(allTenants);
       const issueDate = randomDate(new Date('2024-01-01'), new Date('2025-01-15'));
@@ -750,8 +750,8 @@ async function seedComprehensive() {
     console.log(`✅ Created ${stats.invoices} invoices`);
 
     // 9.2 Expenses (150 total)
-    const expenseCategories = ['software', 'hardware', 'office', 'marketing', 'salaries'] as const;
-    const expenseStatuses = ['approved', 'paid', 'pending_approval'] as const;
+    const expenseCategories: string[] = ['software', 'hardware', 'office', 'marketing', 'salaries'];
+    const expenseStatuses: string[] = ['approved', 'paid', 'pending_approval'];
 
     for (let i = 0; i < 150; i++) {
       const tenant = randomElement(allTenants.slice(0, 10));
@@ -891,10 +891,10 @@ async function seedComprehensive() {
     // ============================================================================
     console.log('🔔 Seeding Notifications...');
 
-    const notificationTypes = ['email', 'push', 'telegram', 'in_app'] as const;
-    const notificationCategories = ['system', 'financial', 'security', 'trading'] as const;
-    const notificationStatuses = ['sent', 'delivered', 'read', 'failed'] as const;
-    const priorities = ['low', 'normal', 'high', 'urgent'] as const;
+    const notificationTypes: string[] = ['email', 'push', 'telegram', 'in_app'];
+    const notificationCategories: string[] = ['system', 'financial', 'security', 'trading'];
+    const notificationStatuses: string[] = ['sent', 'delivered', 'read', 'failed'];
+    const priorities: string[] = ['low', 'normal', 'high', 'urgent'];
 
     const allUsers = Object.values(usersByRole).flat();
 
@@ -939,8 +939,8 @@ async function seedComprehensive() {
       'expense.approved',
       'budget.created',
     ];
-    const severities = ['low', 'medium', 'high', 'critical'] as const;
-    const actions = ['create', 'update', 'delete', 'read'] as const;
+    const severities: string[] = ['low', 'medium', 'high', 'critical'];
+    const actions: string[] = ['create', 'update', 'delete', 'read'];
 
     for (let i = 0; i < 1000; i++) {
       const user = randomElement(allUsers);
