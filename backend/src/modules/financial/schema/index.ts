@@ -21,3 +21,6 @@ export * from './tax.schema';
 
 // Tax Jurisdiction (CEO-controlled platform configuration)
 export * from './tax-jurisdiction.schema';
+
+// Payments (Multi-gateway payment system)
+export * from './payments.schema';

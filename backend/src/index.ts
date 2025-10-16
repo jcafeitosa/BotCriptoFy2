@@ -29,6 +29,9 @@ import {
   reportRoutes,
   taxJurisdictionRoutes,
   taxReportRoutes,
+  paymentRoutes,
+  gatewayRoutes,
+  webhookRoutes,
 } from './modules/financial/routes';
 import {
   publicSubscriptionRoutes,
@@ -203,6 +206,11 @@ const app = new Elysia()
   .use(ledgerRoutes)
   .use(taxRoutes)
   .use(reportRoutes)
+  .use(paymentRoutes)
+  .use(gatewayRoutes)
+
+  // Webhook Routes (public, no authentication)
+  .use(webhookRoutes)
 
   // Tax Jurisdiction Routes (CEO configuration + testing)
   .use(taxJurisdictionRoutes)

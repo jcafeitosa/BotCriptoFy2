@@ -13,3 +13,4 @@ export * from './tax.routes';
 export * from './report.routes';
 export * from './tax-jurisdiction.routes';
 export * from './tax-report.routes';
+export * from './payment.routes';

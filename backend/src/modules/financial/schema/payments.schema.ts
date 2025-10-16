@@ -7,7 +7,7 @@
 import { pgTable, uuid, varchar, boolean, text, decimal, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { tenants } from '../../tenants/schema/tenants.schema';
-import { users } from '../../users/schema/users.schema';
+import { users } from '../../auth/schema/auth.schema';
 
 /**
  * Payment Gateways
