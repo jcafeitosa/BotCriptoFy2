@@ -31,7 +31,6 @@ interface TestResult {
 
 const results: TestResult[] = [];
 let authCookie: string | null = null;
-let sessionToken: string | null = null;
 
 async function testEndpoint(
   module: string,

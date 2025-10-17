@@ -25,6 +25,8 @@ import * as marketingSchema from '../modules/marketing/schema';
 import * as salesSchema from '../modules/sales/schema';
 import * as supportSchema from '../modules/support/schema';
 import * as bancoSchema from '../modules/banco/schema';
+import * as p2pSchema from '../modules/p2p-marketplace/schema/p2p.schema';
+import * as socialTradingSchema from '../modules/social-trading/schema/social.schema';
 
 /**
  * PostgreSQL Connection Pool
@@ -56,6 +58,8 @@ const schema = {
   ...salesSchema,
   ...supportSchema,
   ...bancoSchema,
+  ...p2pSchema,
+  ...socialTradingSchema,
 };
 
 /**

@@ -60,7 +60,12 @@ export type AuditEventType =
   | 'trading.bot_stopped'
   // P2P events
   | 'p2p.order_created'
+  | 'p2p.order_updated'
+  | 'p2p.order_cancelled'
   | 'p2p.order_matched'
+  | 'p2p.trade_created'
+  | 'p2p.trade_completed'
+  | 'p2p.trade_cancelled'
   | 'p2p.dispute_opened'
   | 'p2p.dispute_resolved'
   // Data events
