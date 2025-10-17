@@ -10,6 +10,8 @@ import { wallets } from '../../banco/schema/wallet.schema';
 import { walletService } from '../../banco/services/wallet.service';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import logger from '@/utils/logger';
+import RiskCacheService from './risk-cache.service';
+import RiskLockService from './risk-lock.service';
 import type {
   RiskProfile,
   RiskLimit,
@@ -75,8 +77,13 @@ class RiskService implements IRiskService {
         })
         .returning();
 
-      logger.info('Risk profile created', { userId, tenantId });
-      return this.mapRiskProfile(profile);
+      const mappedProfile = this.mapRiskProfile(profile);
+
+      // Cache the newly created profile
+      await RiskCacheService.cacheProfile(mappedProfile);
+
+      logger.info('Risk profile created and cached', { userId, tenantId });
+      return mappedProfile;
     } catch (error) {
       logger.error('Failed to create risk profile', {
         userId,
@@ -88,13 +95,27 @@ class RiskService implements IRiskService {
 
   async getRiskProfile(userId: string, tenantId: string): Promise<RiskProfile | null> {
     try {
+      // Try cache first (1-hour TTL)
+      const cached = await RiskCacheService.getCachedProfile(userId, tenantId);
+      if (cached) {
+        logger.debug('Risk profile served from cache', { userId, tenantId });
+        return cached;
+      }
+
       const [profile] = await db
         .select()
         .from(riskProfiles)
         .where(and(eq(riskProfiles.userId, userId), eq(riskProfiles.tenantId, tenantId)))
         .limit(1);
 
-      return profile ? this.mapRiskProfile(profile) : null;
+      const mappedProfile = profile ? this.mapRiskProfile(profile) : null;
+
+      // Cache the profile
+      if (mappedProfile) {
+        await RiskCacheService.cacheProfile(mappedProfile);
+      }
+
+      return mappedProfile;
     } catch (error) {
       logger.error('Failed to get risk profile', {
         userId,
@@ -129,8 +150,17 @@ class RiskService implements IRiskService {
         .where(and(eq(riskProfiles.userId, userId), eq(riskProfiles.tenantId, tenantId)))
         .returning();
 
-      logger.info('Risk profile updated', { userId, tenantId });
-      return this.mapRiskProfile(profile);
+      // Invalidate profile cache and recache updated profile
+      await RiskCacheService.invalidateProfile(userId, tenantId);
+
+      const mappedProfile = this.mapRiskProfile(profile);
+      await RiskCacheService.cacheProfile(mappedProfile);
+
+      // Also invalidate metrics cache since profile changes affect risk calculations
+      await RiskCacheService.invalidateMetrics(userId, tenantId);
+
+      logger.info('Risk profile updated and cache refreshed', { userId, tenantId });
+      return mappedProfile;
     } catch (error) {
       logger.error('Failed to update risk profile', {
         userId,
@@ -174,7 +204,10 @@ class RiskService implements IRiskService {
         })
         .returning();
 
-      logger.info('Risk limit created', { userId, limitType: request.limitType });
+      // Invalidate metrics cache since new limit affects risk calculations
+      await RiskCacheService.invalidateMetrics(userId, tenantId);
+
+      logger.info('Risk limit created, metrics cache invalidated', { userId, limitType: request.limitType });
       return this.mapRiskLimit(limit);
     } catch (error) {
       logger.error('Failed to create risk limit', {
@@ -230,7 +263,10 @@ class RiskService implements IRiskService {
         )
         .returning();
 
-      logger.info('Risk limit updated', { limitId, userId });
+      // Invalidate metrics cache since limit update affects risk calculations
+      await RiskCacheService.invalidateMetrics(userId, tenantId);
+
+      logger.info('Risk limit updated, metrics cache invalidated', { limitId, userId });
       return this.mapRiskLimit(limit);
     } catch (error) {
       logger.error('Failed to update risk limit', {
@@ -253,7 +289,10 @@ class RiskService implements IRiskService {
           )
         );
 
-      logger.info('Risk limit deleted', { limitId, userId });
+      // Invalidate metrics cache since limit deletion affects risk calculations
+      await RiskCacheService.invalidateMetrics(userId, tenantId);
+
+      logger.info('Risk limit deleted, metrics cache invalidated', { limitId, userId });
     } catch (error) {
       logger.error('Failed to delete risk limit', {
         limitId,
@@ -341,7 +380,21 @@ class RiskService implements IRiskService {
   // ============================================================================
 
   async calculateRiskMetrics(userId: string, tenantId: string): Promise<RiskMetrics> {
-    try {
+    // Use distributed lock to prevent race conditions in concurrent calculations
+    return await RiskLockService.withLock(
+      userId,
+      tenantId,
+      async () => {
+        try {
+          // Try cache first (30-second TTL)
+          const cached = await RiskCacheService.getCachedMetrics(userId, tenantId);
+          if (cached) {
+            logger.debug('Risk metrics served from cache', { userId, tenantId });
+            return cached;
+          }
+
+          logger.debug('Risk metrics cache miss, calculating fresh (with lock protection)', { userId, tenantId });
+
       // Get all open positions
       const openPositions = await db
         .select()
@@ -444,6 +497,19 @@ class RiskService implements IRiskService {
       // Calculate drawdown
       const drawdownAnalysis = await this.analyzeDrawdown(userId, tenantId);
 
+      // Calculate concentration risk (HHI)
+      const concentrationRisk = this.calculateConcentrationRisk(openPositions, portfolioValue);
+
+      // Calculate CVaR (Expected Shortfall) at 95% confidence
+      const expectedShortfall = await this.calculateCVaR(userId, tenantId, 0.95);
+
+      // Calculate correlation average (simplified - based on portfolio diversification)
+      // In a full implementation, this would calculate correlations between position returns
+      // For now, we use an inverse relationship with diversification
+      const correlationAverage = openPositions.length > 1
+        ? Math.max(0, 1 - (openPositions.length / 20)) // More positions = lower avg correlation
+        : 0;
+
       // Calculate overall risk score (0-100)
       const overallRiskScore = this.calculateRiskScore({
         leverage: currentLeverage,
@@ -489,20 +555,31 @@ class RiskService implements IRiskService {
           maxDrawdown: drawdownAnalysis.maxDrawdown.toString(),
           peakValue: drawdownAnalysis.peakValue.toString(),
           drawdownDuration: drawdownAnalysis.durationDays.toString(),
+          concentrationRisk: concentrationRisk.toString(),
+          expectedShortfall: expectedShortfall.toString(),
+          correlationAverage: correlationAverage.toString(),
           overallRiskScore: overallRiskScore.toString(),
           riskLevel,
         })
         .returning();
 
-      logger.info('Risk metrics calculated', { userId, riskScore: overallRiskScore });
-      return this.mapRiskMetrics(savedMetrics);
-    } catch (error) {
-      logger.error('Failed to calculate risk metrics', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+      const mappedMetrics = this.mapRiskMetrics(savedMetrics);
+
+      // Cache the freshly calculated metrics (30-second TTL)
+      await RiskCacheService.cacheMetrics(mappedMetrics);
+
+          logger.info('Risk metrics calculated and cached', { userId, riskScore: overallRiskScore });
+          return mappedMetrics;
+        } catch (error) {
+          logger.error('Failed to calculate risk metrics', {
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+      },
+      { resource: 'metrics', ttlMs: 5000 } // 5-second lock TTL
+    );
   }
 
   async getRiskMetrics(userId: string, tenantId: string): Promise<RiskMetrics | null> {
@@ -955,12 +1032,28 @@ class RiskService implements IRiskService {
   // PERFORMANCE RATIOS
   // ============================================================================
 
-  async calculatePerformanceRatios(userId: string, tenantId: string, days: number): Promise<PerformanceRatios> {
+  /**
+   * Calculate Performance Ratios (Sharpe, Sortino, Calmar)
+   *
+   * @param userId - User identifier
+   * @param tenantId - Tenant identifier
+   * @param days - Historical period in days
+   * @param riskFreeRate - Optional annual risk-free rate (default: 0.02 = 2%)
+   *                       In production, this should be fetched from US Treasury API
+   *                       (e.g., 3-month T-Bill rate from FRED API)
+   * @returns PerformanceRatios object with corrected calculations
+   */
+  async calculatePerformanceRatios(
+    userId: string,
+    tenantId: string,
+    days: number,
+    riskFreeRate: number = 0.02
+  ): Promise<PerformanceRatios> {
     try {
       const metricsHistory = await this.getRiskMetricsHistory(userId, tenantId, days);
 
       if (metricsHistory.length < 30) {
-        throw new Error('Insufficient data for performance ratio calculation');
+        throw new Error('Insufficient data for performance ratio calculation (minimum 30 days required)');
       }
 
       // Calculate daily returns
@@ -976,24 +1069,53 @@ class RiskService implements IRiskService {
       const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
       const stdDev = Math.sqrt(variance);
 
-      // Annualize
-      const annualizedReturn = avgReturn * 252; // 252 trading days
+      // Annualize (252 trading days per year)
+      const annualizedReturn = avgReturn * 252;
       const annualizedStdDev = stdDev * Math.sqrt(252);
 
-      // Sharpe Ratio (assuming 2% risk-free rate)
-      const riskFreeRate = 0.02;
-      const sharpeRatio = (annualizedReturn - riskFreeRate) / annualizedStdDev;
+      // ==================================================================================
+      // SHARPE RATIO: (Portfolio Return - Risk-Free Rate) / Standard Deviation
+      // ==================================================================================
+      // Measures risk-adjusted returns using total volatility
+      // Higher is better (>1 is good, >2 is very good, >3 is excellent)
+      const sharpeRatio = annualizedStdDev > 0
+        ? (annualizedReturn - riskFreeRate) / annualizedStdDev
+        : 0;
 
-      // Sortino Ratio (downside deviation)
-      const downsideReturns = returns.filter((r) => r < 0);
+      // ==================================================================================
+      // SORTINO RATIO: (Portfolio Return - Risk-Free Rate) / Downside Deviation
+      // ==================================================================================
+      // Similar to Sharpe but only penalizes downside volatility
+      // Uses semi-deviation of negative returns below MAR (Minimum Acceptable Return = 0)
+
+      // Calculate downside deviation (semi-deviation)
+      // Only consider returns below MAR (0% in this case)
+      // Formula: sqrt(sum(min(0, r)²) / n)
       const downsideVariance =
-        downsideReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / downsideReturns.length;
+        returns.reduce((sum, r) => sum + Math.pow(Math.min(0, r), 2), 0) / returns.length;
       const downsideDeviation = Math.sqrt(downsideVariance) * Math.sqrt(252);
-      const sortinoRatio = (annualizedReturn - riskFreeRate) / downsideDeviation;
 
-      // Calmar Ratio (return / max drawdown)
+      const sortinoRatio = downsideDeviation > 0
+        ? (annualizedReturn - riskFreeRate) / downsideDeviation
+        : 0;
+
+      // ==================================================================================
+      // CALMAR RATIO: Annualized Return / Maximum Drawdown
+      // ==================================================================================
+      // Measures return relative to worst peak-to-trough decline
+      // Higher is better (>1 is good, >3 is excellent)
       const drawdown = await this.analyzeDrawdown(userId, tenantId);
-      const calmarRatio = drawdown.maxDrawdown > 0 ? annualizedReturn / (drawdown.maxDrawdown / 100) : 0;
+      const calmarRatio = drawdown.maxDrawdown > 0
+        ? annualizedReturn / (drawdown.maxDrawdown / 100)
+        : 0;
+
+      logger.debug('Performance ratios calculated', {
+        userId,
+        sharpeRatio: sharpeRatio.toFixed(4),
+        sortinoRatio: sortinoRatio.toFixed(4),
+        calmarRatio: calmarRatio.toFixed(4),
+        riskFreeRate: `${(riskFreeRate * 100).toFixed(2)}%`,
+      });
 
       return {
         sharpeRatio,
@@ -1250,6 +1372,116 @@ class RiskService implements IRiskService {
     if (positionCount === 0) return 0;
     if (positionCount >= 10) return 100;
     return (positionCount / 10) * 100;
+  }
+
+  /**
+   * Calculate Concentration Risk using Herfindahl-Hirschman Index (HHI)
+   * HHI = Sum of squared market shares
+   * 0 = perfectly diversified, 100 = fully concentrated
+   */
+  private calculateConcentrationRisk(positions: any[], portfolioValue: number): number {
+    if (positions.length === 0 || portfolioValue === 0) return 0;
+
+    let hhi = 0;
+    for (const pos of positions) {
+      const posValue = parseFloat(pos.currentPrice) * parseFloat(pos.remainingQuantity);
+      const share = posValue / portfolioValue;
+      hhi += share * share;
+    }
+
+    // Convert to 0-100 scale
+    return hhi * 100;
+  }
+
+  /**
+   * Calculate CVaR (Conditional Value at Risk / Expected Shortfall)
+   * Average loss beyond VaR threshold
+   */
+  private async calculateCVaR(
+    userId: string,
+    tenantId: string,
+    confidence: number = 0.95
+  ): Promise<number> {
+    try {
+      const metricsHistory = await this.getRiskMetricsHistory(userId, tenantId, 252);
+      if (metricsHistory.length < 30) return 0;
+
+      // Calculate returns
+      const returns: number[] = [];
+      for (let i = 0; i < metricsHistory.length - 1; i++) {
+        const dailyReturn =
+          (metricsHistory[i].portfolioValue - metricsHistory[i + 1].portfolioValue) /
+          metricsHistory[i + 1].portfolioValue;
+        returns.push(dailyReturn);
+      }
+
+      // Sort returns ascending (worst first)
+      returns.sort((a, b) => a - b);
+
+      // Get returns worse than VaR threshold
+      const varIndex = Math.floor(returns.length * (1 - confidence));
+      const tailReturns = returns.slice(0, varIndex);
+
+      if (tailReturns.length === 0) return 0;
+
+      // Average of tail losses (Expected Shortfall)
+      const avgTailLoss = tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
+      const cvar = Math.abs(avgTailLoss * metricsHistory[0].portfolioValue);
+
+      return cvar;
+    } catch (error) {
+      logger.error('Failed to calculate CVaR', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate Pearson correlation coefficient between two return series
+   */
+  private pearsonCorrelation(x: number[], y: number[]): number {
+    const n = Math.min(x.length, y.length);
+    if (n < 2) return 0;
+
+    const meanX = x.slice(0, n).reduce((a, b) => a + b, 0) / n;
+    const meanY = y.slice(0, n).reduce((a, b) => a + b, 0) / n;
+
+    let numerator = 0;
+    let denomX = 0;
+    let denomY = 0;
+
+    for (let i = 0; i < n; i++) {
+      const dx = x[i] - meanX;
+      const dy = y[i] - meanY;
+      numerator += dx * dy;
+      denomX += dx * dx;
+      denomY += dy * dy;
+    }
+
+    const denominator = Math.sqrt(denomX * denomY);
+    return denominator > 0 ? numerator / denominator : 0;
+  }
+
+  /**
+   * Calculate average correlation between all position pairs
+   */
+  private calculateCorrelationAverage(correlationMatrix: number[][]): number {
+    if (correlationMatrix.length < 2) return 0;
+
+    let sum = 0;
+    let count = 0;
+
+    // Only count off-diagonal elements (correlations between different positions)
+    for (let i = 0; i < correlationMatrix.length; i++) {
+      for (let j = i + 1; j < correlationMatrix[i].length; j++) {
+        sum += correlationMatrix[i][j];
+        count++;
+      }
+    }
+
+    return count > 0 ? sum / count : 0;
   }
 
   private async createAlert(

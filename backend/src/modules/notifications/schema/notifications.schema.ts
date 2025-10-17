@@ -183,11 +183,11 @@ export const notificationCampaigns = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
-    tenantIdIdx: index('campaigns_tenant_id_idx').on(table.tenantId),
-    statusIdx: index('campaigns_status_idx').on(table.status),
-    scheduledAtIdx: index('campaigns_scheduled_at_idx').on(table.scheduledAt),
-    createdAtIdx: index('campaigns_created_at_idx').on(table.createdAt),
-    tenantStatusIdx: index('campaigns_tenant_status_idx').on(table.tenantId, table.status),
+    tenantIdIdx: index('notification_campaigns_tenant_id_idx').on(table.tenantId),
+    statusIdx: index('notification_campaigns_status_idx').on(table.status),
+    scheduledAtIdx: index('notification_campaigns_scheduled_at_idx').on(table.scheduledAt),
+    createdAtIdx: index('notification_campaigns_created_at_idx').on(table.createdAt),
+    tenantStatusIdx: index('notification_campaigns_tenant_status_idx').on(table.tenantId, table.status),
   })
 );
 
