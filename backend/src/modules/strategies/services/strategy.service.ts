@@ -9,6 +9,11 @@ import logger from '@/utils/logger';
 import { BadRequestError, NotFoundError } from '@/utils/errors';
 import { tradingStrategies, strategySignals, strategyBacktests } from '../schema/strategies.schema';
 import { OHLCVService } from '../../market-data/services/ohlcv.service';
+import {
+  validateCreateStrategyRequest,
+  validateUpdateStrategyRequest,
+} from '../utils/strategy-validator';
+import { validateExchangeCapabilities } from '../utils/ccxt-validator';
 import type {
   TradingStrategy,
   CreateStrategyRequest,
@@ -37,8 +42,8 @@ export class StrategyService implements IStrategyService {
   ): Promise<TradingStrategy> {
     logger.info('Creating trading strategy', { userId, tenantId, name: request.name });
 
-    // Validate request
-    this.validateStrategyRequest(request);
+    // Validate and sanitize request
+    validateCreateStrategyRequest(request);
 
     // Create strategy
     const [strategy] = await db
@@ -163,6 +168,9 @@ export class StrategyService implements IStrategyService {
   ): Promise<TradingStrategy> {
     logger.info('Updating trading strategy', { strategyId, updates });
 
+    // Validate and sanitize updates
+    validateUpdateStrategyRequest(updates);
+
     // Check if strategy exists
     const existing = await this.getStrategy(strategyId, userId, tenantId);
     if (!existing) {
@@ -271,12 +279,26 @@ export class StrategyService implements IStrategyService {
     // Validate strategy is ready to activate
     this.validateStrategyForExecution(strategy);
 
+    // Validate exchange capabilities (CCXT)
+    await validateExchangeCapabilities(strategy.exchangeId, strategy);
+
+    logger.info('Exchange capabilities validated', {
+      strategyId,
+      exchangeId: strategy.exchangeId,
+      symbol: strategy.symbol,
+      timeframe: strategy.timeframe,
+    });
+
     // Update status
     const updated = await this.updateStrategy(strategyId, userId, tenantId, {
       status: 'active',
     });
 
-    logger.info('Strategy activated', { strategyId });
+    logger.info('Strategy activated successfully', {
+      strategyId,
+      exchangeId: strategy.exchangeId,
+      symbol: strategy.symbol,
+    });
 
     return updated;
   }
@@ -371,8 +393,7 @@ export class StrategyService implements IStrategyService {
   }
 
   /**
-   * Generate signal for strategy
-   * This is a placeholder - real implementation would evaluate indicators and conditions
+   * Generate signal for strategy using StrategyRunner
    */
   async generateSignal(strategyId: string): Promise<StrategySignal | null> {
     logger.info('Generating signal for strategy', { strategyId });
@@ -392,44 +413,52 @@ export class StrategyService implements IStrategyService {
       throw new BadRequestError('Strategy must be active to generate signals');
     }
 
-    // Fetch latest market data
-    const ohlcvData = await OHLCVService.fetchOHLCV({
-      exchangeId: strategy.exchangeId,
-      symbol: strategy.symbol,
-      timeframe: strategy.timeframe as any, // Type assertion - timeframe is validated in schema
-      limit: 100,
-    });
+    // Map database strategy to TradingStrategy type
+    const mappedStrategy = this.mapStrategyFromDb(strategy);
 
-    if (ohlcvData.length === 0) {
-      logger.warn('No market data available for signal generation');
-      return null;
-    }
+    // Use StrategyRunner to evaluate and generate signal
+    const { strategyRunner } = await import('../engine');
+    const tradingSignal = await strategyRunner.evaluate(mappedStrategy);
 
-    // Calculate indicators (placeholder - real implementation would use indicators module)
-    const latestCandle = ohlcvData[ohlcvData.length - 1];
-    const indicatorValues = this.calculateIndicators(ohlcvData, strategy.indicators as any);
-
-    // Evaluate conditions (placeholder - real implementation would evaluate strategy conditions)
-    const signalType = this.evaluateConditions(
-      indicatorValues,
-      strategy.conditions as any
-    );
-
-    if (!signalType) {
+    if (!tradingSignal) {
       logger.debug('No signal generated - conditions not met');
       return null;
     }
 
-    // Calculate stop loss and take profit
-    const currentPrice = latestCandle.close;
-    const stopLoss = strategy.stopLossPercent
-      ? currentPrice * (1 - parseFloat(strategy.stopLossPercent) / 100)
-      : undefined;
-    const takeProfit = strategy.takeProfitPercent
-      ? currentPrice * (1 + parseFloat(strategy.takeProfitPercent) / 100)
-      : undefined;
+    // Get latest market price for calculations
+    const ohlcvData = await OHLCVService.fetchOHLCV({
+      exchangeId: strategy.exchangeId,
+      symbol: strategy.symbol,
+      timeframe: strategy.timeframe as any,
+      limit: 1,
+    });
 
-    // Create signal
+    const currentPrice = ohlcvData[0]?.close || 0;
+
+    // Calculate stop loss and take profit based on signal type
+    let stopLoss: number | undefined;
+    let takeProfit: number | undefined;
+
+    if (tradingSignal.type === 'BUY') {
+      stopLoss = strategy.stopLossPercent
+        ? currentPrice * (1 - parseFloat(strategy.stopLossPercent) / 100)
+        : undefined;
+      takeProfit = strategy.takeProfitPercent
+        ? currentPrice * (1 + parseFloat(strategy.takeProfitPercent) / 100)
+        : undefined;
+    } else if (tradingSignal.type === 'SELL') {
+      stopLoss = strategy.stopLossPercent
+        ? currentPrice * (1 + parseFloat(strategy.stopLossPercent) / 100)
+        : undefined;
+      takeProfit = strategy.takeProfitPercent
+        ? currentPrice * (1 - parseFloat(strategy.takeProfitPercent) / 100)
+        : undefined;
+    }
+
+    // Map TradingSignal type to database signal type
+    const dbSignalType = tradingSignal.type === 'BUY' ? 'buy' : tradingSignal.type === 'SELL' ? 'sell' : 'buy';
+
+    // Create signal in database
     const [signal] = await db
       .insert(strategySignals)
       .values({
@@ -439,21 +468,26 @@ export class StrategyService implements IStrategyService {
         exchangeId: strategy.exchangeId,
         symbol: strategy.symbol,
         timeframe: strategy.timeframe,
-        type: signalType,
-        strength: '75', // Placeholder - signal strength 0-100
-        confidence: '0.8', // Placeholder - confidence level 0-1
+        type: dbSignalType,
+        strength: tradingSignal.strength.toString(),
+        confidence: tradingSignal.confidence.toString(),
         price: currentPrice.toString(),
         stopLoss: stopLoss?.toString(),
         takeProfit: takeProfit?.toString(),
-        indicatorValues: indicatorValues as any,
+        indicatorValues: tradingSignal.indicators as any,
         status: 'pending',
-        reason: 'Strategy conditions met',
-        timestamp: new Date(),
+        reason: tradingSignal.reasons.join(', '),
+        timestamp: tradingSignal.timestamp,
         expiresAt: new Date(Date.now() + 3600000), // 1 hour
       })
       .returning();
 
-    logger.info('Signal generated', { signalId: signal.id, type: signalType });
+    logger.info('Signal generated via StrategyRunner', {
+      signalId: signal.id,
+      type: tradingSignal.type,
+      strength: tradingSignal.strength,
+      confidence: tradingSignal.confidence,
+    });
 
     return this.mapSignalFromDb(signal);
   }
@@ -494,7 +528,7 @@ export class StrategyService implements IStrategyService {
 
     logger.info('Backtest created', { backtestId: backtest.id });
 
-    // Run backtest asynchronously (placeholder - real implementation would be in separate worker)
+    // Run backtest asynchronously using BacktestEngine
     this.runBacktestAsync(backtest.id, strategy, request).catch((error) => {
       logger.error('Backtest failed', { backtestId: backtest.id, error });
     });
@@ -632,27 +666,6 @@ export class StrategyService implements IStrategyService {
   // ============================================================================
 
   /**
-   * Validate strategy request
-   */
-  private validateStrategyRequest(request: CreateStrategyRequest): void {
-    if (!request.name || request.name.trim().length === 0) {
-      throw new BadRequestError('Strategy name is required');
-    }
-
-    if (!request.exchangeId || !request.symbol || !request.timeframe) {
-      throw new BadRequestError('Exchange, symbol, and timeframe are required');
-    }
-
-    if (!request.indicators || request.indicators.length === 0) {
-      throw new BadRequestError('At least one indicator is required');
-    }
-
-    if (!request.conditions || request.conditions.length === 0) {
-      throw new BadRequestError('At least one condition is required');
-    }
-  }
-
-  /**
    * Validate strategy for execution
    */
   private validateStrategyForExecution(strategy: TradingStrategy): void {
@@ -665,31 +678,9 @@ export class StrategyService implements IStrategyService {
     }
   }
 
-  /**
-   * Calculate indicators (placeholder - real implementation in indicators module)
-   */
-  private calculateIndicators(ohlcvData: any[], _indicators: any[]): Record<string, any> {
-    // Placeholder implementation
-    return {
-      rsi: 50,
-      macd: { value: 0, signal: 0, histogram: 0 },
-      sma_20: ohlcvData[ohlcvData.length - 1]?.close || 0,
-    };
-  }
 
   /**
-   * Evaluate conditions (placeholder - real implementation would be more sophisticated)
-   */
-  private evaluateConditions(_indicatorValues: Record<string, any>, _conditions: any[]): string | null {
-    // Placeholder: Random signal generation for demonstration
-    const random = Math.random();
-    if (random > 0.9) return 'buy';
-    if (random < 0.1) return 'sell';
-    return null;
-  }
-
-  /**
-   * Run backtest asynchronously (placeholder)
+   * Run backtest asynchronously using BacktestEngine
    */
   private async runBacktestAsync(
     backtestId: string,
@@ -697,44 +688,148 @@ export class StrategyService implements IStrategyService {
     request: RunBacktestRequest
   ): Promise<void> {
     try {
-      // Placeholder implementation
-      // Real implementation would:
-      // 1. Fetch historical OHLCV data
-      // 2. Simulate strategy execution
-      // 3. Calculate performance metrics
-      // 4. Store results
+      logger.info('Starting backtest execution', {
+        backtestId,
+        strategyId: strategy.id,
+        startDate: request.startDate,
+        endDate: request.endDate,
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
+      // Import BacktestEngine
+      const { BacktestEngine } = await import('../../backtest/engine/backtest-engine');
 
-      // Update backtest with results
+      // Fetch historical market data
+      const ohlcvData = await OHLCVService.fetchOHLCV({
+        exchangeId: strategy.exchangeId,
+        symbol: strategy.symbol,
+        timeframe: strategy.timeframe,
+        since: request.startDate.getTime(),
+        until: request.endDate.getTime(),
+      });
+
+      if (ohlcvData.length === 0) {
+        throw new Error('No historical data available for backtest period');
+      }
+
+      logger.info('Historical data fetched', {
+        backtestId,
+        candles: ohlcvData.length,
+      });
+
+      // Initialize backtest engine
+      const engine = new BacktestEngine({
+        initialCapital: request.initialCapital,
+        feeRate: 0.001, // 0.1% default trading fee
+        slippage: 0.0005, // 0.05% default slippage
+      });
+
+      // Run backtest
+      const results = await engine.run(strategy, ohlcvData);
+
+      // Calculate additional metrics
+      const totalTrades = results.trades.length;
+      const winningTrades = results.trades.filter((t) => t.pnl > 0).length;
+      const losingTrades = results.trades.filter((t) => t.pnl < 0).length;
+      const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+
+      const totalWins = results.trades
+        .filter((t) => t.pnl > 0)
+        .reduce((sum, t) => sum + t.pnl, 0);
+      const totalLosses = Math.abs(
+        results.trades.filter((t) => t.pnl < 0).reduce((sum, t) => sum + t.pnl, 0)
+      );
+      const profitFactor = totalLosses > 0 ? totalWins / totalLosses : 0;
+
+      const averageWin = winningTrades > 0 ? totalWins / winningTrades : 0;
+      const averageLoss = losingTrades > 0 ? totalLosses / losingTrades : 0;
+
+      const largestWin = Math.max(...results.trades.map((t) => t.pnl), 0);
+      const largestLoss = Math.min(...results.trades.map((t) => t.pnl), 0);
+
+      // Calculate Sharpe Ratio
+      const returns = results.trades.map((t) => t.pnlPercent);
+      const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+      const stdDev = Math.sqrt(
+        returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
+      );
+      const sharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0; // Annualized
+
+      // Calculate Sortino Ratio (downside deviation)
+      const negativeReturns = returns.filter((r) => r < 0);
+      const downsideStdDev =
+        negativeReturns.length > 0
+          ? Math.sqrt(
+              negativeReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) /
+                negativeReturns.length
+            )
+          : 0;
+      const sortinoRatio = downsideStdDev > 0 ? (avgReturn / downsideStdDev) * Math.sqrt(252) : 0;
+
+      // Update backtest record with results
       await db
         .update(strategyBacktests)
         .set({
           status: 'completed',
-          finalCapital: (request.initialCapital * 1.1).toString(), // Placeholder
-          totalReturn: (request.initialCapital * 0.1).toString(),
-          totalReturnPercent: '10',
-          totalTrades: '50',
-          winningTrades: '30',
-          losingTrades: '20',
-          winRate: '60',
-          profitFactor: '1.5',
-          sharpeRatio: '1.2',
+          finalCapital: results.finalCapital.toString(),
+          totalReturn: (results.finalCapital - request.initialCapital).toString(),
+          totalReturnPercent: (
+            ((results.finalCapital - request.initialCapital) / request.initialCapital) *
+            100
+          ).toString(),
+          totalTrades: totalTrades.toString(),
+          winningTrades: winningTrades.toString(),
+          losingTrades: losingTrades.toString(),
+          winRate: winRate.toFixed(2),
+          profitFactor: profitFactor.toFixed(2),
+          sharpeRatio: sharpeRatio.toFixed(2),
+          sortinoRatio: sortinoRatio.toFixed(2),
+          maxDrawdown: results.maxDrawdown?.toString(),
+          maxDrawdownPercent: results.maxDrawdownPercent?.toString(),
+          averageWin: averageWin.toFixed(2),
+          averageLoss: averageLoss.toFixed(2),
+          largestWin: largestWin.toFixed(2),
+          largestLoss: largestLoss.toFixed(2),
+          trades: results.trades as any,
+          equityCurve: results.equityCurve as any,
           completedAt: new Date(),
         })
         .where(eq(strategyBacktests.id, backtestId));
 
-      logger.info('Backtest completed', { backtestId });
+      // Update strategy performance metrics
+      await db
+        .update(tradingStrategies)
+        .set({
+          totalTrades: totalTrades.toString(),
+          winningTrades: winningTrades.toString(),
+          losingTrades: losingTrades.toString(),
+          winRate: winRate.toFixed(2),
+          profitFactor: profitFactor.toFixed(2),
+          sharpeRatio: sharpeRatio.toFixed(2),
+          maxDrawdown: results.maxDrawdown?.toString(),
+          updatedAt: new Date(),
+        })
+        .where(eq(tradingStrategies.id, strategy.id));
+
+      logger.info('Backtest completed successfully', {
+        backtestId,
+        totalTrades,
+        winRate: winRate.toFixed(2),
+        profitFactor: profitFactor.toFixed(2),
+        finalCapital: results.finalCapital,
+      });
     } catch (error) {
-      logger.error('Backtest failed', { backtestId, error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Backtest execution failed', { backtestId, error: errorMessage });
 
       await db
         .update(strategyBacktests)
         .set({
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage,
         })
         .where(eq(strategyBacktests.id, backtestId));
+
+      throw error;
     }
   }
 
