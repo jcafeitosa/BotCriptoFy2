@@ -49,45 +49,9 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
   })
 
   /**
-   * GET /sentiment/:symbol
-   * Get aggregated sentiment for a symbol
-   */
-  .get('/:symbol', async ({ params, query }) => {
-    const { symbol } = params;
-    const { timeWindow } = query as { timeWindow?: string };
-
-    // TODO: Fetch from database
-    // For now, return mock data structure
-    return {
-      symbol: symbol.toUpperCase(),
-      score: 0,
-      magnitude: 0,
-      label: 'neutral' as const,
-      confidence: 0.5,
-      trend: {
-        direction: 'stable' as const,
-        strength: 0,
-        velocity: 0,
-      },
-      volume: 0,
-      change: 0,
-      sourceBreakdown: {},
-      timeWindow: parseInt(timeWindow || '86400000', 10),
-      dataPoints: 0,
-      lastUpdated: new Date(),
-    };
-  }, {
-    params: t.Object({
-      symbol: t.String(),
-    }),
-    query: t.Object({
-      timeWindow: t.Optional(t.String()),
-    }),
-  })
-
-  /**
    * GET /sentiment/trending
    * Get trending topics
+   * IMPORTANT: Must come BEFORE /:symbol to avoid conflicts
    */
   .get('/trending', async ({ query }) => {
     const { limit, symbol } = query as { limit?: string; symbol?: string };
@@ -385,4 +349,233 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
         websocketStreamingService.onDisconnect(clientId);
       }
     },
+  })
+
+  /**
+   * GET /sentiment/aggregate
+   * Aggregate sentiment across multiple symbols
+   */
+  .get('/aggregate', async ({ query }) => {
+    const symbols = query.symbols?.split(',') || [];
+    const timeframe = query.timeframe || '24h';
+
+    if (symbols.length === 0) {
+      return {
+        success: false,
+        error: 'At least one symbol required',
+      };
+    }
+
+    const results = await Promise.all(
+      symbols.map(async (symbol) => {
+        const sentiment = await sentimentAggregator.getAggregatedSentiment(
+          symbol.trim(),
+          timeframe
+        );
+        return { symbol: symbol.trim(), ...sentiment };
+      })
+    );
+
+    return {
+      success: true,
+      data: results,
+      timeframe,
+      timestamp: new Date().toISOString(),
+    };
+  }, {
+    query: t.Object({
+      symbols: t.String(),
+      timeframe: t.Optional(t.String()),
+    }),
+  })
+
+  /**
+   * GET /sentiment/sources
+   * List available sentiment sources
+   */
+  .get('/sources', async () => {
+    const sources = [
+      {
+        id: 'local',
+        name: 'Local VADER Analysis',
+        type: 'analysis',
+        enabled: true,
+        cost: 'free',
+        speed: 'fast',
+        accuracy: 'good',
+      },
+      {
+        id: 'ai',
+        name: 'AI-Powered Analysis',
+        type: 'analysis',
+        enabled: Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
+        cost: 'paid',
+        speed: 'medium',
+        accuracy: 'excellent',
+      },
+      {
+        id: 'rss',
+        name: 'RSS News Feeds',
+        type: 'source',
+        enabled: true,
+        cost: 'free',
+        speed: 'fast',
+        accuracy: 'good',
+      },
+      {
+        id: 'cryptopanic',
+        name: 'CryptoPanic',
+        type: 'source',
+        enabled: Boolean(process.env.CRYPTOPANIC_API_KEY),
+        cost: 'free/paid',
+        speed: 'fast',
+        accuracy: 'good',
+      },
+      {
+        id: 'twitter',
+        name: 'Twitter/X',
+        type: 'source',
+        enabled: Boolean(process.env.TWITTER_API_KEY),
+        cost: 'paid',
+        speed: 'fast',
+        accuracy: 'excellent',
+      },
+      {
+        id: 'reddit',
+        name: 'Reddit',
+        type: 'source',
+        enabled: Boolean(process.env.REDDIT_CLIENT_ID),
+        cost: 'free',
+        speed: 'medium',
+        accuracy: 'good',
+      },
+    ];
+
+    return {
+      success: true,
+      data: sources,
+      timestamp: new Date().toISOString(),
+    };
+  })
+
+  /**
+   * POST /sentiment/multi-source
+   * Analyze sentiment from multiple sources
+   */
+  .post('/multi-source', async ({ body }) => {
+    const { symbol, sources, timeframe } = body;
+
+    const results = await sentimentAggregator.analyzeMultiSource(
+      symbol,
+      sources || ['local', 'rss'],
+      timeframe || '24h'
+    );
+
+    return {
+      success: true,
+      data: results,
+      symbol,
+      sources: sources || ['local', 'rss'],
+      timeframe: timeframe || '24h',
+      timestamp: new Date().toISOString(),
+    };
+  }, {
+    body: t.Object({
+      symbol: t.String(),
+      sources: t.Optional(t.Array(t.String())),
+      timeframe: t.Optional(t.String()),
+    }),
+  })
+
+  /**
+   * POST /sentiment/correlation
+   * Calculate sentiment-price correlation
+   */
+  .post('/correlation', async ({ body }) => {
+    const { symbol, timeframe } = body;
+
+    const correlation = await priceCorrelationService.calculateCorrelation(
+      symbol,
+      timeframe || '7d'
+    );
+
+    return {
+      success: true,
+      data: correlation,
+      symbol,
+      timeframe: timeframe || '7d',
+      timestamp: new Date().toISOString(),
+    };
+  }, {
+    body: t.Object({
+      symbol: t.String(),
+      timeframe: t.Optional(t.String()),
+    }),
+  })
+
+  /**
+   * POST /sentiment/batch
+   * Batch analyze multiple texts
+   */
+  .post('/batch', async ({ body }) => {
+    const { texts } = body;
+
+    if (!Array.isArray(texts) || texts.length === 0) {
+      return {
+        success: false,
+        error: 'texts array required',
+      };
+    }
+
+    const results = await Promise.all(
+      texts.map(async (text) => {
+        const sentiment = await hybridSentimentService.analyzeSentiment(text, 'en');
+        return {
+          text,
+          ...sentiment,
+        };
+      })
+    );
+
+    return {
+      success: true,
+      data: results,
+      count: results.length,
+      timestamp: new Date().toISOString(),
+    };
+  }, {
+    body: t.Object({
+      texts: t.Array(t.String()),
+    }),
+  })
+
+  /**
+   * GET /sentiment/:symbol
+   * Get aggregated sentiment for a symbol
+   * IMPORTANT: Must be LAST to avoid conflicts with specific routes
+   */
+  .get('/:symbol', async ({ params, query }) => {
+    const { symbol } = params;
+    const { timeWindow } = query as { timeWindow?: string };
+
+    // Get aggregated sentiment from all sources
+    const sentiment = await sentimentAggregator.getAggregatedSentiment(
+      symbol.toUpperCase(),
+      timeWindow || '24h'
+    );
+
+    return {
+      success: true,
+      data: sentiment,
+      symbol: symbol.toUpperCase(),
+      timeWindow: timeWindow || '24h',
+      timestamp: new Date().toISOString(),
+    };
+  }, {
+    params: t.Object({
+      symbol: t.String(),
+    }),
+    query: t.Object({
+      timeWindow: t.Optional(t.String()),
+    }),
   });

@@ -5,7 +5,11 @@
  * @module sentiment/services/sources/reddit
  */
 
-import Snoowrap, { Submission, Comment } from 'snoowrap';
+import Snoowrap from 'snoowrap';
+
+// Types from snoowrap
+type Submission = any;
+type Comment = any;
 import type { RedditMention, RedditStreamConfig } from '../../types/social.types';
 
 /**
