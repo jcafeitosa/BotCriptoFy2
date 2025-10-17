@@ -179,10 +179,7 @@ export const publicSubscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
       const plan2 = await subscriptionPlansService.getPlanBySlug(params.slug2);
 
       // Compare using plan IDs
-      const comparison = await subscriptionPlansService.comparePlans(
-        plan1.id,
-        plan2.id
-      );
+      const comparison = await subscriptionPlansService.comparePlans(plan1.id, plan2.id);
 
       return {
         success: true,
