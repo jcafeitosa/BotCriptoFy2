@@ -98,7 +98,7 @@ export const analyticsRoutes = new Elysia({ prefix: '/api/v1/sales' })
     async ({ body, set, session }) => {
       try {
         const tenantId = (session as any)?.activeOrganizationId;
-        const target = await TargetsService.createTarget(body, tenantId);
+        const target = await TargetsService.createTarget(body as any, tenantId);
 
         return { success: true, data: target };
       } catch (error) {

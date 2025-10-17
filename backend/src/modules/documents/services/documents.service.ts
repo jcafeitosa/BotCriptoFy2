@@ -223,7 +223,7 @@ export class DocumentsService {
         folderName: (document.folder as any)?.name,
         folderPath: (document.folder as any)?.path,
         uploadedByName: (document.uploadedByUser as any)?.name,
-      };
+      } as DocumentWithDetails;
 
       // Cache result
       await cacheManager.set(this.CACHE_NAMESPACE, cacheKey, details, this.CACHE_TTL);
@@ -326,7 +326,7 @@ export class DocumentsService {
         folderName: (doc.folder as any)?.name,
         folderPath: (doc.folder as any)?.path,
         uploadedByName: (doc.uploadedByUser as any)?.name,
-      }));
+      } as DocumentWithDetails));
 
       return {
         success: true,

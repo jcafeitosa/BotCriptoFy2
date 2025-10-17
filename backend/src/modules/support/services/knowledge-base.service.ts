@@ -103,12 +103,13 @@ export class KnowledgeBaseService {
     }
 
     if (filters.search) {
-      conditions.push(
-        or(
-          like(knowledgeBaseArticles.title, `%${filters.search}%`),
-          like(knowledgeBaseArticles.content, `%${filters.search}%`)
-        )
+      const searchCondition = or(
+        like(knowledgeBaseArticles.title, `%${filters.search}%`),
+        like(knowledgeBaseArticles.content, `%${filters.search}%`)
       );
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
     }
 
     // Get total count

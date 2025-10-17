@@ -44,7 +44,7 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
             accessLevel: metadata.accessLevel,
             allowedRoles: metadata.allowedRoles,
             metadata: metadata.metadata,
-          },
+          } as any,
           userId,
           tenantId
         );

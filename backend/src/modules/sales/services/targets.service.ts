@@ -88,8 +88,8 @@ export class TargetsService {
       const dealConditions = [
         eq(deals.tenantId, tenantId),
         eq(deals.status, 'won'),
-        gte(deals.actualCloseDate, target.startDate),
-        lte(deals.actualCloseDate, target.endDate),
+        gte(deals.actualCloseDate, target.startDate as any),
+        lte(deals.actualCloseDate, target.endDate as any),
       ];
 
       if (target.userId) {

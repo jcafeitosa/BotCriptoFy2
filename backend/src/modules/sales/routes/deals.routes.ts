@@ -22,7 +22,7 @@ export const dealsRoutes = new Elysia({ prefix: '/api/v1/sales/deals' })
         const tenantId = (session as any)?.activeOrganizationId;
         const userId = (session as any)?.userId;
 
-        const deal = await DealsService.createDeal(body, userId, tenantId);
+        const deal = await DealsService.createDeal(body as any, userId, tenantId);
 
         return { success: true, data: deal };
       } catch (error) {
@@ -100,7 +100,7 @@ export const dealsRoutes = new Elysia({ prefix: '/api/v1/sales/deals' })
   .patch('/:id', async ({ params, body, set, session }) => {
     try {
       const tenantId = (session as any)?.activeOrganizationId;
-      const deal = await DealsService.updateDeal(params.id, body, tenantId);
+      const deal = await DealsService.updateDeal(params.id, body as any, tenantId);
 
       return { success: true, data: deal };
     } catch (error) {

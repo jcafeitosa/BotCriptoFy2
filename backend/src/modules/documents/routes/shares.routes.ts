@@ -24,7 +24,7 @@ export const sharesRoutes = new Elysia({ prefix: '/documents' })
           {
             documentId: params.id,
             ...body,
-          },
+          } as any,
           userId,
           tenantId
         );

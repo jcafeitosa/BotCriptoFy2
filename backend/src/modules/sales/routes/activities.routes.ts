@@ -98,7 +98,7 @@ export const activitiesRoutes = new Elysia({ prefix: '/api/v1/sales/activities' 
   .patch('/:id', async ({ params, body, set, session }) => {
     try {
       const tenantId = (session as any)?.activeOrganizationId;
-      const activity = await ActivitiesService.updateActivity(params.id, body, tenantId);
+      const activity = await ActivitiesService.updateActivity(params.id, body as any, tenantId);
 
       return { success: true, data: activity };
     } catch (error) {

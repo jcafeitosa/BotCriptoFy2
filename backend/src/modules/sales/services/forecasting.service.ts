@@ -67,7 +67,7 @@ export class ForecastingService {
       tenantId,
       createdBy: userId,
       period,
-      forecastDate,
+      forecastDate: forecastDate.toISOString(),
       predictedRevenue: forecastData.predictedRevenue.toString(),
       weightedRevenue: forecastData.weightedRevenue.toString(),
       bestCase: forecastData.bestCase.toString(),

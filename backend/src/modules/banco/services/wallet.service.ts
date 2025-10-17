@@ -528,7 +528,7 @@ export class WalletService {
       const [walletAsset] = await db
         .select()
         .from(walletAssets)
-        .where(and(eq(walletAssets.walletId, walletId), eq(walletAssets.asset, asset)))
+        .where(and(eq(walletAssets.walletId, walletId), eq(walletAssets.asset, asset as any)))
         .limit(1);
 
       if (!walletAsset) {
@@ -607,7 +607,7 @@ export class WalletService {
       const [existing] = await db
         .select()
         .from(walletAssets)
-        .where(and(eq(walletAssets.walletId, walletId), eq(walletAssets.asset, asset)))
+        .where(and(eq(walletAssets.walletId, walletId), eq(walletAssets.asset, asset as any)))
         .limit(1);
 
       if (existing) {
