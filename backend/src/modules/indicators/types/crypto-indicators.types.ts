@@ -5,7 +5,7 @@
  * @module indicators/types/crypto-indicators
  */
 
-import type { BaseIndicatorConfig } from './indicators.types';
+import type { BaseIndicatorConfig, IndicatorType } from './indicators-full.types';
 
 // ============================================================================
 // CRYPTO MOMENTUM INDICATORS
@@ -15,7 +15,7 @@ import type { BaseIndicatorConfig } from './indicators.types';
  * Stochastic RSI Configuration (Very popular in crypto)
  */
 export interface StochasticRSIConfig extends BaseIndicatorConfig {
-  type: 'StochasticRSI';
+  type: 'StochRSI';  // Fixed: StochasticRSI → StochRSI
   rsiPeriod: number;     // Default: 14
   stochPeriod: number;   // Default: 14
   kPeriod: number;       // Default: 3
@@ -100,7 +100,7 @@ export interface KSTResult {
  * Force Index Configuration
  */
 export interface ForceIndexConfig extends BaseIndicatorConfig {
-  type: 'ForceIndex';
+  type: 'FI';  // Fixed: ForceIndex → FI
   period: number; // Default: 13
 }
 
@@ -191,9 +191,10 @@ export interface AroonResult {
 
 /**
  * SuperTrend Configuration (Popular in crypto)
+ * NOTE: Not available in @ixjb94/indicators library - needs custom implementation
  */
-export interface SuperTrendConfig extends BaseIndicatorConfig {
-  type: 'SuperTrend';
+export interface SuperTrendConfig {
+  type: 'SuperTrend';  // Custom indicator - not in IndicatorType enum
   period: number;      // Default: 10
   multiplier: number;  // Default: 3
 }
@@ -209,9 +210,11 @@ export interface SuperTrendResult {
 
 /**
  * Ichimoku Cloud Configuration (Very popular in crypto)
+ * NOTE: Not available in @ixjb94/indicators library - needs custom implementation
+ * Library has IkhTS but it's not implemented yet
  */
-export interface IchimokuConfig extends BaseIndicatorConfig {
-  type: 'Ichimoku';
+export interface IchimokuConfig {
+  type: 'Ichimoku';  // Custom indicator - not in IndicatorType enum
   conversionPeriod: number;  // Tenkan-sen: Default 9
   basePeriod: number;        // Kijun-sen: Default 26
   spanBPeriod: number;       // Senkou Span B: Default 52
@@ -239,7 +242,7 @@ export interface IchimokuResult {
  * Donchian Channel Configuration (Breakout trading)
  */
 export interface DonchianChannelConfig extends BaseIndicatorConfig {
-  type: 'DonchianChannel';
+  type: 'DC';  // Fixed: DonchianChannel → DC
   period: number; // Default: 20
 }
 
@@ -280,7 +283,7 @@ export interface CMFResult {
  * Volume Oscillator Configuration
  */
 export interface VolumeOscillatorConfig extends BaseIndicatorConfig {
-  type: 'VolumeOscillator';
+  type: 'VOSC';  // Fixed: VolumeOscillator → VOSC
   shortPeriod: number; // Default: 5
   longPeriod: number;  // Default: 10
 }
@@ -300,9 +303,10 @@ export interface VolumeOscillatorResult {
 
 /**
  * Pivot Points Configuration (Classic, Fibonacci, Woodie, Camarilla)
+ * NOTE: Not available in @ixjb94/indicators library - needs custom implementation
  */
-export interface PivotPointsConfig extends BaseIndicatorConfig {
-  type: 'PivotPoints';
+export interface PivotPointsConfig {
+  type: 'PivotPoints';  // Custom indicator - not in IndicatorType enum
   method: 'classic' | 'fibonacci' | 'woodie' | 'camarilla'; // Default: classic
 }
 
@@ -322,9 +326,10 @@ export interface PivotPointsResult {
 
 /**
  * Fibonacci Retracement Configuration
+ * NOTE: Not available in @ixjb94/indicators library - needs custom implementation
  */
-export interface FibonacciRetracementConfig extends BaseIndicatorConfig {
-  type: 'FibonacciRetracement';
+export interface FibonacciRetracementConfig {
+  type: 'FibonacciRetracement';  // Custom indicator - not in IndicatorType enum
   high: number;  // Swing high
   low: number;   // Swing low
   trend: 'uptrend' | 'downtrend';

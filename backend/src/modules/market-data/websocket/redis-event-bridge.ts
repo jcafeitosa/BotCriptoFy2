@@ -31,6 +31,8 @@ export interface RedisEventBridgeConfig {
   enablePublishing?: boolean;
   /** Enable event subscription */
   enableSubscription?: boolean;
+  /** Unique instance ID (defaults to process.pid for production, can be overridden for testing) */
+  instanceId?: string | number;
   /** Reconnection strategy */
   reconnection?: {
     maxRetries?: number;
@@ -50,6 +52,7 @@ const DEFAULT_CONFIG: Required<RedisEventBridgeConfig> = {
   keyPrefix: 'ws:',
   enablePublishing: true,
   enableSubscription: true,
+  instanceId: process.pid, // Default to process PID
   reconnection: {
     maxRetries: 10,
     retryDelay: 1000,
@@ -219,7 +222,7 @@ export class RedisEventBridge extends EventEmitter {
         type: event.type,
         data: event.data,
         timestamp: Date.now(),
-        source: process.pid, // Instance identifier
+        source: this.config.instanceId, // Instance identifier (process.pid or custom ID)
       });
 
       await this.publisher.publish(channel, message);
@@ -400,8 +403,8 @@ export class RedisEventBridge extends EventEmitter {
       const parsed = JSON.parse(message);
       const { type, data, timestamp, source } = parsed;
 
-      // Ignore own messages (same process)
-      if (source === process.pid) {
+      // Ignore own messages (same instance ID)
+      if (source === this.config.instanceId) {
         return;
       }
 
