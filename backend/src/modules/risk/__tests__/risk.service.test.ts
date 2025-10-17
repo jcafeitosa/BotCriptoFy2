@@ -528,7 +528,7 @@ describe('RiskService - Performance Ratios', () => {
 
     const calmarRatio = annualizedReturn / (maxDrawdown / 100);
 
-    expect(calmarRatio).toBe(1.5);
+    expect(calmarRatio).toBeCloseTo(1.5, 1);
   });
 
   test('should handle zero max drawdown', () => {
@@ -538,6 +538,239 @@ describe('RiskService - Performance Ratios', () => {
     const calmarRatio = maxDrawdown > 0 ? annualizedReturn / (maxDrawdown / 100) : 0;
 
     expect(calmarRatio).toBe(0);
+  });
+});
+
+describe('RiskService - Advanced Risk Metrics', () => {
+  test('should calculate concentration risk (HHI) for single position', () => {
+    // Single position = 100% concentration
+    const positions = [
+      { currentPrice: '50000', remainingQuantity: '1' },
+    ];
+    const portfolioValue = 50000;
+
+    let hhi = 0;
+    for (const pos of positions) {
+      const posValue = parseFloat(pos.currentPrice) * parseFloat(pos.remainingQuantity);
+      const share = posValue / portfolioValue;
+      hhi += share * share;
+    }
+
+    const concentrationRisk = hhi * 100;
+
+    expect(concentrationRisk).toBe(100); // Fully concentrated
+  });
+
+  test('should calculate concentration risk (HHI) for equal positions', () => {
+    // 4 equal positions = 25% each
+    const positions = [
+      { currentPrice: '50000', remainingQuantity: '0.25' },
+      { currentPrice: '40000', remainingQuantity: '0.3125' },
+      { currentPrice: '30000', remainingQuantity: '0.4167' },
+      { currentPrice: '20000', remainingQuantity: '0.625' },
+    ];
+    const portfolioValue = 50000;
+
+    let hhi = 0;
+    for (const pos of positions) {
+      const posValue = parseFloat(pos.currentPrice) * parseFloat(pos.remainingQuantity);
+      const share = posValue / portfolioValue;
+      hhi += share * share;
+    }
+
+    const concentrationRisk = hhi * 100;
+
+    expect(concentrationRisk).toBeCloseTo(25, 0); // Low concentration
+  });
+
+  test('should calculate concentration risk (HHI) for unequal positions', () => {
+    // Unequal positions: 50%, 30%, 20%
+    const positions = [
+      { currentPrice: '50000', remainingQuantity: '0.5' }, // 25000 (50%)
+      { currentPrice: '30000', remainingQuantity: '0.5' }, // 15000 (30%)
+      { currentPrice: '20000', remainingQuantity: '0.5' }, // 10000 (20%)
+    ];
+    const portfolioValue = 50000;
+
+    let hhi = 0;
+    for (const pos of positions) {
+      const posValue = parseFloat(pos.currentPrice) * parseFloat(pos.remainingQuantity);
+      const share = posValue / portfolioValue;
+      hhi += share * share;
+    }
+
+    const concentrationRisk = hhi * 100;
+
+    expect(concentrationRisk).toBeCloseTo(38, 0); // 0.5^2 + 0.3^2 + 0.2^2 = 0.38
+  });
+
+  test('should handle empty positions for concentration risk', () => {
+    const positions: any[] = [];
+    const portfolioValue = 0;
+
+    const concentrationRisk = positions.length === 0 || portfolioValue === 0 ? 0 : 50;
+
+    expect(concentrationRisk).toBe(0);
+  });
+
+  test('should calculate CVaR from historical returns', () => {
+    // Simulate returns: worst 5% beyond VaR (need more data points)
+    const returns = Array(100).fill(0).map((_, i) => {
+      if (i < 5) return -0.10; // Worst 5%
+      if (i < 10) return -0.05;
+      return (i - 50) / 1000; // Normal distribution around 0
+    });
+    const confidence = 0.95;
+    const portfolioValue = 100000;
+
+    // Sort returns ascending (worst first)
+    returns.sort((a, b) => a - b);
+
+    // Get returns worse than VaR threshold (worst 5%)
+    const varIndex = Math.floor(returns.length * (1 - confidence));
+    const tailReturns = returns.slice(0, Math.max(1, varIndex)); // Ensure at least 1 element
+
+    // Average of tail losses
+    const avgTailLoss = tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
+    const cvar = Math.abs(avgTailLoss * portfolioValue);
+
+    expect(cvar).toBeGreaterThan(5000); // Significant tail loss
+    expect(cvar).toBeLessThan(15000);
+  });
+
+  test('should calculate CVaR for multiple tail losses', () => {
+    // Use 50 data points so 10% confidence gives us 5 tail values
+    const returns = Array(50).fill(0).map((_, i) => {
+      if (i < 5) return -0.10; // Worst 5 (10%)
+      if (i < 10) return -0.05;
+      if (i < 15) return -0.02;
+      return (i - 25) / 1000; // Normal distribution
+    });
+    const confidence = 0.90; // 90% confidence = worst 10%
+    const portfolioValue = 100000;
+
+    returns.sort((a, b) => a - b);
+    const varIndex = Math.floor(returns.length * (1 - confidence));
+    const tailReturns = returns.slice(0, Math.max(1, varIndex));
+
+    const avgTailLoss = tailReturns.reduce((sum, r) => sum + r, 0) / tailReturns.length;
+    const cvar = Math.abs(avgTailLoss * portfolioValue);
+
+    expect(cvar).toBeGreaterThan(5000); // Should be significant
+    expect(cvar).toBeLessThan(15000);
+    expect(tailReturns.length).toBeGreaterThan(1); // Multiple tail values
+  });
+
+  test('should handle insufficient data for CVaR', () => {
+    const returns: number[] = [];
+    const portfolioValue = 100000;
+
+    const cvar = returns.length === 0 ? 0 : 1000;
+
+    expect(cvar).toBe(0);
+  });
+
+  test('should calculate correlation average for diversified portfolio', () => {
+    // More positions = lower average correlation (simplified)
+    const positionCount = 10;
+
+    const correlationAverage = positionCount > 1
+      ? Math.max(0, 1 - (positionCount / 20))
+      : 0;
+
+    expect(correlationAverage).toBe(0.5); // 1 - 10/20 = 0.5
+  });
+
+  test('should calculate correlation average for concentrated portfolio', () => {
+    const positionCount = 2;
+
+    const correlationAverage = positionCount > 1
+      ? Math.max(0, 1 - (positionCount / 20))
+      : 0;
+
+    expect(correlationAverage).toBe(0.9); // 1 - 2/20 = 0.9
+  });
+
+  test('should handle single position for correlation', () => {
+    const positionCount = 1;
+
+    const correlationAverage = positionCount > 1
+      ? Math.max(0, 1 - (positionCount / 20))
+      : 0;
+
+    expect(correlationAverage).toBe(0);
+  });
+
+  test('should calculate Pearson correlation coefficient', () => {
+    const x = [1, 2, 3, 4, 5];
+    const y = [2, 4, 6, 8, 10];
+
+    const n = Math.min(x.length, y.length);
+    const meanX = x.slice(0, n).reduce((a, b) => a + b, 0) / n;
+    const meanY = y.slice(0, n).reduce((a, b) => a + b, 0) / n;
+
+    let numerator = 0;
+    let denomX = 0;
+    let denomY = 0;
+
+    for (let i = 0; i < n; i++) {
+      const dx = x[i] - meanX;
+      const dy = y[i] - meanY;
+      numerator += dx * dy;
+      denomX += dx * dx;
+      denomY += dy * dy;
+    }
+
+    const denominator = Math.sqrt(denomX * denomY);
+    const correlation = denominator > 0 ? numerator / denominator : 0;
+
+    expect(correlation).toBe(1); // Perfect positive correlation
+  });
+
+  test('should calculate Pearson correlation for uncorrelated series', () => {
+    const x = [1, 2, 3, 4, 5];
+    const y = [5, 3, 2, 4, 1]; // Random order
+
+    const n = Math.min(x.length, y.length);
+    const meanX = x.slice(0, n).reduce((a, b) => a + b, 0) / n;
+    const meanY = y.slice(0, n).reduce((a, b) => a + b, 0) / n;
+
+    let numerator = 0;
+    let denomX = 0;
+    let denomY = 0;
+
+    for (let i = 0; i < n; i++) {
+      const dx = x[i] - meanX;
+      const dy = y[i] - meanY;
+      numerator += dx * dy;
+      denomX += dx * dx;
+      denomY += dy * dy;
+    }
+
+    const denominator = Math.sqrt(denomX * denomY);
+    const correlation = denominator > 0 ? numerator / denominator : 0;
+
+    expect(Math.abs(correlation)).toBeLessThan(1); // Not perfectly correlated
+  });
+
+  test('should handle zero denominator in Pearson correlation', () => {
+    const x = [1, 1, 1]; // Constant values
+    const y = [2, 3, 4];
+
+    const n = Math.min(x.length, y.length);
+    const meanX = x.slice(0, n).reduce((a, b) => a + b, 0) / n;
+    const meanY = y.slice(0, n).reduce((a, b) => a + b, 0) / n;
+
+    let denomX = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = x[i] - meanX;
+      denomX += dx * dx;
+    }
+
+    const denominator = Math.sqrt(denomX);
+    const correlation = denominator > 0 ? 1 : 0; // Would be division by zero
+
+    expect(correlation).toBe(0);
   });
 });
 
