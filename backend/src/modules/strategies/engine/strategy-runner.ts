@@ -5,6 +5,8 @@
 
 import logger from '@/utils/logger';
 import { OHLCVService } from '../../market-data/services/ohlcv.service';
+import { IndicatorFactory } from '../../indicators/services/indicator-factory.service';
+import type { OHLCVData, BaseIndicatorConfig } from '../../indicators/types/indicators.types';
 import type { TradingSignal } from '../../bots/engine/execution-engine.types';
 import type { TradingStrategy, ConditionRule, StrategyCondition } from '../types/strategies.types';
 import type {
@@ -13,22 +15,18 @@ import type {
   MarketDataPoint,
   IndicatorResult,
   ConditionEvaluationResult,
-  IIndicatorCalculator,
 } from './strategy-runner.types';
 import { DEFAULT_STRATEGY_RUNNER_CONFIG } from './strategy-runner.types';
-import { INDICATOR_REGISTRY } from './indicators';
 
 /**
  * Strategy Runner Implementation
  */
 export class StrategyRunner implements IStrategyRunner {
   private config: StrategyRunnerConfig;
-  private indicators: Map<string, IIndicatorCalculator>;
   private cache: Map<string, { data: any; timestamp: number }>;
 
   constructor(config?: Partial<StrategyRunnerConfig>) {
     this.config = { ...DEFAULT_STRATEGY_RUNNER_CONFIG, ...config };
-    this.indicators = new Map(Object.entries(INDICATOR_REGISTRY));
     this.cache = new Map();
   }
 
@@ -101,7 +99,27 @@ export class StrategyRunner implements IStrategyRunner {
   }
 
   /**
-   * Calculate all indicators for strategy
+   * Convert indicator type from strategy config to IndicatorFactory format
+   * Strategy uses lowercase (rsi, sma, ema), IndicatorFactory uses PascalCase/UPPERCASE (RSI, SMA, EMA)
+   */
+  private convertIndicatorType(type: string): string {
+    const typeMap: Record<string, string> = {
+      'rsi': 'RSI',
+      'macd': 'MACD',
+      'sma': 'SMA',
+      'ema': 'EMA',
+      'atr': 'ATR',
+      'adx': 'ADX',
+      'bollinger_bands': 'BollingerBands',
+      'stochastic': 'Stochastic',
+      'vwap': 'VWAP',
+    };
+
+    return typeMap[type.toLowerCase()] || type;
+  }
+
+  /**
+   * Calculate all indicators for strategy using IndicatorFactory
    */
   async calculateIndicators(
     strategy: TradingStrategy,
@@ -109,57 +127,86 @@ export class StrategyRunner implements IStrategyRunner {
   ): Promise<IndicatorResult[]> {
     const results: IndicatorResult[] = [];
 
+    // Convert MarketDataPoint[] to OHLCVData[]
+    const ohlcvData: OHLCVData[] = marketData.map(point => ({
+      timestamp: point.timestamp,
+      open: point.open,
+      high: point.high,
+      low: point.low,
+      close: point.close,
+      volume: point.volume,
+    }));
+
     for (const indicatorConfig of strategy.indicators) {
       if (!indicatorConfig.enabled) {
         continue;
       }
 
-      const calculator = this.indicators.get(indicatorConfig.type);
-      if (!calculator) {
-        logger.warn('Unknown indicator type', { type: indicatorConfig.type });
-        continue;
-      }
-
-      // Check if we have enough data
-      const requiredPeriod = calculator.getRequiredPeriod();
-      if (marketData.length < requiredPeriod) {
+      // Check if we have minimum data
+      if (ohlcvData.length < 10) {
         logger.warn('Insufficient data for indicator', {
           type: indicatorConfig.type,
-          dataPoints: marketData.length,
-          required: requiredPeriod,
+          dataPoints: ohlcvData.length,
         });
         continue;
       }
 
-      // Validate configuration
-      if (!calculator.validateConfig(indicatorConfig.parameters)) {
-        logger.warn('Invalid indicator configuration', {
-          type: indicatorConfig.type,
-          parameters: indicatorConfig.parameters,
-        });
-        continue;
-      }
-
-      // Calculate indicator
+      // Calculate indicator using IndicatorFactory
       try {
-        const value = calculator.calculate(marketData, indicatorConfig.parameters);
+        // Convert indicator type to IndicatorFactory format
+        const factoryType = this.convertIndicatorType(indicatorConfig.type);
 
+        const config: BaseIndicatorConfig = {
+          type: factoryType as any,
+          period: indicatorConfig.parameters?.period || 14,
+          parameters: indicatorConfig.parameters,
+        };
+
+        const factoryResult = await IndicatorFactory.calculate(ohlcvData, config);
+
+        // Extract numeric value from IndicatorFactory result
+        // IndicatorFactory returns objects like { rsi: 50 } or { sma: 45000 }
+        // We need to extract the main numeric value
+        let numericValue: number | Record<string, number> = factoryResult.value;
+
+        if (typeof factoryResult.value === 'object' && factoryResult.value !== null) {
+          // For RSI: extract 'rsi' field
+          // For MACD: keep full object { macd, signal, histogram }
+          // For SMA/EMA: extract 'sma'/'ema' field
+          // For BollingerBands: keep full object { upper, middle, lower }
+          const type = factoryType.toLowerCase();
+          if (type === 'rsi' && 'rsi' in factoryResult.value) {
+            numericValue = (factoryResult.value as any).rsi;
+          } else if ((type === 'sma' || type === 'ema') && type in factoryResult.value) {
+            numericValue = (factoryResult.value as any)[type];
+          } else {
+            // Keep full object for complex indicators (MACD, BollingerBands)
+            numericValue = factoryResult.value;
+          }
+        }
+
+        // Convert IndicatorFactory result to StrategyRunner IndicatorResult format
+        // Keep original type from strategy config
         results.push({
           name: indicatorConfig.type,
           type: indicatorConfig.type,
-          value,
-          timestamp: marketData[marketData.length - 1].timestamp,
+          value: numericValue,
+          timestamp: factoryResult.timestamp,
         });
 
-        logger.debug('Indicator calculated', {
+        logger.debug('Indicator calculated via IndicatorFactory', {
           type: indicatorConfig.type,
-          value,
+          factoryType,
+          value: factoryResult.value,
         });
       } catch (error) {
         logger.error('Indicator calculation failed', {
           type: indicatorConfig.type,
           error: error instanceof Error ? error.message : String(error),
         });
+
+        // Continue processing other indicators even if one fails
+        continue;
       }
     }
 
@@ -411,14 +458,6 @@ export class StrategyRunner implements IStrategyRunner {
       });
       throw error;
     }
-  }
-
-  /**
-   * Register a custom indicator
-   */
-  registerIndicator(type: string, calculator: IIndicatorCalculator): void {
-    this.indicators.set(type, calculator);
-    logger.info('Custom indicator registered', { type });
   }
 
   /**

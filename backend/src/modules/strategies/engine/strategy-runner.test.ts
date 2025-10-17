@@ -433,33 +433,12 @@ describe('StrategyRunner - Signal Generation', () => {
   });
 });
 
-describe('StrategyRunner - Custom Indicators', () => {
-  let runner: StrategyRunner;
-
-  beforeEach(() => {
-    runner = new StrategyRunner();
-  });
-
-  test('should register custom indicator', () => {
-    const customCalculator = {
-      calculate: (data: MarketDataPoint[]) => data[data.length - 1].close,
-      getRequiredPeriod: () => 1,
-      validateConfig: () => true,
-    };
-
-    runner.registerIndicator('custom', customCalculator);
-
-    const strategy = createTestStrategy({
-      indicators: [{ type: 'custom', parameters: {}, enabled: true }],
-    });
-
-    const marketData = generateMarketData(100);
-
-    runner.calculateIndicators(strategy, marketData).then((indicators) => {
-      const custom = indicators.find((i) => i.type === 'custom');
-      expect(custom).toBeDefined();
-    });
-  });
+// NOTE: Custom indicators via registerIndicator() removed
+// StrategyRunner now uses IndicatorFactory from indicators module
+// Custom indicators should be added to the indicators module instead
+describe.skip('StrategyRunner - Custom Indicators', () => {
+  // This test suite is skipped as the registerIndicator API was removed
+  // in favor of using the centralized IndicatorFactory from indicators module
 });
 
 describe('StrategyRunner - Error Handling', () => {

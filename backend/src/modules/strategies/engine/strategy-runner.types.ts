@@ -138,11 +138,6 @@ export interface IStrategyRunner {
     indicators: IndicatorResult[],
     currentPrice: number
   ): ConditionEvaluationResult;
-
-  /**
-   * Register custom indicator
-   */
-  registerIndicator(type: string, calculator: IIndicatorCalculator): void;
 }
 
 /**
