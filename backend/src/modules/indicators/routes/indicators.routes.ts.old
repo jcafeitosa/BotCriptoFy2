@@ -1,0 +1,513 @@
+/**
+ * Indicators API Routes
+ * RESTful endpoints for indicator calculations and management
+ *
+ * @module indicators/routes
+ */
+
+import { Elysia, t } from 'elysia';
+import { indicatorsService } from '../services/indicators.service';
+import type {
+  CalculateIndicatorRequest,
+  BatchCalculateRequest,
+  CreatePresetRequest,
+  UpdatePresetRequest,
+} from '../types/indicators.types';
+import logger from '@/utils/logger';
+
+/**
+ * Zod-like validation schemas using Elysia's type system
+ */
+const IndicatorConfigSchema = t.Object({
+  type: t.String(),
+  period: t.Optional(t.Number()),
+  parameters: t.Optional(t.Record(t.String(), t.Any())),
+});
+
+const CalculateRequestSchema = t.Object({
+  exchangeId: t.String({ minLength: 1 }),
+  symbol: t.String({ minLength: 1 }),
+  timeframe: t.Union([
+    t.Literal('1m'),
+    t.Literal('3m'),
+    t.Literal('5m'),
+    t.Literal('15m'),
+    t.Literal('30m'),
+    t.Literal('1h'),
+    t.Literal('2h'),
+    t.Literal('4h'),
+    t.Literal('6h'),
+    t.Literal('12h'),
+    t.Literal('1d'),
+    t.Literal('1w'),
+    t.Literal('1M'),
+  ]),
+  indicatorType: t.String({ minLength: 1 }),
+  configuration: IndicatorConfigSchema,
+  limit: t.Optional(t.Number({ minimum: 10, maximum: 1000 })),
+  useCache: t.Optional(t.Boolean()),
+});
+
+const BatchCalculateRequestSchema = t.Object({
+  exchangeId: t.String({ minLength: 1 }),
+  symbol: t.String({ minLength: 1 }),
+  timeframe: t.Union([
+    t.Literal('1m'),
+    t.Literal('3m'),
+    t.Literal('5m'),
+    t.Literal('15m'),
+    t.Literal('30m'),
+    t.Literal('1h'),
+    t.Literal('2h'),
+    t.Literal('4h'),
+    t.Literal('6h'),
+    t.Literal('12h'),
+    t.Literal('1d'),
+    t.Literal('1w'),
+    t.Literal('1M'),
+  ]),
+  indicators: t.Array(IndicatorConfigSchema, { minItems: 1, maxItems: 20 }),
+  limit: t.Optional(t.Number({ minimum: 10, maximum: 1000 })),
+  useCache: t.Optional(t.Boolean()),
+});
+
+const CreatePresetRequestSchema = t.Object({
+  name: t.String({ minLength: 1, maxLength: 255 }),
+  description: t.Optional(t.String({ maxLength: 1000 })),
+  category: t.Union([
+    t.Literal('momentum'),
+    t.Literal('trend'),
+    t.Literal('volatility'),
+    t.Literal('volume'),
+    t.Literal('support_resistance'),
+  ]),
+  indicatorType: t.String({ minLength: 1 }),
+  configuration: IndicatorConfigSchema,
+  isPublic: t.Optional(t.Boolean()),
+  tags: t.Optional(t.Array(t.String())),
+});
+
+const UpdatePresetRequestSchema = t.Object({
+  name: t.Optional(t.String({ minLength: 1, maxLength: 255 })),
+  description: t.Optional(t.String({ maxLength: 1000 })),
+  configuration: t.Optional(IndicatorConfigSchema),
+  isPublic: t.Optional(t.Boolean()),
+  tags: t.Optional(t.Array(t.String())),
+});
+
+const ClearCacheRequestSchema = t.Object({
+  exchangeId: t.Optional(t.String()),
+  symbol: t.Optional(t.String()),
+  indicatorType: t.Optional(t.String()),
+});
+
+/**
+ * Create Indicators Routes Plugin
+ */
+export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
+  /**
+   * Calculate single indicator
+   * POST /indicators/calculate
+   */
+  .post(
+    '/calculate',
+    async ({ body, set }) => {
+      try {
+        logger.info('Calculating indicator', {
+          type: body.indicatorType,
+          symbol: body.symbol,
+        });
+
+        const result = await indicatorsService.calculate(body as CalculateIndicatorRequest);
+
+        if (!result.success) {
+          set.status = 400;
+          return {
+            success: false,
+            error: result.error,
+          };
+        }
+
+        return {
+          success: true,
+          data: result.data,
+          fromCache: result.fromCache,
+          calculationTime: result.calculationTime,
+        };
+      } catch (error) {
+        logger.error('Indicator calculation failed', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      body: CalculateRequestSchema,
+      detail: {
+        tags: ['Indicators'],
+        summary: 'Calculate single indicator',
+        description:
+          'Calculate a technical indicator for a specific symbol and timeframe. Results are cached for improved performance.',
+      },
+    }
+  )
+
+  /**
+   * Calculate multiple indicators in batch
+   * POST /indicators/batch
+   */
+  .post(
+    '/batch',
+    async ({ body, set }) => {
+      try {
+        logger.info('Batch calculating indicators', {
+          symbol: body.symbol,
+          count: body.indicators.length,
+        });
+
+        const result = await indicatorsService.calculateBatch(body as BatchCalculateRequest);
+
+        return {
+          success: result.success,
+          results: result.results,
+          totalCalculationTime: result.totalCalculationTime,
+        };
+      } catch (error) {
+        logger.error('Batch calculation failed', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      body: BatchCalculateRequestSchema,
+      detail: {
+        tags: ['Indicators'],
+        summary: 'Calculate multiple indicators',
+        description: 'Calculate multiple technical indicators in a single request for improved performance.',
+      },
+    }
+  )
+
+  /**
+   * List indicator presets
+   * GET /indicators/presets
+   */
+  .get(
+    '/presets',
+    async ({ query, set }) => {
+      try {
+        // TODO: Get userId and tenantId from auth context
+        const userId = 'system';
+        const tenantId = 'system';
+
+        const presets = await indicatorsService.getPresets(userId, tenantId, {
+          category: query.category as any,
+          indicatorType: query.indicatorType as any,
+        });
+
+        return {
+          success: true,
+          data: presets,
+          count: presets.length,
+        };
+      } catch (error) {
+        logger.error('Failed to get presets', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      query: t.Object({
+        category: t.Optional(t.String()),
+        indicatorType: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Presets'],
+        summary: 'List indicator presets',
+        description: 'Get all indicator presets with optional filtering by category or indicator type.',
+      },
+    }
+  )
+
+  /**
+   * Create new indicator preset
+   * POST /indicators/presets
+   */
+  .post(
+    '/presets',
+    async ({ body, set }) => {
+      try {
+        // TODO: Get userId and tenantId from auth context
+        const userId = 'system';
+        const tenantId = 'system';
+
+        logger.info('Creating indicator preset', { name: body.name });
+
+        const preset = await indicatorsService.createPreset(
+          userId,
+          tenantId,
+          body as CreatePresetRequest
+        );
+
+        set.status = 201;
+        return {
+          success: true,
+          data: preset,
+        };
+      } catch (error) {
+        logger.error('Failed to create preset', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      body: CreatePresetRequestSchema,
+      detail: {
+        tags: ['Presets'],
+        summary: 'Create indicator preset',
+        description: 'Create a new reusable indicator configuration preset.',
+      },
+    }
+  )
+
+  /**
+   * Get preset by ID
+   * GET /indicators/presets/:id
+   */
+  .get(
+    '/presets/:id',
+    async ({ params, set }) => {
+      try {
+        const preset = await indicatorsService.getPreset(params.id);
+
+        if (!preset) {
+          set.status = 404;
+          return {
+            success: false,
+            error: 'Preset not found',
+          };
+        }
+
+        return {
+          success: true,
+          data: preset,
+        };
+      } catch (error) {
+        logger.error('Failed to get preset', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ['Presets'],
+        summary: 'Get indicator preset',
+        description: 'Retrieve a specific indicator preset by ID.',
+      },
+    }
+  )
+
+  /**
+   * Update preset
+   * PATCH /indicators/presets/:id
+   */
+  .patch(
+    '/presets/:id',
+    async ({ params, body, set }) => {
+      try {
+        // TODO: Get userId and tenantId from auth context
+        const userId = 'system';
+        const tenantId = 'system';
+
+        logger.info('Updating indicator preset', { id: params.id });
+
+        const preset = await indicatorsService.updatePreset(
+          params.id,
+          userId,
+          tenantId,
+          body as UpdatePresetRequest
+        );
+
+        return {
+          success: true,
+          data: preset,
+        };
+      } catch (error) {
+        logger.error('Failed to update preset', { error });
+        const status = error instanceof Error && error.message.includes('not found') ? 404 : 500;
+        set.status = status;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      body: UpdatePresetRequestSchema,
+      detail: {
+        tags: ['Presets'],
+        summary: 'Update indicator preset',
+        description: 'Update an existing indicator preset configuration.',
+      },
+    }
+  )
+
+  /**
+   * Delete preset
+   * DELETE /indicators/presets/:id
+   */
+  .delete(
+    '/presets/:id',
+    async ({ params, set }) => {
+      try {
+        // TODO: Get userId and tenantId from auth context
+        const userId = 'system';
+        const tenantId = 'system';
+
+        logger.info('Deleting indicator preset', { id: params.id });
+
+        await indicatorsService.deletePreset(params.id, userId, tenantId);
+
+        return {
+          success: true,
+          message: 'Preset deleted successfully',
+        };
+      } catch (error) {
+        logger.error('Failed to delete preset', { error });
+        const status = error instanceof Error && error.message.includes('not found') ? 404 : 500;
+        set.status = status;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+      detail: {
+        tags: ['Presets'],
+        summary: 'Delete indicator preset',
+        description: 'Delete an indicator preset.',
+      },
+    }
+  )
+
+  /**
+   * Clear cache
+   * DELETE /indicators/cache
+   */
+  .delete(
+    '/cache',
+    async ({ body, set }) => {
+      try {
+        logger.info('Clearing indicator cache', body);
+
+        await indicatorsService.clearCache(body?.exchangeId, body?.symbol, body?.indicatorType as any);
+
+        return {
+          success: true,
+          message: 'Cache cleared successfully',
+        };
+      } catch (error) {
+        logger.error('Failed to clear cache', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      body: t.Optional(ClearCacheRequestSchema),
+      detail: {
+        tags: ['Cache'],
+        summary: 'Clear indicator cache',
+        description: 'Clear cached indicator results with optional filters.',
+      },
+    }
+  )
+
+  /**
+   * Get usage statistics
+   * GET /indicators/statistics
+   */
+  .get(
+    '/statistics',
+    async ({ set }) => {
+      try {
+        // TODO: Get userId and tenantId from auth context
+        const userId = 'system';
+        const tenantId = 'system';
+
+        const stats = await indicatorsService.getStatistics(userId, tenantId);
+
+        return {
+          success: true,
+          data: stats,
+        };
+      } catch (error) {
+        logger.error('Failed to get statistics', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      detail: {
+        tags: ['Statistics'],
+        summary: 'Get usage statistics',
+        description: 'Retrieve indicator calculation statistics and performance metrics.',
+      },
+    }
+  )
+
+  /**
+   * Health check endpoint
+   * GET /indicators/health
+   */
+  .get(
+    '/health',
+    () => {
+      return {
+        status: 'healthy',
+        module: 'indicators',
+        timestamp: new Date().toISOString(),
+      };
+    },
+    {
+      detail: {
+        tags: ['Health'],
+        summary: 'Health check',
+        description: 'Check if the indicators module is operational.',
+      },
+    }
+  );
+
+/**
+ * Export types for route handlers
+ */
+export type IndicatorsRoutes = typeof indicatorsRoutes;
