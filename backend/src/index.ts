@@ -46,6 +46,8 @@ import { documentsRoutes, foldersRoutes, sharesRoutes } from './modules/document
 import { marketingRoutes } from './modules/marketing/routes';
 import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analyticsRoutes as salesAnalyticsRoutes } from './modules/sales/routes';
 import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesRoutes, analyticsRoutes as supportAnalyticsRoutes } from './modules/support/routes';
+import { exchangesRoutes } from './modules/exchanges';
+import { marketDataRoutes } from './modules/market-data';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -178,8 +180,9 @@ const app = new Elysia()
           { name: 'Support - Canned Responses', description: 'Predefined response templates' },
           { name: 'Support - Analytics', description: 'Support metrics and performance analytics' },
 
-          // Future Modules
-          { name: 'Trading', description: 'Trading operations (coming soon)' },
+          // Trading System
+          { name: 'Exchanges', description: 'Exchange connections and credentials management (105 exchanges via CCXT)' },
+          { name: 'Market Data', description: 'OHLCV, trades, order book, and ticker data collection' },
         ],
         servers: [
           {
@@ -299,6 +302,10 @@ const app = new Elysia()
   .use(automationsRoutes)
   .use(cannedResponsesRoutes)
   .use(supportAnalyticsRoutes)
+
+  // Trading System Routes (requires authentication)
+  .use(exchangesRoutes)
+  .use(marketDataRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)
