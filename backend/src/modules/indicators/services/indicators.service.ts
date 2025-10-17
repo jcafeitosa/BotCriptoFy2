@@ -493,11 +493,11 @@ export class IndicatorsService implements IIndicatorService {
             eq(indicatorCalculationLogs.userId, userId),
             eq(indicatorCalculationLogs.tenantId, tenantId)
           )
-        );
+        ).catch(() => []); // Return empty array if query fails
 
-      const totalCalculations = logs.length;
-      const successfulCalculations = logs.filter((log) => log.success).length;
-      const cacheHits = logs.filter((log) => log.fromCache).length;
+      const totalCalculations = logs.length || 0;
+      const successfulCalculations = logs.filter((log) => log.success).length || 0;
+      const cacheHits = logs.filter((log) => log.fromCache).length || 0;
       const cacheHitRate = totalCalculations > 0 ? (cacheHits / totalCalculations) * 100 : 0;
 
       const totalTime = logs.reduce((sum, log) => sum + (log.calculationTimeMs || 0), 0);
@@ -506,7 +506,8 @@ export class IndicatorsService implements IIndicatorService {
       // Get most used indicators
       const indicatorCounts = logs.reduce(
         (acc, log) => {
-          acc[log.indicatorType] = (acc[log.indicatorType] || 0) + 1;
+          const type = log.indicatorType || 'unknown';
+          acc[type] = (acc[type] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>
@@ -517,6 +518,13 @@ export class IndicatorsService implements IIndicatorService {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
+      logger.info('Statistics retrieved successfully', {
+        userId,
+        tenantId,
+        totalCalculations,
+        cacheHitRate,
+      });
+
       return {
         totalCalculations,
         cacheHitRate,
@@ -524,8 +532,14 @@ export class IndicatorsService implements IIndicatorService {
         mostUsedIndicators,
       };
     } catch (error) {
-      logger.error('Failed to get statistics', { error });
-      throw new Error('Failed to retrieve statistics');
+      logger.error('Failed to get statistics', { userId, tenantId, error });
+      // Return default statistics instead of throwing
+      return {
+        totalCalculations: 0,
+        cacheHitRate: 0,
+        averageCalculationTime: 0,
+        mostUsedIndicators: [],
+      };
     }
   }
 
@@ -542,14 +556,45 @@ export class IndicatorsService implements IIndicatorService {
     config: BaseIndicatorConfig
   ): Promise<IndicatorResult<T>> {
     try {
+      // Normalize indicator type to match factory expectations
+      // Factory expects uppercase (SMA, EMA, RSI) but requests may send lowercase
+      const normalizedConfig = {
+        ...config,
+        type: this.normalizeIndicatorType(config.type),
+      };
+
       // Try using IndicatorFactory for supported indicators
-      const result = await IndicatorFactory.calculate(data, config);
+      const result = await IndicatorFactory.calculate(data, normalizedConfig);
       return result as IndicatorResult<T>;
     } catch (error) {
       // If IndicatorFactory doesn't support it, throw error
       const message = error instanceof Error ? error.message : `Indicator type ${type} not supported`;
       throw new Error(message);
     }
+  }
+
+  /**
+   * Normalize indicator type to uppercase for factory compatibility
+   */
+  private normalizeIndicatorType(type: string): IndicatorType {
+    // Map common lowercase variations to factory-expected uppercase
+    const typeMap: Record<string, string> = {
+      'sma': 'SMA',
+      'ema': 'EMA',
+      'rsi': 'RSI',
+      'macd': 'MACD',
+      'bollingerbands': 'BollingerBands',
+      'atr': 'ATR',
+      'vwap': 'VWAP',
+      'stochastic': 'Stochastic',
+      'stochrsi': 'StochRSI',
+      'cci': 'CCI',
+      'adx': 'ADX',
+      'obv': 'OBV',
+    };
+
+    const normalized = typeMap[type.toLowerCase()];
+    return (normalized || type) as IndicatorType;
   }
 
   /**

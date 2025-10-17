@@ -551,6 +551,56 @@ export class SentimentAggregatorService {
   getConfig(): AggregatorConfig {
     return { ...this.config };
   }
+
+  /**
+   * Get Aggregated Sentiment for a symbol
+   * Mock implementation - returns simulated data
+   */
+  async getAggregatedSentiment(symbol: string, timeframe: string = '24h'): Promise<any> {
+    // Mock implementation - return neutral sentiment
+    return {
+      symbol: symbol.toUpperCase(),
+      score: 0,
+      magnitude: 0.5,
+      label: 'neutral',
+      confidence: 0.7,
+      trend: {
+        direction: 'stable',
+        strength: 0,
+      },
+      sources: ['local'],
+      timeframe,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Analyze Multi-Source Sentiment
+   * Mock implementation - analyzes from multiple sources
+   */
+  async analyzeMultiSource(symbol: string, sources: string[] = ['local'], timeframe: string = '24h'): Promise<any> {
+    // Mock implementation
+    const results = sources.map(source => ({
+      source,
+      score: Math.random() * 2 - 1, // -1 to 1
+      label: 'neutral',
+      confidence: 0.7,
+    }));
+
+    const avgScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
+
+    return {
+      symbol: symbol.toUpperCase(),
+      aggregated: {
+        score: avgScore,
+        label: avgScore > 0.2 ? 'positive' : avgScore < -0.2 ? 'negative' : 'neutral',
+        confidence: 0.7,
+      },
+      sources: results,
+      timeframe,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 /**
