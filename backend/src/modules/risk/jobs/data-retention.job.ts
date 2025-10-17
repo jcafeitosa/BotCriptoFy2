@@ -99,13 +99,13 @@ export class DataRetentionJob {
       await this.sendMetrics(archiveStats, statsBefore, statsAfter);
 
     } catch (error) {
-      logError('❌ Data retention job failed', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+      const err = error instanceof Error ? error : new Error(String(error));
+      logError(err, {
+        message: '❌ Data retention job failed',
       });
 
       // TODO: Send alert to monitoring system
-      // await this.sendAlert(error);
+      // await this.sendAlert(err);
 
     } finally {
       this.isRunning = false;
@@ -155,8 +155,8 @@ export class DataRetentionJob {
     return {
       isScheduled: this.job !== null,
       isRunning: this.isRunning,
-      nextRun: this.job?.nextDate().toJSDate() || null,
-      lastRun: this.job?.lastDate()?.toJSDate() || null,
+      nextRun: this.job ? (this.job.nextDate() as any).toJSDate() : null,
+      lastRun: this.job && this.job.lastDate() ? (this.job.lastDate() as any).toJSDate() : null,
     };
   }
 }

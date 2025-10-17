@@ -141,7 +141,8 @@ export class RiskRetentionService {
           offset += RETENTION_CONFIG.archiveBatchSize;
         } catch (error) {
           const errorMsg = `Batch ${stats.batches} failed: ${error instanceof Error ? error.message : String(error)}`;
-          logError(errorMsg, { error });
+          const err = error instanceof Error ? error : new Error(errorMsg);
+          logError(err, { batch: stats.batches });
           stats.errors.push(errorMsg);
 
           // Continue with next batch even if one fails
@@ -164,8 +165,9 @@ export class RiskRetentionService {
 
       return stats;
     } catch (error) {
-      logError('❌ Data retention process failed', { error });
-      stats.errors.push(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logError(err, { message: '❌ Data retention process failed' });
+      stats.errors.push(`Fatal error: ${err.message}`);
       stats.endTime = new Date();
       stats.duration = stats.endTime.getTime() - startTime.getTime();
       throw error;
@@ -199,7 +201,8 @@ export class RiskRetentionService {
 
       return { bytes: compressed.length };
     } catch (error) {
-      logError('Failed to archive batch', { error });
+      const err = error instanceof Error ? error : new Error('Failed to archive batch');
+      logError(err);
       throw error;
     }
   }
