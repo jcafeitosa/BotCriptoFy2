@@ -40,7 +40,7 @@ export class ExchangeService {
   static createCCXTInstance(
     exchangeId: ExchangeId,
     credentials: ExchangeCredentials
-  ): ccxt.Exchange {
+  ): InstanceType<typeof ccxt.Exchange> {
     // Validate exchange is supported
     if (!this.isExchangeSupported(exchangeId)) {
       throw new BadRequestError(
@@ -48,7 +48,7 @@ export class ExchangeService {
       );
     }
 
-    const ExchangeClass = ccxt[exchangeId];
+    const ExchangeClass = (ccxt as any)[exchangeId];
     if (!ExchangeClass) {
       throw new BadRequestError(`Exchange ${exchangeId} not supported`);
     }
@@ -173,7 +173,7 @@ export class ExchangeService {
     connectionId: string,
     userId: string,
     tenantId: string
-  ): Promise<ccxt.Exchange> {
+  ): Promise<InstanceType<typeof ccxt.Exchange>> {
     const connection = await this.getConnectionById(connectionId, userId, tenantId);
 
     const credentials: ExchangeCredentials = {

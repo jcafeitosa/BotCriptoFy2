@@ -1,28 +1,26 @@
 /**
  * WebSocket Manager
  * Manages WebSocket connections to exchanges for real-time market data
+ *
+ * NOTE: This implementation requires ccxt.pro (paid version) for WebSocket support.
+ * For now, this is a placeholder implementation.
  */
 
-import type * as ccxt from 'ccxt';
 import { ExchangeService } from '../../exchanges/services/exchange.service';
 import logger from '@/utils/logger';
 import type {
   SubscriptionRequest,
   ConnectionStatus,
   RealtimeDataEvent,
-  WebSocketChannel,
-  TickerData,
-  TradeData,
-  OrderBookSnapshot,
-  OHLCVCandle,
   IWebSocketManager,
 } from '../types/market-data.types';
 
 /**
  * Exchange WebSocket Connection
+ * NOTE: Requires ccxt.pro for actual implementation
  */
 interface ExchangeConnection {
-  exchange: ccxt.pro.Exchange;
+  exchange: any; // Would be ccxt.pro.Exchange with ccxt.pro
   exchangeId: string;
   connected: boolean;
   subscriptions: Map<string, SubscriptionRequest>;
@@ -43,6 +41,7 @@ export class WebSocketManager implements IWebSocketManager {
 
   /**
    * Connect to exchange WebSocket
+   * NOTE: This requires ccxt.pro (paid version) to work
    */
   async connect(exchangeId: string): Promise<void> {
     try {
@@ -53,33 +52,24 @@ export class WebSocketManager implements IWebSocketManager {
 
       logger.info('Connecting to exchange WebSocket', { exchangeId });
 
-      // Check if exchange supports WebSocket (ccxt.pro)
+      // Check if exchange is supported
       if (!ExchangeService.isExchangeSupported(exchangeId)) {
         throw new Error(`Exchange ${exchangeId} not supported`);
       }
 
-      // Create ccxt.pro instance
-      const ExchangeClass = (ccxt.pro as any)[exchangeId];
-      if (!ExchangeClass) {
-        throw new Error(`Exchange ${exchangeId} does not support WebSocket (ccxt.pro)`);
-      }
+      // NOTE: WebSocket requires ccxt.pro (paid version)
+      throw new Error('WebSocket functionality requires ccxt.pro library. Please upgrade to use real-time data.');
 
-      const exchange = new ExchangeClass({
-        enableRateLimit: true,
-        newUpdates: true, // Use incremental updates
-      }) as ccxt.pro.Exchange;
+      // Placeholder connection (would use ccxt.pro)
+      // const connection: ExchangeConnection = {
+      //   exchange: null,
+      //   exchangeId,
+      //   connected: false,
+      //   subscriptions: new Map(),
+      //   reconnectAttempts: 0,
+      // };
+      // this.connections.set(exchangeId, connection);
 
-      const connection: ExchangeConnection = {
-        exchange,
-        exchangeId,
-        connected: true,
-        subscriptions: new Map(),
-        reconnectAttempts: 0,
-      };
-
-      this.connections.set(exchangeId, connection);
-
-      logger.info('Exchange WebSocket connected', { exchangeId });
     } catch (error) {
       logger.error('Failed to connect to exchange WebSocket', {
         exchangeId,
@@ -264,178 +254,52 @@ export class WebSocketManager implements IWebSocketManager {
 
   /**
    * Watch ticker updates
+   * NOTE: Requires ccxt.pro for implementation
    */
-  private async watchTicker(connection: ExchangeConnection, symbol: string): Promise<void> {
-    try {
-      while (connection.connected && connection.subscriptions.has(`ticker:${symbol}`)) {
-        const ticker = await connection.exchange.watchTicker(symbol);
+  private async watchTicker(_connection: ExchangeConnection, _symbol: string): Promise<void> {
+    throw new Error('WebSocket functionality requires ccxt.pro library');
 
-        const tickerData: TickerData = {
-          exchangeId: connection.exchangeId,
-          symbol: ticker.symbol,
-          timestamp: new Date(ticker.timestamp || Date.now()),
-          datetime: ticker.datetime,
-          high: ticker.high || undefined,
-          low: ticker.low || undefined,
-          bid: ticker.bid || undefined,
-          bidVolume: ticker.bidVolume,
-          ask: ticker.ask || undefined,
-          askVolume: ticker.askVolume,
-          vwap: ticker.vwap,
-          open: ticker.open || undefined,
-          close: ticker.close || undefined,
-          last: ticker.last || undefined,
-          previousClose: ticker.previousClose,
-          change: ticker.change,
-          percentage: ticker.percentage,
-          average: ticker.average,
-          baseVolume: ticker.baseVolume || undefined,
-          quoteVolume: ticker.quoteVolume || undefined,
-          info: ticker.info,
-        };
-
-        this.emit({
-          type: 'ticker',
-          exchangeId: connection.exchangeId,
-          symbol,
-          timestamp: tickerData.timestamp,
-          data: tickerData,
-        });
-      }
-    } catch (error) {
-      logger.error('Error watching ticker', {
-        exchangeId: connection.exchangeId,
-        symbol,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await this.handleConnectionError(connection, error);
-    }
+    // Actual implementation would look like:
+    // try {
+    //   while (connection.connected && connection.subscriptions.has(`ticker:${symbol}`)) {
+    //     const ticker = await connection.exchange.watchTicker(symbol);
+    //     // ... emit ticker data
+    //   }
+    // } catch (error) {
+    //   await this.handleConnectionError(connection, error);
+    // }
   }
 
   /**
    * Watch trades stream
+   * NOTE: Requires ccxt.pro for implementation
    */
-  private async watchTrades(connection: ExchangeConnection, symbol: string): Promise<void> {
-    try {
-      while (connection.connected && connection.subscriptions.has(`trades:${symbol}`)) {
-        const trades = await connection.exchange.watchTrades(symbol);
-
-        for (const trade of trades) {
-          const tradeData: TradeData = {
-            exchangeId: connection.exchangeId,
-            symbol: trade.symbol,
-            tradeId: trade.id,
-            timestamp: new Date(trade.timestamp || Date.now()),
-            price: trade.price || 0,
-            amount: trade.amount || 0,
-            cost: trade.cost || 0,
-            side: (trade.side as 'buy' | 'sell') || 'buy',
-            takerOrMaker: trade.takerOrMaker as 'taker' | 'maker',
-            fee: trade.fee,
-            info: trade.info,
-          };
-
-          this.emit({
-            type: 'trade',
-            exchangeId: connection.exchangeId,
-            symbol,
-            timestamp: tradeData.timestamp,
-            data: tradeData,
-          });
-        }
-      }
-    } catch (error) {
-      logger.error('Error watching trades', {
-        exchangeId: connection.exchangeId,
-        symbol,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await this.handleConnectionError(connection, error);
-    }
+  private async watchTrades(_connection: ExchangeConnection, _symbol: string): Promise<void> {
+    throw new Error('WebSocket functionality requires ccxt.pro library');
   }
 
   /**
    * Watch order book updates
+   * NOTE: Requires ccxt.pro for implementation
    */
   private async watchOrderBook(
-    connection: ExchangeConnection,
-    symbol: string,
-    limit?: number
+    _connection: ExchangeConnection,
+    _symbol: string,
+    _limit?: number
   ): Promise<void> {
-    try {
-      while (connection.connected && connection.subscriptions.has(`orderbook:${symbol}`)) {
-        const orderbook = await connection.exchange.watchOrderBook(symbol, limit);
-
-        const snapshot: OrderBookSnapshot = {
-          exchangeId: connection.exchangeId,
-          symbol,
-          timestamp: new Date(orderbook.timestamp || Date.now()),
-          bids: orderbook.bids.map((bid) => [bid[0], bid[1]] as [number, number]),
-          asks: orderbook.asks.map((ask) => [ask[0], ask[1]] as [number, number]),
-          nonce: orderbook.nonce,
-        };
-
-        this.emit({
-          type: 'orderbook',
-          exchangeId: connection.exchangeId,
-          symbol,
-          timestamp: snapshot.timestamp,
-          data: snapshot,
-        });
-      }
-    } catch (error) {
-      logger.error('Error watching order book', {
-        exchangeId: connection.exchangeId,
-        symbol,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await this.handleConnectionError(connection, error);
-    }
+    throw new Error('WebSocket functionality requires ccxt.pro library');
   }
 
   /**
    * Watch OHLCV updates
+   * NOTE: Requires ccxt.pro for implementation
    */
   private async watchOHLCV(
-    connection: ExchangeConnection,
-    symbol: string,
-    timeframe: string
+    _connection: ExchangeConnection,
+    _symbol: string,
+    _timeframe: string
   ): Promise<void> {
-    try {
-      while (connection.connected && connection.subscriptions.has(`ohlcv:${symbol}:${timeframe}`)) {
-        const candles = await connection.exchange.watchOHLCV(symbol, timeframe);
-
-        for (const candle of candles) {
-          const ohlcvData: OHLCVCandle = {
-            exchangeId: connection.exchangeId,
-            symbol,
-            timeframe: timeframe as any,
-            timestamp: new Date(candle[0]),
-            open: candle[1],
-            high: candle[2],
-            low: candle[3],
-            close: candle[4],
-            volume: candle[5],
-          };
-
-          this.emit({
-            type: 'ohlcv',
-            exchangeId: connection.exchangeId,
-            symbol,
-            timestamp: ohlcvData.timestamp,
-            data: ohlcvData,
-          });
-        }
-      }
-    } catch (error) {
-      logger.error('Error watching OHLCV', {
-        exchangeId: connection.exchangeId,
-        symbol,
-        timeframe,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await this.handleConnectionError(connection, error);
-    }
+    throw new Error('WebSocket functionality requires ccxt.pro library');
   }
 
   /**

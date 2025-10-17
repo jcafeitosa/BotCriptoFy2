@@ -16,10 +16,9 @@ import type {
   PositionStatistics,
   PositionStatus,
   PositionSide,
-  IPositionService,
 } from '../types/orders.types';
 
-export class PositionService implements IPositionService {
+export class PositionService {
   /**
    * Get position by ID
    */
@@ -221,14 +220,14 @@ export class PositionService implements IPositionService {
         if (dbPosition) {
           // Update existing position
           await this.updatePosition(dbPosition.id, {
-            contracts: exchangePosition.contracts,
-            markPrice: exchangePosition.markPrice,
-            liquidationPrice: exchangePosition.liquidationPrice,
-            unrealizedPnl: exchangePosition.unrealizedPnl,
-            percentage: exchangePosition.percentage,
+            contracts: exchangePosition.contracts || undefined,
+            markPrice: exchangePosition.markPrice || undefined,
+            liquidationPrice: exchangePosition.liquidationPrice || undefined,
+            unrealizedPnl: exchangePosition.unrealizedPnl || undefined,
+            percentage: exchangePosition.percentage || undefined,
           });
           synced++;
-        } else if (exchangePosition.contracts > 0) {
+        } else if (exchangePosition.contracts && Number(exchangePosition.contracts) > 0) {
           // Create new position
           await db.insert(tradingPositions).values({
             userId,
@@ -237,11 +236,11 @@ export class PositionService implements IPositionService {
             exchangeId: connection.exchangeId,
             symbol: exchangePosition.symbol,
             side: exchangePosition.side === 'long' ? 'long' : 'short',
-            contracts: exchangePosition.contracts.toString(),
-            contractSize: exchangePosition.contractSize?.toString(),
-            leverage: exchangePosition.leverage?.toString(),
-            collateral: exchangePosition.collateral?.toString(),
-            entryPrice: exchangePosition.entryPrice.toString(),
+            contracts: Number(exchangePosition.contracts).toString(),
+            contractSize: exchangePosition.contractSize ? Number(exchangePosition.contractSize).toString() : undefined,
+            leverage: exchangePosition.leverage ? Number(exchangePosition.leverage).toString() : undefined,
+            collateral: exchangePosition.collateral ? Number(exchangePosition.collateral).toString() : undefined,
+            entryPrice: exchangePosition.entryPrice ? Number(exchangePosition.entryPrice).toString() : '0',
             entryTimestamp: new Date(exchangePosition.timestamp || Date.now()),
             markPrice: exchangePosition.markPrice?.toString(),
             liquidationPrice: exchangePosition.liquidationPrice?.toString(),

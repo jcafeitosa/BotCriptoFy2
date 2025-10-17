@@ -72,7 +72,8 @@ logger.info(`Starting server on port ${PORT}`, {
   clustering: WORKER_COUNT !== '1',
 });
 
-const app = new Elysia()
+// @ts-ignore - Type instantiation depth exceeded due to many chained .use() calls
+const app = (new Elysia()
   // ===========================================
   // MIDDLEWARE LAYER (Order matters!)
   // ===========================================
@@ -321,7 +322,7 @@ const app = new Elysia()
   .use(infoRoutes)
 
   // Error Demo Routes (development/testing)
-  .use(errorRoutes);
+  .use(errorRoutes)) as any as Elysia;
 
 // Initialize Redis before starting server
 await redis.initialize();

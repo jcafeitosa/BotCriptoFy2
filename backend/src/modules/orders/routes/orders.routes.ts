@@ -4,8 +4,7 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { sessionGuard } from '../../auth/middleware/session.middleware';
-import { requireTenant } from '../../tenants/middleware/tenant.middleware';
+import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
 import { OrderService } from '../services/order.service';
 import { PositionService } from '../services/position.service';
 import logger from '@/utils/logger';

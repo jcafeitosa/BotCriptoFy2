@@ -186,56 +186,60 @@ export function normalizeBalances(balance: ccxt.Balances): NormalizedBalance[] {
 /**
  * Normalize Market
  */
-export function normalizeMarket(market: ccxt.Market): NormalizedMarket {
+export function normalizeMarket(market: ccxt.Market | undefined): NormalizedMarket {
+  if (!market) {
+    throw new Error('Market is undefined');
+  }
+
   return {
-    id: market.id,
-    symbol: market.symbol,
-    base: market.base,
-    quote: market.quote,
-    baseId: market.baseId,
-    quoteId: market.quoteId,
+    id: String(market.id || ''),
+    symbol: String(market.symbol || ''),
+    base: String(market.base || ''),
+    quote: String(market.quote || ''),
+    baseId: String(market.baseId || ''),
+    quoteId: String(market.quoteId || ''),
     active: market.active || false,
-    type: market.type as any || 'spot',
+    type: (market.type as any) || 'spot',
     spot: market.spot || false,
     margin: market.margin || false,
     future: market.future || false,
     swap: market.swap || false,
     option: market.option || false,
     contract: market.contract || false,
-    settle: market.settle,
-    settleId: market.settleId,
-    contractSize: market.contractSize,
+    settle: market.settle ? String(market.settle) : undefined,
+    settleId: market.settleId ? String(market.settleId) : undefined,
+    contractSize: market.contractSize ? Number(market.contractSize) : undefined,
     linear: market.linear,
     inverse: market.inverse,
-    taker: market.taker || 0,
-    maker: market.maker || 0,
+    taker: Number(market.taker || 0),
+    maker: Number(market.maker || 0),
     percentage: market.percentage || false,
     tierBased: market.tierBased || false,
     limits: {
       amount: {
-        min: market.limits?.amount?.min,
-        max: market.limits?.amount?.max,
+        min: market.limits?.amount?.min ? Number(market.limits.amount.min) : undefined,
+        max: market.limits?.amount?.max ? Number(market.limits.amount.max) : undefined,
       },
       price: {
-        min: market.limits?.price?.min,
-        max: market.limits?.price?.max,
+        min: market.limits?.price?.min ? Number(market.limits.price.min) : undefined,
+        max: market.limits?.price?.max ? Number(market.limits.price.max) : undefined,
       },
       cost: {
-        min: market.limits?.cost?.min,
-        max: market.limits?.cost?.max,
+        min: market.limits?.cost?.min ? Number(market.limits.cost.min) : undefined,
+        max: market.limits?.cost?.max ? Number(market.limits.cost.max) : undefined,
       },
       leverage: market.limits?.leverage
         ? {
-            min: (market.limits.leverage as any).min,
-            max: (market.limits.leverage as any).max,
+            min: Number((market.limits.leverage as any).min || 0),
+            max: Number((market.limits.leverage as any).max || 0),
           }
         : undefined,
     },
     precision: {
-      amount: market.precision?.amount || 8,
-      price: market.precision?.price || 8,
-      base: market.precision?.base,
-      quote: market.precision?.quote,
+      amount: Number(market.precision?.amount || 8),
+      price: Number(market.precision?.price || 8),
+      base: (market.precision as any)?.base ? Number((market.precision as any).base) : undefined,
+      quote: (market.precision as any)?.quote ? Number((market.precision as any).quote) : undefined,
     },
     info: market.info,
   };
@@ -246,25 +250,25 @@ export function normalizeMarket(market: ccxt.Market): NormalizedMarket {
  */
 export function normalizeTicker(ticker: ccxt.Ticker): NormalizedTicker {
   return {
-    symbol: ticker.symbol,
-    timestamp: ticker.timestamp || Date.now(),
-    datetime: ticker.datetime || new Date().toISOString(),
-    high: ticker.high || 0,
-    low: ticker.low || 0,
-    bid: ticker.bid || 0,
-    bidVolume: ticker.bidVolume,
-    ask: ticker.ask || 0,
-    askVolume: ticker.askVolume,
-    vwap: ticker.vwap,
-    open: ticker.open || 0,
-    close: ticker.close || 0,
-    last: ticker.last || 0,
-    previousClose: ticker.previousClose,
-    change: ticker.change,
-    percentage: ticker.percentage,
-    average: ticker.average,
-    baseVolume: ticker.baseVolume || 0,
-    quoteVolume: ticker.quoteVolume || 0,
+    symbol: String(ticker.symbol || ''),
+    timestamp: Number(ticker.timestamp || Date.now()),
+    datetime: String(ticker.datetime || new Date().toISOString()),
+    high: Number(ticker.high || 0),
+    low: Number(ticker.low || 0),
+    bid: Number(ticker.bid || 0),
+    bidVolume: ticker.bidVolume ? Number(ticker.bidVolume) : undefined,
+    ask: Number(ticker.ask || 0),
+    askVolume: ticker.askVolume ? Number(ticker.askVolume) : undefined,
+    vwap: ticker.vwap ? Number(ticker.vwap) : undefined,
+    open: Number(ticker.open || 0),
+    close: Number(ticker.close || 0),
+    last: Number(ticker.last || 0),
+    previousClose: ticker.previousClose ? Number(ticker.previousClose) : undefined,
+    change: ticker.change ? Number(ticker.change) : undefined,
+    percentage: ticker.percentage ? Number(ticker.percentage) : undefined,
+    average: ticker.average ? Number(ticker.average) : undefined,
+    baseVolume: Number(ticker.baseVolume || 0),
+    quoteVolume: Number(ticker.quoteVolume || 0),
     info: ticker.info,
   };
 }
@@ -274,24 +278,28 @@ export function normalizeTicker(ticker: ccxt.Ticker): NormalizedTicker {
  */
 export function normalizeOrder(order: ccxt.Order): NormalizedOrder {
   return {
-    id: order.id,
-    clientOrderId: order.clientOrderId,
-    timestamp: order.timestamp || Date.now(),
-    datetime: order.datetime || new Date().toISOString(),
-    lastTradeTimestamp: order.lastTradeTimestamp,
-    symbol: order.symbol,
+    id: String(order.id || ''),
+    clientOrderId: order.clientOrderId ? String(order.clientOrderId) : undefined,
+    timestamp: Number(order.timestamp || Date.now()),
+    datetime: String(order.datetime || new Date().toISOString()),
+    lastTradeTimestamp: order.lastTradeTimestamp ? Number(order.lastTradeTimestamp) : undefined,
+    symbol: String(order.symbol || ''),
     type: order.type as any,
     timeInForce: order.timeInForce as any,
     postOnly: order.postOnly,
     side: order.side as any,
-    price: order.price,
-    amount: order.amount || 0,
-    cost: order.cost || 0,
-    average: order.average,
-    filled: order.filled || 0,
-    remaining: order.remaining || 0,
+    price: order.price ? Number(order.price) : undefined,
+    amount: Number(order.amount || 0),
+    cost: Number(order.cost || 0),
+    average: order.average ? Number(order.average) : undefined,
+    filled: Number(order.filled || 0),
+    remaining: Number(order.remaining || 0),
     status: order.status as any,
-    fee: order.fee,
+    fee: order.fee ? {
+      cost: Number((order.fee as any).cost || 0),
+      currency: String((order.fee as any).currency || ''),
+      rate: (order.fee as any).rate ? Number((order.fee as any).rate) : undefined,
+    } : undefined,
     trades: order.trades,
     info: order.info,
   };
@@ -302,18 +310,22 @@ export function normalizeOrder(order: ccxt.Order): NormalizedOrder {
  */
 export function normalizeTrade(trade: ccxt.Trade): NormalizedTrade {
   return {
-    id: trade.id,
-    timestamp: trade.timestamp || Date.now(),
-    datetime: trade.datetime || new Date().toISOString(),
-    symbol: trade.symbol,
-    order: trade.order,
+    id: String(trade.id || ''),
+    timestamp: Number(trade.timestamp || Date.now()),
+    datetime: String(trade.datetime || new Date().toISOString()),
+    symbol: String(trade.symbol || ''),
+    order: trade.order ? String(trade.order) : undefined,
     type: trade.type as any,
     side: trade.side as any,
     takerOrMaker: trade.takerOrMaker as any,
-    price: trade.price || 0,
-    amount: trade.amount || 0,
-    cost: trade.cost || 0,
-    fee: trade.fee,
+    price: Number(trade.price || 0),
+    amount: Number(trade.amount || 0),
+    cost: Number(trade.cost || 0),
+    fee: trade.fee ? {
+      cost: Number((trade.fee as any).cost || 0),
+      currency: String((trade.fee as any).currency || ''),
+      rate: (trade.fee as any).rate ? Number((trade.fee as any).rate) : undefined,
+    } : undefined,
     info: trade.info,
   };
 }
@@ -323,12 +335,12 @@ export function normalizeTrade(trade: ccxt.Trade): NormalizedTrade {
  */
 export function normalizeOHLCV(ohlcv: ccxt.OHLCV): NormalizedOHLCV {
   return {
-    timestamp: ohlcv[0],
-    datetime: new Date(ohlcv[0]).toISOString(),
-    open: ohlcv[1],
-    high: ohlcv[2],
-    low: ohlcv[3],
-    close: ohlcv[4],
-    volume: ohlcv[5],
+    timestamp: Number(ohlcv[0]),
+    datetime: new Date(Number(ohlcv[0])).toISOString(),
+    open: Number(ohlcv[1]),
+    high: Number(ohlcv[2]),
+    low: Number(ohlcv[3]),
+    close: Number(ohlcv[4]),
+    volume: Number(ohlcv[5]),
   };
 }

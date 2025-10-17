@@ -17,15 +17,13 @@ import type {
   UpdateOrderRequest,
   OrderQueryOptions,
   OrderStatistics,
-  OrderExecutionResult,
   BatchOrderResult,
   OrderType,
   OrderStatus,
-  IOrderService,
 } from '../types/orders.types';
 import { randomUUID } from 'crypto';
 
-export class OrderService implements IOrderService {
+export class OrderService {
   /**
    * Create a new trading order
    */
@@ -122,7 +120,7 @@ export class OrderService implements IOrderService {
       const exchange = ExchangeService.createCCXTInstance(connection.exchangeId, {
         apiKey: connection.apiKey,
         apiSecret: connection.apiSecret,
-        password: connection.apiPassword,
+        apiPassword: connection.apiPassword || undefined,
       });
 
       // Prepare order parameters

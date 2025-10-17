@@ -42,15 +42,15 @@ export class TradesService {
       // Convert to our format
       const trades: TradeData[] = tradesData.map((trade) => ({
         exchangeId,
-        symbol: trade.symbol,
-        tradeId: trade.id,
-        timestamp: new Date(trade.timestamp || Date.now()),
-        price: trade.price || 0,
-        amount: trade.amount || 0,
-        cost: trade.cost || 0,
+        symbol: String(trade.symbol || ''),
+        tradeId: String(trade.id || ''),
+        timestamp: new Date(Number(trade.timestamp || Date.now())),
+        price: Number(trade.price || 0),
+        amount: Number(trade.amount || 0),
+        cost: Number(trade.cost || 0),
         side: (trade.side as 'buy' | 'sell') || 'buy',
         takerOrMaker: trade.takerOrMaker as 'taker' | 'maker' | undefined,
-        fee: trade.fee,
+        fee: trade.fee as any,
         info: trade.info,
       }));
 
