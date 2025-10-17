@@ -68,8 +68,8 @@ export * from './utils/calculator-v2';
 export * from './presets/indicator-presets';
 
 // Services
-// export * from './services/indicators.service'; // TODO: Refactor to use calculator-v2 (async) + fix path aliases
-// export * from './services/indicator-factory.service'; // TODO: Refactor to use calculator-v2 (async)
+export * from './services/indicators.service';
+export * from './services/indicator-factory.service';
 
 // Routes
-// export * from './routes/indicators.routes'; // TODO: Refactor to use calculator-v2 (async) + fix path aliases
+export * from './routes/indicators.routes';

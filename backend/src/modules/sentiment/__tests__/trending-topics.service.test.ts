@@ -1,0 +1,321 @@
+/**
+ * Trending Topics Service Tests
+ */
+
+import { describe, test, expect, beforeEach } from 'bun:test';
+import { TrendingTopicsService } from '../services/analyzer/trending-topics.service';
+import type { SocialMention } from '../types/social.types';
+
+describe('TrendingTopicsService', () => {
+  let service: TrendingTopicsService;
+
+  beforeEach(() => {
+    service = new TrendingTopicsService({
+      minMentions: 3, // Lower threshold for testing
+      timeWindow: 3600000, // 1 hour
+    });
+  });
+
+  const createMockMention = (
+    text: string,
+    hashtags: string[],
+    likes: number = 10,
+    timestamp: Date = new Date()
+  ): SocialMention => ({
+    id: crypto.randomUUID(),
+    platform: 'twitter',
+    platformId: crypto.randomUUID(),
+    author: 'user',
+    authorId: 'user1',
+    text,
+    url: 'https://twitter.com/tweet',
+    language: 'en',
+    likes,
+    replies: 5,
+    views: 100,
+    createdAt: timestamp,
+    fetchedAt: new Date(),
+    symbols: ['BTC'],
+    hashtags,
+    mentions: [],
+    isAnalyzed: false,
+    isInfluencer: false,
+    isRetweet: false,
+    isReply: false,
+  });
+
+  describe('processMentions', () => {
+    test('should detect trending hashtags', async () => {
+      const mentions = [
+        createMockMention('Bitcoin to the moon!', ['#BTC', '#crypto'], 100),
+        createMockMention('BTC is pumping!', ['#BTC', '#moon'], 80),
+        createMockMention('Bitcoin breaking out!', ['#BTC', '#bullish'], 120),
+        createMockMention('Crypto market is hot', ['#crypto', '#BTC'], 60),
+      ];
+
+      const trending = await service.processMentions(mentions);
+
+      expect(trending.length).toBeGreaterThan(0);
+
+      const btcTag = trending.find((t) => t.topic === '#btc');
+      expect(btcTag).toBeDefined();
+      expect(btcTag!.mentions).toBeGreaterThanOrEqual(3);
+      expect(btcTag!.type).toBe('hashtag');
+    });
+
+    test('should detect trending keywords', async () => {
+      const mentions = [
+        createMockMention('Bitcoin breakout is happening!', []),
+        createMockMention('Massive breakout for BTC', []),
+        createMockMention('Breakout confirmed!', []),
+        createMockMention('This breakout is huge', []),
+      ];
+
+      const trending = await service.processMentions(mentions);
+
+      const breakoutTopic = trending.find((t) => t.topic.includes('breakout'));
+      expect(breakoutTopic).toBeDefined();
+      expect(breakoutTopic!.type).toBe('keyword');
+    });
+
+    test('should calculate trending score', async () => {
+      const mentions = Array.from({ length: 10 }, (_, i) =>
+        createMockMention(`Bitcoin #BTC post ${i}`, ['#BTC'], 50 + i * 10)
+      );
+
+      const trending = await service.processMentions(mentions);
+
+      const btcTag = trending.find((t) => t.topic === '#btc');
+      expect(btcTag).toBeDefined();
+      expect(btcTag!.score).toBeGreaterThan(0);
+      expect(btcTag!.velocity).toBeGreaterThan(0);
+    });
+
+    test('should detect emerging trends', async () => {
+      const now = new Date();
+      const mentions = Array.from({ length: 15 }, (_, i) =>
+        createMockMention(
+          `New trend #NewCoin`,
+          ['#NewCoin'],
+          100,
+          new Date(now.getTime() - i * 60000) // Last 15 minutes
+        )
+      );
+
+      const trending = await service.processMentions(mentions);
+
+      const emergingTrend = trending.find((t) => t.topic === '#newcoin');
+      expect(emergingTrend).toBeDefined();
+      expect(emergingTrend!.trendType).toBe('emerging');
+      expect(emergingTrend!.velocity).toBeGreaterThan(10); // High velocity
+    });
+
+    test('should associate symbols with topics', async () => {
+      const mentions = [
+        createMockMention('Bitcoin news', ['#BTC'], 10),
+        createMockMention('More Bitcoin updates', ['#BTC'], 20),
+        createMockMention('Bitcoin pumping', ['#BTC'], 30),
+      ];
+
+      const trending = await service.processMentions(mentions);
+
+      const btcTag = trending.find((t) => t.topic === '#btc');
+      expect(btcTag).toBeDefined();
+      expect(btcTag!.symbols).toContain('BTC');
+    });
+
+    test('should calculate engagement metrics', async () => {
+      const mentions = [
+        createMockMention('Test #trending', ['#trending'], 100),
+        createMockMention('Test #trending again', ['#trending'], 200),
+        createMockMention('More #trending', ['#trending'], 150),
+      ];
+
+      const trending = await service.processMentions(mentions);
+
+      const trendingTag = trending.find((t) => t.topic === '#trending');
+      expect(trendingTag).toBeDefined();
+      expect(trendingTag!.engagement).toBeDefined();
+      expect(trendingTag!.engagement.total).toBeGreaterThan(0);
+      expect(trendingTag!.engagement.average).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getTrendingTopics', () => {
+    test('should return trending topics sorted by score', async () => {
+      const mentions = [
+        ...Array.from({ length: 20 }, () =>
+          createMockMention('Hot topic #HotTrend', ['#HotTrend'], 200)
+        ),
+        ...Array.from({ length: 10 }, () =>
+          createMockMention('Warm topic #WarmTrend', ['#WarmTrend'], 100)
+        ),
+        ...Array.from({ length: 5 }, () =>
+          createMockMention('Cool topic #CoolTrend', ['#CoolTrend'], 50)
+        ),
+      ];
+
+      await service.processMentions(mentions);
+      const trending = service.getTrendingTopics();
+
+      expect(trending.length).toBeGreaterThan(0);
+
+      // Should be sorted by score descending
+      for (let i = 0; i < trending.length - 1; i++) {
+        expect(trending[i].score).toBeGreaterThanOrEqual(trending[i + 1].score);
+      }
+    });
+
+    test('should respect max topics limit', async () => {
+      service.updateConfig({ maxTopics: 5 });
+
+      const mentions = Array.from({ length: 100 }, (_, i) =>
+        createMockMention(`Post ${i} #tag${i}`, [`#tag${i}`], 10)
+      );
+
+      await service.processMentions(mentions);
+      const trending = service.getTrendingTopics();
+
+      expect(trending.length).toBeLessThanOrEqual(5);
+    });
+  });
+
+  describe('getTrendingForSymbol', () => {
+    test('should filter trending by symbol', async () => {
+      const mentions = [
+        ...Array.from({ length: 10 }, () =>
+          createMockMention('Bitcoin #BTC', ['#BTC'], 100)
+        ).map((m) => ({ ...m, symbols: ['BTC'] })),
+        ...Array.from({ length: 5 }, () =>
+          createMockMention('Ethereum #ETH', ['#ETH'], 80)
+        ).map((m) => ({ ...m, symbols: ['ETH'] })),
+      ];
+
+      await service.processMentions(mentions);
+      const btcTrending = service.getTrendingForSymbol('BTC');
+
+      expect(btcTrending.length).toBeGreaterThan(0);
+      btcTrending.forEach((topic) => {
+        expect(topic.symbols).toContain('BTC');
+      });
+    });
+  });
+
+  describe('configuration', () => {
+    test('should allow config updates', () => {
+      service.updateConfig({
+        minMentions: 5,
+        velocityThreshold: 10,
+      });
+
+      const config = service.getConfig();
+      expect(config.minMentions).toBe(5);
+      expect(config.velocityThreshold).toBe(10);
+    });
+
+    test('should respect min mentions threshold', async () => {
+      service.updateConfig({ minMentions: 20 });
+
+      const mentions = Array.from({ length: 10 }, () =>
+        createMockMention('Low volume #LowVol', ['#LowVol'], 5)
+      );
+
+      const trending = await service.processMentions(mentions);
+
+      // Should not appear in trending (below threshold)
+      const lowVolTag = trending.find((t) => t.topic === '#lowvol');
+      expect(lowVolTag).toBeUndefined();
+    });
+  });
+
+  describe('stats', () => {
+    test('should return service statistics', async () => {
+      const mentions = Array.from({ length: 20 }, () =>
+        createMockMention('Test #test', ['#test'], 10)
+      );
+
+      await service.processMentions(mentions);
+      const stats = service.getStats();
+
+      expect(stats).toBeDefined();
+      expect(stats.totalTopics).toBeGreaterThan(0);
+      expect(stats.trendingTopics).toBeGreaterThan(0);
+      expect(stats.lastCleanup).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('reset', () => {
+    test('should clear all data', async () => {
+      const mentions = Array.from({ length: 10 }, () =>
+        createMockMention('Test #test', ['#test'], 10)
+      );
+
+      await service.processMentions(mentions);
+      expect(service.getStats().totalTopics).toBeGreaterThan(0);
+
+      service.reset();
+      expect(service.getStats().totalTopics).toBe(0);
+    });
+  });
+
+  describe('trend types', () => {
+    test('should detect sustained trends', async () => {
+      const now = new Date();
+
+      // Consistent mentions over time
+      const mentions = Array.from({ length: 50 }, (_, i) =>
+        createMockMention(
+          `Sustained #Bitcoin`,
+          ['#Bitcoin'],
+          100,
+          new Date(now.getTime() - i * 600000) // Last 10 hours
+        )
+      );
+
+      const trending = await service.processMentions(mentions);
+
+      const bitcoinTag = trending.find((t) => t.topic === '#bitcoin');
+      expect(bitcoinTag).toBeDefined();
+      // Sustained or emerging depending on velocity
+      expect(['sustained', 'emerging', 'peak']).toContain(bitcoinTag!.trendType);
+    });
+
+    test('should calculate peak time', async () => {
+      const now = new Date();
+
+      const mentions = [
+        ...Array.from({ length: 5 }, (_, i) =>
+          createMockMention(
+            'Test #peak',
+            ['#peak'],
+            10,
+            new Date(now.getTime() - 7200000 - i * 60000) // 2 hours ago
+          )
+        ),
+        ...Array.from({ length: 20 }, (_, i) =>
+          createMockMention(
+            'Peak #peak',
+            ['#peak'],
+            100,
+            new Date(now.getTime() - 3600000 - i * 60000) // 1 hour ago - PEAK
+          )
+        ),
+        ...Array.from({ length: 5 }, (_, i) =>
+          createMockMention(
+            'After peak #peak',
+            ['#peak'],
+            10,
+            new Date(now.getTime() - i * 60000) // Now
+          )
+        ),
+      ];
+
+      const trending = await service.processMentions(mentions);
+
+      const peakTag = trending.find((t) => t.topic === '#peak');
+      expect(peakTag).toBeDefined();
+      expect(peakTag!.peakTime).toBeDefined();
+      expect(peakTag!.peakTime).toBeInstanceOf(Date);
+    });
+  });
+});

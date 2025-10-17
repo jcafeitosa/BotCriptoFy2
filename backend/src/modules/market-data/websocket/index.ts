@@ -23,6 +23,9 @@ export * from './adapters/kraken-adapter';
 // Market Data WebSocket Manager (NEW - uses native adapters)
 export * from './market-data-websocket-manager';
 
+// Redis Event Bridge (for multi-instance scaling)
+export * from './redis-event-bridge';
+
 // Default exports for convenience
 export { BinanceAdapter } from './adapters/binance-adapter';
 export { CoinbaseAdapter } from './adapters/coinbase-adapter';
@@ -36,3 +39,4 @@ export {
   subscribeToMarketData,
   unsubscribeFromMarketData,
 } from './market-data-websocket-manager';
+export { RedisEventBridge, redisEventBridge } from './redis-event-bridge';

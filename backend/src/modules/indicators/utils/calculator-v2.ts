@@ -1378,7 +1378,23 @@ export async function safeCalculate<T>(
   }
 }
 
-// Export all for easy access (106 indicators + utilities)
+// ============================================================================
+// CUSTOM INDICATORS (4 indicators)
+// ============================================================================
+
+// Re-export custom indicators from separate file
+export {
+  calculateSuperTrend,
+  calculateIchimoku,
+  calculatePivotPoints,
+  calculateFibonacciRetracement,
+  type SuperTrendResult,
+  type IchimokuResult,
+  type PivotPointsResult,
+  type FibonacciRetracementResult,
+} from './custom-indicators';
+
+// Export all for easy access (110 indicators = 106 from library + 4 custom)
 export const Calculator = {
   // ========== TREND / MOVING AVERAGES (19) ==========
   SMA: calculateSMA,

@@ -73,6 +73,8 @@ export class BinanceAdapter extends BaseExchangeAdapter {
         this.handleTrade(message);
         break;
       case '24hrTicker':
+      case 'miniTicker':
+      case '24hrMiniTicker': // Binance's actual miniTicker event type
         this.handleTicker(message);
         break;
       case 'kline':
@@ -91,7 +93,9 @@ export class BinanceAdapter extends BaseExchangeAdapter {
       case 'trades':
         return `${symbol}@trade`;
       case 'ticker':
-        return `${symbol}@ticker`;
+        // Use miniTicker for real-time price updates (1 second)
+        // Or use ticker for 24hr rolling window ticker
+        return `${symbol}@miniTicker`;
       case 'candles':
         const interval = (request.params?.interval as string) || '1m';
         return `${symbol}@kline_${interval}`;
@@ -140,12 +144,14 @@ export class BinanceAdapter extends BaseExchangeAdapter {
       exchange: this.exchangeId,
       timestamp: message.E,
       last: parseFloat(message.c),
-      bid: parseFloat(message.b),
-      ask: parseFloat(message.a),
+      // miniTicker doesn't have bid/ask, use last price as fallback
+      bid: message.b ? parseFloat(message.b) : parseFloat(message.c),
+      ask: message.a ? parseFloat(message.a) : parseFloat(message.c),
       high24h: parseFloat(message.h),
       low24h: parseFloat(message.l),
       volume24h: parseFloat(message.v),
-      change24h: parseFloat(message.P),
+      // miniTicker doesn't have percentage change, calculate if possible
+      change24h: message.P ? parseFloat(message.P) : undefined,
     };
 
     this.emitTypedEvent('ticker', ticker);

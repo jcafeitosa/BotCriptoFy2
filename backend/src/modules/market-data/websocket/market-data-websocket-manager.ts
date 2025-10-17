@@ -64,7 +64,7 @@ export class MarketDataWebSocketManager extends EventEmitter {
   private config: Required<Omit<MarketDataManagerConfig, 'redis'>>;
   private redisConfig?: RedisEventBridgeConfig;
   private metrics: Map<ExchangeId, ConnectionMetrics> = new Map();
-  private subscriptions: Map<string, SubscriptionRequest[]> = new Map();
+  private subscriptions: Map<ExchangeId, SubscriptionRequest[]> = new Map();
   private redisBridge: RedisEventBridge | null = null;
 
   constructor(config?: MarketDataManagerConfig) {
@@ -359,6 +359,39 @@ export class MarketDataWebSocketManager extends EventEmitter {
   }
 
   /**
+   * Get Redis metrics
+   */
+  getRedisMetrics() {
+    if (!this.redisBridge) {
+      return null;
+    }
+
+    return this.redisBridge.getMetrics();
+  }
+
+  /**
+   * Get comprehensive system metrics
+   */
+  getSystemMetrics() {
+    return {
+      exchanges: Object.fromEntries(this.metrics),
+      redis: this.getRedisMetrics(),
+      connections: {
+        active: this.adapters.size,
+        max: this.config.maxConnections,
+        available: this.config.maxConnections - this.adapters.size,
+      },
+      subscriptions: {
+        total: Array.from(this.subscriptions.values()).reduce((sum, subs) => sum + subs.length, 0),
+        byExchange: Object.fromEntries(
+          Array.from(this.subscriptions.entries()).map(([exchange, subs]) => [exchange, subs.length])
+        ),
+      },
+      health: this.getHealthStatus(),
+    };
+  }
+
+  /**
    * Get active subscriptions for exchange
    */
   getSubscriptions(exchangeId: ExchangeId): SubscriptionRequest[] {
@@ -384,6 +417,16 @@ export class MarketDataWebSocketManager extends EventEmitter {
     }
 
     await Promise.all(promises);
+
+    // Disconnect Redis bridge if enabled
+    if (this.redisBridge) {
+      try {
+        await this.redisBridge.disconnect();
+        logger.info('Redis event bridge disconnected');
+      } catch (error) {
+        logger.error('Error disconnecting Redis event bridge', { error });
+      }
+    }
 
     logger.info('All exchange WebSockets disconnected');
   }
