@@ -3,19 +3,12 @@
  * TypeScript types for exchange operations
  */
 
-export type ExchangeId =
-  | 'binance'
-  | 'binanceus'
-  | 'coinbase'
-  | 'coinbasepro'
-  | 'kraken'
-  | 'bitfinex'
-  | 'bybit'
-  | 'okx'
-  | 'huobi'
-  | 'kucoin'
-  | 'gateio'
-  | 'mexc';
+/**
+ * Exchange ID - CCXT supports 100+ exchanges
+ * Using string type instead of literal union for flexibility
+ * Validation is done at runtime using ccxt.exchanges
+ */
+export type ExchangeId = string;
 
 export type ExchangeStatus = 'active' | 'disabled' | 'error';
 

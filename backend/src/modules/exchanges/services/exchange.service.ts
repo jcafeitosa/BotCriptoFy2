@@ -21,23 +21,17 @@ import type {
 
 export class ExchangeService {
   /**
-   * Get supported exchanges
+   * Get ALL supported exchanges from CCXT (100+)
    */
   static getSupportedExchanges(): ExchangeId[] {
-    return [
-      'binance',
-      'binanceus',
-      'coinbase',
-      'coinbasepro',
-      'kraken',
-      'bitfinex',
-      'bybit',
-      'okx',
-      'huobi',
-      'kucoin',
-      'gateio',
-      'mexc',
-    ];
+    return ccxt.exchanges.sort();
+  }
+
+  /**
+   * Check if exchange is supported
+   */
+  static isExchangeSupported(exchangeId: string): boolean {
+    return ccxt.exchanges.includes(exchangeId);
   }
 
   /**
@@ -47,6 +41,13 @@ export class ExchangeService {
     exchangeId: ExchangeId,
     credentials: ExchangeCredentials
   ): ccxt.Exchange {
+    // Validate exchange is supported
+    if (!this.isExchangeSupported(exchangeId)) {
+      throw new BadRequestError(
+        `Exchange '${exchangeId}' not supported. Use /api/v1/exchanges/supported to see available exchanges.`
+      );
+    }
+
     const ExchangeClass = ccxt[exchangeId];
     if (!ExchangeClass) {
       throw new BadRequestError(`Exchange ${exchangeId} not supported`);
