@@ -51,3 +51,27 @@ export interface DepartmentFilter {
   type?: DepartmentType;
   isActive?: boolean;
 }
+
+/**
+ * Department Member Role
+ */
+export type MemberRole = 'manager' | 'member' | 'viewer';
+
+/**
+ * Add Member Request
+ */
+export interface AddMemberRequest {
+  departmentId: string;
+  userId: string;
+  role: MemberRole;
+  assignedBy: string;
+}
+
+/**
+ * Update Member Role Request
+ */
+export interface UpdateMemberRoleRequest {
+  departmentId: string;
+  userId: string;
+  role: MemberRole;
+}

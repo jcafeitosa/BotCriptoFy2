@@ -4,11 +4,11 @@
  */
 
 import { db } from '@/db';
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import { ExchangeService } from '../../exchanges/services/exchange.service';
 import { marketOHLCV, marketDataSyncStatus } from '../schema/market-data.schema';
 import logger from '@/utils/logger';
-import { NotFoundError, BadRequestError } from '@/utils/errors';
+import { BadRequestError } from '@/utils/errors';
 import type {
   OHLCVCandle,
   FetchOHLCVOptions,

@@ -125,73 +125,20 @@ export class LocalStorageHandler implements StorageHandler {
   }
 }
 
-/**
- * AWS S3 Storage Handler
- * TODO: Implement when S3 support is needed
- */
-export class S3StorageHandler implements StorageHandler {
-  async upload(_file: Buffer, _filePath: string, _mimeType: string): Promise<StorageUploadResult> {
-    throw new Error('S3 storage not implemented yet');
-  }
-
-  async download(_filePath: string): Promise<Buffer> {
-    throw new Error('S3 storage not implemented yet');
-  }
-
-  async delete(_filePath: string): Promise<void> {
-    throw new Error('S3 storage not implemented yet');
-  }
-
-  async exists(_filePath: string): Promise<boolean> {
-    throw new Error('S3 storage not implemented yet');
-  }
-
-  async getSignedUrl(_filePath: string, _expiresIn: number): Promise<string> {
-    throw new Error('S3 storage not implemented yet');
-  }
-}
-
-/**
- * Google Cloud Storage Handler
- * TODO: Implement when GCS support is needed
- */
-export class GCSStorageHandler implements StorageHandler {
-  async upload(_file: Buffer, _filePath: string, _mimeType: string): Promise<StorageUploadResult> {
-    throw new Error('GCS storage not implemented yet');
-  }
-
-  async download(_filePath: string): Promise<Buffer> {
-    throw new Error('GCS storage not implemented yet');
-  }
-
-  async delete(_filePath: string): Promise<void> {
-    throw new Error('GCS storage not implemented yet');
-  }
-
-  async exists(_filePath: string): Promise<boolean> {
-    throw new Error('GCS storage not implemented yet');
-  }
-
-  async getSignedUrl(_filePath: string, _expiresIn: number): Promise<string> {
-    throw new Error('GCS storage not implemented yet');
-  }
-}
+// S3 and GCS storage handlers removed to eliminate non-functional code.
+// Implement with @aws-sdk/client-s3 and @google-cloud/storage when needed.
 
 /**
  * Get Storage Handler by Provider
  * Factory pattern for selecting storage provider
  */
 export function getStorageHandler(provider: StorageProvider): StorageHandler {
-  switch (provider) {
-    case 'local':
-      return new LocalStorageHandler();
-    case 's3':
-      return new S3StorageHandler();
-    case 'gcs':
-      return new GCSStorageHandler();
-    default:
-      throw new Error(`Unsupported storage provider: ${provider}`);
+  if (provider === 'local') {
+    return new LocalStorageHandler();
   }
+
+  // TypeScript will ensure only 'local' can be passed
+  throw new Error(`Unsupported storage provider: ${provider}`);
 }
 
 /**

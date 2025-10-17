@@ -4,10 +4,10 @@
  */
 
 // Routes
-export { departmentRoutes } from './routes/department.routes';
+export { departmentRoutes, membershipRoutes, analyticsRoutes } from './routes';
 
 // Services
-export * from './services/department.service';
+export * from './services';
 
 // Schema
 export * from './schema/departments.schema';
