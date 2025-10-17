@@ -48,6 +48,7 @@ import { socialTradingModule } from './modules/social-trading';
 import { documentsRoutes, foldersRoutes, sharesRoutes } from './modules/documents/routes';
 import { marketingRoutes } from './modules/marketing/routes';
 import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analyticsRoutes as salesAnalyticsRoutes } from './modules/sales/routes';
+import { agentsRoutes } from './modules/agents';
 import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesRoutes, analyticsRoutes as supportAnalyticsRoutes } from './modules/support/routes';
 import { exchangesRoutes } from './modules/exchanges';
 import { marketDataRoutes } from './modules/market-data';
@@ -56,6 +57,7 @@ import { strategiesRoutes } from './modules/strategies';
 import { positionsRouter } from './modules/positions';
 import { riskRoutes } from './modules/risk';
 import { botsRoutes } from './modules/bots';
+import { indicatorsRoutes } from './modules/indicators';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -197,6 +199,10 @@ const app = (new Elysia()
           { name: 'Strategies', description: 'Trading strategies, signals, and backtesting system' },
           { name: 'Risk Management', description: 'Portfolio risk analysis, position sizing, VaR, and performance metrics' },
           { name: 'Bots', description: 'Automated trading bots with grid, DCA, scalping, and other strategies' },
+          { name: 'Indicators', description: 'Technical indicators calculation (106 indicators via @ixjb94/indicators)' },
+          { name: 'Presets', description: 'Indicator configuration presets and templates' },
+          { name: 'Cache', description: 'Indicator result caching for performance' },
+          { name: 'Statistics', description: 'Indicator usage statistics and metrics' },
 
           // Social Trading
           { name: 'Social - Traders', description: 'Trader profiles, verification, and statistics' },
@@ -298,6 +304,9 @@ const app = (new Elysia()
   // CEO Dashboard Routes (requires CEO/admin role)
   .use(ceoRoutes)
 
+  // Agents Routes (autonomous agents - Level C employees reporting to CEO)
+  .use(agentsRoutes)
+
   // Banco/Wallet Routes (requires authentication)
   .use(walletRoutes)
   .use(portfolioRoutes)
@@ -345,6 +354,7 @@ const app = (new Elysia()
   .use(positionsRouter)
   .use(riskRoutes)
   .use(botsRoutes)
+  .use(indicatorsRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)
