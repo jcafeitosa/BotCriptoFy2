@@ -5,8 +5,12 @@
  * @module sentiment/services/sources/reddit
  */
 
-import Snoowrap, { Submission, Comment } from 'snoowrap';
+import Snoowrap from 'snoowrap';
 import type { RedditMention, RedditStreamConfig } from '../../types/social.types';
+
+// Type definitions for snoowrap objects
+type Submission = any;
+type Comment = any;
 
 /**
  * Default crypto subreddits to monitor

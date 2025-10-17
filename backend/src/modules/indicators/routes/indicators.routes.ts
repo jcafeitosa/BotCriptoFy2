@@ -124,6 +124,97 @@ const PresetFiltersSchema = t.Object({
  */
 export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
   /**
+   * GET /indicators/list
+   * List all available indicators with their configurations
+   */
+  .get('/list', async () => {
+    const indicators = [
+      {
+        type: 'sma',
+        name: 'Simple Moving Average',
+        category: 'trend',
+        description: 'Average of closing prices over a specified period',
+        parameters: {
+          period: { type: 'number', default: 20, min: 2, max: 500, description: 'Number of periods' },
+        },
+      },
+      {
+        type: 'ema',
+        name: 'Exponential Moving Average',
+        category: 'trend',
+        description: 'Weighted average giving more importance to recent prices',
+        parameters: {
+          period: { type: 'number', default: 20, min: 2, max: 500, description: 'Number of periods' },
+        },
+      },
+      {
+        type: 'rsi',
+        name: 'Relative Strength Index',
+        category: 'momentum',
+        description: 'Momentum oscillator measuring speed and change of price movements',
+        parameters: {
+          period: { type: 'number', default: 14, min: 2, max: 100, description: 'Number of periods' },
+        },
+      },
+      {
+        type: 'macd',
+        name: 'MACD',
+        category: 'momentum',
+        description: 'Trend-following momentum indicator',
+        parameters: {
+          fastPeriod: { type: 'number', default: 12, min: 2, max: 100, description: 'Fast EMA period' },
+          slowPeriod: { type: 'number', default: 26, min: 2, max: 100, description: 'Slow EMA period' },
+          signalPeriod: { type: 'number', default: 9, min: 2, max: 100, description: 'Signal line period' },
+        },
+      },
+      {
+        type: 'bb',
+        name: 'Bollinger Bands',
+        category: 'volatility',
+        description: 'Volatility bands placed above and below a moving average',
+        parameters: {
+          period: { type: 'number', default: 20, min: 2, max: 500, description: 'SMA period' },
+          stdDev: { type: 'number', default: 2, min: 0.5, max: 5, description: 'Standard deviations' },
+        },
+      },
+      {
+        type: 'atr',
+        name: 'Average True Range',
+        category: 'volatility',
+        description: 'Volatility indicator showing market volatility',
+        parameters: {
+          period: { type: 'number', default: 14, min: 2, max: 100, description: 'Number of periods' },
+        },
+      },
+      {
+        type: 'obv',
+        name: 'On Balance Volume',
+        category: 'volume',
+        description: 'Momentum indicator using volume flow',
+        parameters: {},
+      },
+      {
+        type: 'stoch',
+        name: 'Stochastic Oscillator',
+        category: 'momentum',
+        description: 'Momentum indicator comparing closing price to price range',
+        parameters: {
+          period: { type: 'number', default: 14, min: 2, max: 100, description: 'Number of periods' },
+          kPeriod: { type: 'number', default: 3, min: 1, max: 50, description: '%K smoothing' },
+          dPeriod: { type: 'number', default: 3, min: 1, max: 50, description: '%D smoothing' },
+        },
+      },
+    ];
+
+    return {
+      success: true,
+      data: indicators,
+      count: indicators.length,
+      timestamp: new Date().toISOString(),
+    };
+  })
+
+  /**
    * Calculate single indicator
    * POST /indicators/calculate
    */

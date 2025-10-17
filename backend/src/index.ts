@@ -58,6 +58,7 @@ import { positionsRouter } from './modules/positions';
 import { riskRoutes } from './modules/risk';
 import { botsRoutes } from './modules/bots';
 import { indicatorsRoutes } from './modules/indicators';
+import { sentimentRoutes } from './modules/sentiment';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -355,6 +356,7 @@ const app = (new Elysia()
   .use(riskRoutes)
   .use(botsRoutes)
   .use(indicatorsRoutes)
+  .use(sentimentRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)

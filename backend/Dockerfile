@@ -44,12 +44,20 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 USER bun
 
-# Expose port
-EXPOSE 3000
+# Expose ports
+EXPOSE 3000 8080 9090
+# 3000: Application API
+# 8080: Health check endpoint
+# 9090: Metrics endpoint (Prometheus)
+
+# Install curl for health checks
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+USER bun
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD bun run healthcheck || exit 1
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Start the application
 ENTRYPOINT ["bun", "run", "src/index.ts"]

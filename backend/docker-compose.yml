@@ -1,0 +1,277 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Redis - Pub/Sub and Caching
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: botcripto-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - botcripto-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # =============================================================================
+  # PostgreSQL + TimescaleDB - Persistent Storage
+  # =============================================================================
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: botcripto-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-botcripto}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - botcripto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # =============================================================================
+  # WebSocket Instance - Exchange Connections
+  # =============================================================================
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: botcripto-websocket
+    environment:
+      # Instance Configuration
+      NODE_ENV: ${NODE_ENV:-development}
+      INSTANCE_TYPE: websocket
+      INSTANCE_ID: websocket-01
+      PORT: 3000
+
+      # Redis Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      REDIS_ENABLE_PUBSUB: "true"
+      REDIS_KEY_PREFIX: "ws:dev:"
+
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-botcripto}
+
+      # WebSocket Configuration
+      WS_ENABLE_MANAGER: "true"
+      WS_BINANCE_ENABLE: "true"
+      WS_COINBASE_ENABLE: "true"
+
+      # Exchange API Keys (optional for public data)
+      BINANCE_API_KEY: ${BINANCE_API_KEY:-}
+      BINANCE_SECRET_KEY: ${BINANCE_SECRET_KEY:-}
+      COINBASE_API_KEY: ${COINBASE_API_KEY:-}
+      COINBASE_SECRET_KEY: ${COINBASE_SECRET_KEY:-}
+
+      # Monitoring
+      METRICS_ENABLE: "true"
+      HEALTH_CHECK_ENABLE: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - botcripto-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =============================================================================
+  # Bot Instance 1 - Trading Bots
+  # =============================================================================
+  bot-01:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: botcripto-bot-01
+    environment:
+      # Instance Configuration
+      NODE_ENV: ${NODE_ENV:-development}
+      INSTANCE_TYPE: bot
+      INSTANCE_ID: bot-01
+      PORT: 3001
+
+      # Redis Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      REDIS_ENABLE_PUBSUB: "true"
+      REDIS_KEY_PREFIX: "ws:dev:"
+
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-botcripto}
+
+      # Bot Configuration
+      BOT_ENABLE: "true"
+      BOT_MAX_CONCURRENT: "50"
+
+      # Monitoring
+      METRICS_ENABLE: "true"
+      HEALTH_CHECK_ENABLE: "true"
+      HEALTH_CHECK_PORT: "8081"
+      METRICS_PORT: "9091"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3001:3001"
+      - "8081:8081"
+      - "9091:9091"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - botcripto-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      websocket:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =============================================================================
+  # Bot Instance 2 - Trading Bots
+  # =============================================================================
+  bot-02:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: botcripto-bot-02
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      INSTANCE_TYPE: bot
+      INSTANCE_ID: bot-02
+      PORT: 3002
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      REDIS_ENABLE_PUBSUB: "true"
+      REDIS_KEY_PREFIX: "ws:dev:"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-botcripto}
+      BOT_ENABLE: "true"
+      BOT_MAX_CONCURRENT: "50"
+      METRICS_ENABLE: "true"
+      HEALTH_CHECK_ENABLE: "true"
+      HEALTH_CHECK_PORT: "8082"
+      METRICS_PORT: "9092"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3002:3002"
+      - "8082:8082"
+      - "9092:9092"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - botcripto-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      websocket:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # =============================================================================
+  # Prometheus - Metrics Collection
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: botcripto-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9093:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - botcripto-network
+    depends_on:
+      - websocket
+      - bot-01
+      - bot-02
+    restart: unless-stopped
+
+  # =============================================================================
+  # Grafana - Metrics Visualization
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: botcripto-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3003:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - botcripto-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  botcripto-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

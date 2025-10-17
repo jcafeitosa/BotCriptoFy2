@@ -137,13 +137,19 @@ export const publicSubscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
 
   .get('/plans/:slug/features', async ({ params, set }) => {
     try {
-      const features = await subscriptionPlansService.getPlanFeaturesWithDetails(params.slug);
+      // First get the plan by slug to get its ID
+      const plan = await subscriptionPlansService.getPlanBySlug(params.slug);
+
+      // Then get features using the plan ID
+      const features = await subscriptionPlansService.getPlanFeaturesWithDetails(plan.id);
 
       return {
         success: true,
         data: features,
         meta: {
           total: features.length,
+          planId: plan.id,
+          planSlug: plan.slug,
         },
       };
     } catch (error) {
@@ -166,11 +172,16 @@ export const publicSubscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
     },
   })
 
-  .get('/plans/compare/:planId1/:planId2', async ({ params, set }) => {
+  .get('/plans/compare/:slug1/:slug2', async ({ params, set }) => {
     try {
+      // Get both plans by slug to get their IDs
+      const plan1 = await subscriptionPlansService.getPlanBySlug(params.slug1);
+      const plan2 = await subscriptionPlansService.getPlanBySlug(params.slug2);
+
+      // Compare using plan IDs
       const comparison = await subscriptionPlansService.comparePlans(
-        params.planId1,
-        params.planId2
+        plan1.id,
+        plan2.id
       );
 
       return {
@@ -188,13 +199,13 @@ export const publicSubscriptionRoutes = new Elysia({ prefix: '/subscriptions' })
     }
   }, {
     params: t.Object({
-      planId1: t.String(),
-      planId2: t.String(),
+      slug1: t.String(),
+      slug2: t.String(),
     }),
     detail: {
       tags: ['Subscriptions - Public'],
       summary: 'Compare two plans',
-      description: 'Returns a detailed comparison between two subscription plans including price difference and feature differences',
+      description: 'Returns a detailed comparison between two subscription plans (by slug) including price difference and feature differences. Example: /plans/compare/free/pro',
     },
   })
 

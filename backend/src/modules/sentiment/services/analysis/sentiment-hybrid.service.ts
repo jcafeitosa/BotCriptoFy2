@@ -509,6 +509,23 @@ export class SentimentHybridService {
       cache: cacheHealth,
     };
   }
+
+  /**
+   * Analyze Sentiment (Simple wrapper for compatibility)
+   * Uses local VADER analysis by default
+   */
+  async analyzeSentiment(text: string, language: string = 'en'): Promise<any> {
+    const localService = (await import('./sentiment-local.service')).localSentimentService;
+    const result = await localService.analyze(text, language);
+
+    return {
+      score: result.score,
+      label: result.label,
+      confidence: result.confidence,
+      method: 'local',
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 /**
