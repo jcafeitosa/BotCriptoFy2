@@ -1,0 +1,501 @@
+{
+  "dashboard": {
+    "title": "Bots Performance Dashboard",
+    "tags": ["bots", "beecripto", "automation"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-12h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Active Bots",
+        "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(bots_active{status=\"running\"})",
+            "legendFormat": "Running"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Paused Bots",
+        "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(bots_active{status=\"paused\"})",
+            "legendFormat": "Paused"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "fixed", "fixedColor": "yellow" }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Stopped Bots",
+        "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(bots_active{status=\"stopped\"})",
+            "legendFormat": "Stopped"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "fixed", "fixedColor": "gray" }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Error Bots",
+        "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(bots_active{status=\"error\"})",
+            "legendFormat": "Error"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "fixed", "fixedColor": "red" }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Total Trades (24h)",
+        "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(increase(bots_trades_total[24h]))",
+            "legendFormat": "Trades"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Avg Win Rate",
+        "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+        "targets": [
+          {
+            "expr": "avg(bots_win_rate)",
+            "legendFormat": "Win Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 40, "color": "yellow" },
+                { "value": 55, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "piechart",
+        "title": "Bots by Type",
+        "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (bot_type) (bots_active)",
+            "legendFormat": "{{bot_type}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          }
+        }
+      },
+      {
+        "id": 8,
+        "type": "piechart",
+        "title": "Bot Status Distribution",
+        "gridPos": { "x": 8, "y": 4, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (status) (bots_active)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          }
+        }
+      },
+      {
+        "id": 9,
+        "type": "bargauge",
+        "title": "Top Performing Bots (P&L)",
+        "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "topk(10, bots_pnl)",
+            "legendFormat": "{{bot_id}}"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "continuous-GrYlRd" }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Bot Executions Per Minute",
+        "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(bots_executions_total[1m])",
+            "legendFormat": "{{bot_type}} - {{event}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Bot Errors Over Time",
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(bots_errors[5m])",
+            "legendFormat": "{{bot_type}} - {{error_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "table",
+        "title": "Bot Performance Metrics",
+        "gridPos": { "x": 0, "y": 20, "w": 24, "h": 10 },
+        "targets": [
+          {
+            "expr": "bots_win_rate",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "bots_profit_factor",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "bots_pnl",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "bots_sharpe_ratio",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "bots_drawdown",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "bots_health_score",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge"
+          },
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "bot_id": "Bot ID",
+                "bot_type": "Type",
+                "Value #A": "Win Rate %",
+                "Value #B": "Profit Factor",
+                "Value #C": "P&L $",
+                "Value #D": "Sharpe",
+                "Value #E": "Drawdown %",
+                "Value #F": "Health"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "type": "timeseries",
+        "title": "Bot Win Rate Trends",
+        "gridPos": { "x": 0, "y": 30, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "bots_win_rate",
+            "legendFormat": "{{bot_id}} ({{bot_type}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 1,
+              "fillOpacity": 5
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "timeseries",
+        "title": "Bot Profit Factor Trends",
+        "gridPos": { "x": 12, "y": 30, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "bots_profit_factor",
+            "legendFormat": "{{bot_id}} ({{bot_type}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 1,
+              "fillOpacity": 5
+            },
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "yellow" },
+                { "value": 2, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "heatmap",
+        "title": "Bot Execution Time Heatmap",
+        "gridPos": { "x": 0, "y": 38, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(bots_execution_time_bucket[5m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "options": {
+          "calculate": true,
+          "calculation": {
+            "xBuckets": {
+              "mode": "size",
+              "value": "1min"
+            }
+          }
+        }
+      },
+      {
+        "id": 16,
+        "type": "timeseries",
+        "title": "Bot Health Scores",
+        "gridPos": { "x": 12, "y": 38, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "bots_health_score",
+            "legendFormat": "{{bot_id}} ({{bot_type}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            },
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 50, "color": "yellow" },
+                { "value": 80, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 17,
+        "type": "timeseries",
+        "title": "Bot Cumulative P&L",
+        "gridPos": { "x": 0, "y": 46, "w": 24, "h": 8 },
+        "targets": [
+          {
+            "expr": "bots_pnl",
+            "legendFormat": "{{bot_id}} ({{bot_type}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "stacking": { "mode": "none" }
+            }
+          }
+        }
+      },
+      {
+        "id": 18,
+        "type": "stat",
+        "title": "Best Bot (P&L)",
+        "gridPos": { "x": 0, "y": 54, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "topk(1, bots_pnl)",
+            "legendFormat": "{{bot_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "fixed", "fixedColor": "green" }
+          }
+        }
+      },
+      {
+        "id": 19,
+        "type": "stat",
+        "title": "Worst Bot (P&L)",
+        "gridPos": { "x": 6, "y": 54, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "bottomk(1, bots_pnl)",
+            "legendFormat": "{{bot_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "fixed", "fixedColor": "red" }
+          }
+        }
+      },
+      {
+        "id": 20,
+        "type": "stat",
+        "title": "Avg Bot Uptime",
+        "gridPos": { "x": 12, "y": 54, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "avg(bots_uptime) / 3600",
+            "legendFormat": "Hours"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "h",
+            "decimals": 1
+          }
+        }
+      },
+      {
+        "id": 21,
+        "type": "stat",
+        "title": "Avg Capital Utilization",
+        "gridPos": { "x": 18, "y": 54, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "avg(bots_capital_utilization)",
+            "legendFormat": "Utilization"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 50, "color": "yellow" },
+                { "value": 80, "color": "green" }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

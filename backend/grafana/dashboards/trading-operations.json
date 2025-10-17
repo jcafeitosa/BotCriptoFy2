@@ -1,0 +1,358 @@
+{
+  "dashboard": {
+    "title": "Trading Operations Dashboard",
+    "tags": ["trading", "beecripto", "operations"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Active Positions",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(trading_positions_active)",
+            "legendFormat": "Active Positions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 5, "color": "yellow" },
+                { "value": 10, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Portfolio Value",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(trading_portfolio_value)",
+            "legendFormat": "Total Value"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1000, "color": "yellow" },
+                { "value": 10000, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Unrealized P&L",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(trading_unrealized_pnl)",
+            "legendFormat": "Unrealized P&L"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": -1000, "color": "red" },
+                { "value": 0, "color": "yellow" },
+                { "value": 100, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Margin Level",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "avg(trading_margin_level)",
+            "legendFormat": "Margin Level"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 100, "color": "yellow" },
+                { "value": 200, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "Orders Per Minute",
+        "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(trading_orders_total[1m])",
+            "legendFormat": "{{exchange}} - {{type}} - {{side}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "showPoints": "never"
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Trading Volume",
+        "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(trading_volume_total[5m])",
+            "legendFormat": "{{exchange}} - {{symbol}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "piechart",
+        "title": "Positions by Exchange",
+        "gridPos": { "x": 0, "y": 12, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (exchange) (trading_positions_active)",
+            "legendFormat": "{{exchange}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "type": "piechart",
+        "title": "Positions by Side",
+        "gridPos": { "x": 8, "y": 12, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (side) (trading_positions_active)",
+            "legendFormat": "{{side}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "type": "gauge",
+        "title": "Liquidation Risk",
+        "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "max(trading_liquidation_risk)",
+            "legendFormat": "Risk Level"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 80, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "table",
+        "title": "Recent Orders",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "topk(10, trading_orders_total)",
+            "format": "table"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Order Success Rate",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(trading_orders_total{status=\"success\"}[5m]) / rate(trading_orders_total[5m]) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "timeseries",
+        "title": "Trade Execution Time",
+        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(trading_execution_time_bucket[5m]))",
+            "legendFormat": "95th percentile - {{exchange}}"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(trading_execution_time_bucket[5m]))",
+            "legendFormat": "99th percentile - {{exchange}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "timeseries",
+        "title": "API Errors by Exchange",
+        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(trading_api_errors[5m])",
+            "legendFormat": "{{exchange}} - {{error_code}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "stat",
+        "title": "Win/Loss Ratio",
+        "gridPos": { "x": 0, "y": 36, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(trading_positions_closed_total{result=\"win\"}) / sum(trading_positions_closed_total{result=\"loss\"})",
+            "legendFormat": "Win/Loss Ratio"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "yellow" },
+                { "value": 2, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "stat",
+        "title": "Total P&L (24h)",
+        "gridPos": { "x": 6, "y": 36, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(increase(trading_pnl_total[24h]))",
+            "legendFormat": "24h P&L"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": -1000, "color": "red" },
+                { "value": 0, "color": "yellow" },
+                { "value": 500, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 16,
+        "type": "stat",
+        "title": "Positions Opened (24h)",
+        "gridPos": { "x": 12, "y": 36, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(increase(trading_positions_opened_total[24h]))",
+            "legendFormat": "Opened"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "type": "stat",
+        "title": "Positions Closed (24h)",
+        "gridPos": { "x": 18, "y": 36, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(increase(trading_positions_closed_total[24h]))",
+            "legendFormat": "Closed"
+          }
+        ]
+      }
+    ]
+  }
+}

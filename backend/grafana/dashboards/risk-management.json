@@ -1,0 +1,476 @@
+{
+  "dashboard": {
+    "title": "Risk Management Dashboard",
+    "tags": ["risk", "beecripto", "portfolio"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "gauge",
+        "title": "Portfolio Risk Score",
+        "gridPos": { "x": 0, "y": 0, "w": 6, "h": 6 },
+        "targets": [
+          {
+            "expr": "max(risk_score)",
+            "legendFormat": "Risk Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 75, "color": "orange" },
+                { "value": 90, "color": "red" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 2,
+        "type": "gauge",
+        "title": "Current Drawdown",
+        "gridPos": { "x": 6, "y": 0, "w": 6, "h": 6 },
+        "targets": [
+          {
+            "expr": "max(risk_drawdown)",
+            "legendFormat": "Drawdown %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 50,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 10, "color": "yellow" },
+                { "value": 20, "color": "orange" },
+                { "value": 30, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "VaR (95%)",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 3 },
+        "targets": [
+          {
+            "expr": "max(risk_value_at_risk{confidence=\"95\"})",
+            "legendFormat": "VaR 95%"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 500, "color": "yellow" },
+                { "value": 1000, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "VaR (99%)",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 3 },
+        "targets": [
+          {
+            "expr": "max(risk_value_at_risk{confidence=\"99\"})",
+            "legendFormat": "VaR 99%"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1000, "color": "yellow" },
+                { "value": 2000, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Sharpe Ratio",
+        "gridPos": { "x": 12, "y": 3, "w": 4, "h": 3 },
+        "targets": [
+          {
+            "expr": "max(risk_sharpe_ratio)",
+            "legendFormat": "Sharpe"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": -1, "color": "red" },
+                { "value": 0, "color": "yellow" },
+                { "value": 1, "color": "green" },
+                { "value": 2, "color": "blue" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Sortino Ratio",
+        "gridPos": { "x": 16, "y": 3, "w": 4, "h": 3 },
+        "targets": [
+          {
+            "expr": "max(risk_sortino_ratio)",
+            "legendFormat": "Sortino"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": -1, "color": "red" },
+                { "value": 0, "color": "yellow" },
+                { "value": 1.5, "color": "green" },
+                { "value": 3, "color": "blue" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "Calmar Ratio",
+        "gridPos": { "x": 20, "y": 3, "w": 4, "h": 3 },
+        "targets": [
+          {
+            "expr": "max(risk_calmar_ratio)",
+            "legendFormat": "Calmar"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 1, "color": "yellow" },
+                { "value": 3, "color": "green" },
+                { "value": 5, "color": "blue" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "type": "timeseries",
+        "title": "Drawdown History",
+        "gridPos": { "x": 0, "y": 6, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_drawdown",
+            "legendFormat": "Current Drawdown"
+          },
+          {
+            "expr": "risk_max_drawdown",
+            "legendFormat": "Max Drawdown"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          },
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Max Drawdown" },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": { "mode": "fixed", "fixedColor": "red" }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 9,
+        "type": "timeseries",
+        "title": "Portfolio Exposure",
+        "gridPos": { "x": 12, "y": 6, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_exposure{type=\"long\"}",
+            "legendFormat": "Long Exposure"
+          },
+          {
+            "expr": "risk_exposure{type=\"short\"}",
+            "legendFormat": "Short Exposure"
+          },
+          {
+            "expr": "risk_exposure{type=\"net\"}",
+            "legendFormat": "Net Exposure"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 20,
+              "stacking": { "mode": "none" }
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Risk Score Trend",
+        "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_score",
+            "legendFormat": "Risk Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "fillOpacity": 30,
+              "gradientMode": "scheme"
+            },
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 50, "color": "yellow" },
+                { "value": 75, "color": "orange" },
+                { "value": 90, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Leverage by Exchange",
+        "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_leverage",
+            "legendFormat": "{{exchange}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "bargauge",
+        "title": "Risk Limit Violations (24h)",
+        "gridPos": { "x": 0, "y": 22, "w": 8, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum by (limit_type) (increase(risk_limit_violations[24h]))",
+            "legendFormat": "{{limit_type}}"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "stat",
+        "title": "Portfolio Volatility",
+        "gridPos": { "x": 8, "y": 22, "w": 8, "h": 4 },
+        "targets": [
+          {
+            "expr": "max(risk_volatility)",
+            "legendFormat": "Volatility"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 20, "color": "yellow" },
+                { "value": 40, "color": "orange" },
+                { "value": 60, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "stat",
+        "title": "Concentration Risk",
+        "gridPos": { "x": 16, "y": 22, "w": 8, "h": 4 },
+        "targets": [
+          {
+            "expr": "max(risk_concentration)",
+            "legendFormat": "Herfindahl Index"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "decimals": 3,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.2, "color": "yellow" },
+                { "value": 0.5, "color": "orange" },
+                { "value": 0.8, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "timeseries",
+        "title": "Position Sizing Recommendations",
+        "gridPos": { "x": 8, "y": 26, "w": 16, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_position_size",
+            "legendFormat": "{{method}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 16,
+        "type": "table",
+        "title": "Risk Metrics Summary",
+        "gridPos": { "x": 0, "y": 30, "w": 24, "h": 8 },
+        "targets": [
+          {
+            "expr": "risk_score",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "risk_drawdown",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "risk_sharpe_ratio",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "risk_volatility",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "Value #A": "Risk Score",
+                "Value #B": "Drawdown %",
+                "Value #C": "Sharpe Ratio",
+                "Value #D": "Volatility %"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "@beecripto/backup-system",
+  "version": "1.0.0",
+  "description": "Enterprise-grade database backup and disaster recovery system",
+  "type": "module",
+  "scripts": {
+    "backup:daily": "bun run backup.ts daily",
+    "backup:weekly": "bun run backup.ts weekly",
+    "backup:monthly": "bun run backup.ts monthly",
+    "restore": "bun run restore.ts",
+    "rotate": "bun run rotate.ts",
+    "verify": "bun run verify.ts health-check",
+    "scheduler": "bun run scheduler.ts",
+    "test:restore": "bun run verify.ts test-restore"
+  },
+  "keywords": [
+    "backup",
+    "postgresql",
+    "disaster-recovery",
+    "database",
+    "automation"
+  ],
+  "author": "BeeCripto DevOps Team",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0",
+    "nodemailer": "^6.9.8",
+    "cron": "^3.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/nodemailer": "^6.4.14",
+    "@types/cron": "^2.0.1"
+  },
+  "engines": {
+    "bun": ">=1.3.0",
+    "node": ">=18.0.0"
+  }
+}
