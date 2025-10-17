@@ -41,6 +41,11 @@ import {
 } from './modules/subscriptions';
 import { ceoRoutes } from './modules/ceo';
 import { walletRoutes, portfolioRoutes } from './modules/banco';
+import { affiliateModule } from './modules/affiliate';
+import { documentsRoutes, foldersRoutes, sharesRoutes } from './modules/documents/routes';
+import { marketingRoutes } from './modules/marketing/routes';
+import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analyticsRoutes as salesAnalyticsRoutes } from './modules/sales/routes';
+import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesRoutes, analyticsRoutes as supportAnalyticsRoutes } from './modules/support/routes';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -146,6 +151,33 @@ const app = new Elysia()
           { name: 'Banco - Prices', description: 'Asset prices from CoinGecko' },
           { name: 'Banco - Admin', description: 'Withdrawal approvals and admin operations' },
 
+          // Affiliate Program
+          { name: 'Affiliate', description: 'Affiliate program management with referrals, commissions, and payouts' },
+          { name: 'Affiliate - Admin', description: 'Admin operations for affiliate program (admin only)' },
+
+          // Document Management
+          { name: 'Documents', description: 'Document upload, management, and versioning' },
+          { name: 'Folders', description: 'Document folder organization' },
+          { name: 'Shares', description: 'Document sharing and permissions' },
+
+          // Marketing & Campaigns
+          { name: 'Marketing', description: 'Email campaigns, segmentation, and marketing analytics' },
+
+          // Sales & CRM
+          { name: 'Sales - Contacts', description: 'Contact and lead management' },
+          { name: 'Sales - Deals', description: 'Deal tracking and opportunity management' },
+          { name: 'Sales - Pipeline', description: 'Sales pipeline management and stages' },
+          { name: 'Sales - Activities', description: 'Sales activities and task tracking' },
+          { name: 'Sales - Analytics', description: 'Sales analytics and performance metrics' },
+
+          // Support & Help Desk
+          { name: 'Support - Tickets', description: 'Support ticket system and management' },
+          { name: 'Support - SLA', description: 'Service Level Agreement tracking' },
+          { name: 'Support - Knowledge Base', description: 'Knowledge base articles and FAQs' },
+          { name: 'Support - Automations', description: 'Support workflow automation and rules' },
+          { name: 'Support - Canned Responses', description: 'Predefined response templates' },
+          { name: 'Support - Analytics', description: 'Support metrics and performance analytics' },
+
           // Future Modules
           { name: 'Trading', description: 'Trading operations (coming soon)' },
         ],
@@ -241,6 +273,32 @@ const app = new Elysia()
   // Banco/Wallet Routes (requires authentication)
   .use(walletRoutes)
   .use(portfolioRoutes)
+
+  // Affiliate Routes (requires authentication, admin for admin routes)
+  .use(affiliateModule)
+
+  // Document Management Routes (requires authentication)
+  .use(documentsRoutes)
+  .use(foldersRoutes)
+  .use(sharesRoutes)
+
+  // Marketing Routes (requires authentication)
+  .use(marketingRoutes)
+
+  // Sales/CRM Routes (requires authentication)
+  .use(contactsRoutes)
+  .use(dealsRoutes)
+  .use(pipelineRoutes)
+  .use(activitiesRoutes)
+  .use(salesAnalyticsRoutes)
+
+  // Support/Help Desk Routes (requires authentication)
+  .use(ticketsRoutes)
+  .use(slaRoutes)
+  .use(kbRoutes)
+  .use(automationsRoutes)
+  .use(cannedResponsesRoutes)
+  .use(supportAnalyticsRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)

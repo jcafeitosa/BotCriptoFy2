@@ -7,3 +7,4 @@ export * from './types/affiliate.types';
 export * from './services';
 export * from './utils/referral-code';
 export * from './utils/commission-calculator';
+export { affiliateModule, affiliateRoutes, affiliateAdminRoutes } from './routes';

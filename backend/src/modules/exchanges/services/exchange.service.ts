@@ -1,0 +1,283 @@
+/**
+ * Exchange Service
+ * Manages exchange connections using CCXT
+ */
+
+import ccxt from 'ccxt';
+import { db } from '@/db';
+import { eq, and } from 'drizzle-orm';
+import logger from '@/utils/logger';
+import { exchangeConnections } from '../schema/exchanges.schema';
+import { encrypt, decrypt } from '../utils/encryption';
+import { NotFoundError, BadRequestError } from '@/utils/errors';
+import type {
+  ExchangeId,
+  ExchangeCredentials,
+  CreateExchangeConnectionData,
+  UpdateExchangeConnectionData,
+  ExchangeBalance,
+  ExchangeTicker,
+} from '../types/exchanges.types';
+
+export class ExchangeService {
+  /**
+   * Get supported exchanges
+   */
+  static getSupportedExchanges(): ExchangeId[] {
+    return [
+      'binance',
+      'binanceus',
+      'coinbase',
+      'coinbasepro',
+      'kraken',
+      'bitfinex',
+      'bybit',
+      'okx',
+      'huobi',
+      'kucoin',
+      'gateio',
+      'mexc',
+    ];
+  }
+
+  /**
+   * Create CCXT instance
+   */
+  static createCCXTInstance(
+    exchangeId: ExchangeId,
+    credentials: ExchangeCredentials
+  ): ccxt.Exchange {
+    const ExchangeClass = ccxt[exchangeId];
+    if (!ExchangeClass) {
+      throw new BadRequestError(`Exchange ${exchangeId} not supported`);
+    }
+
+    const config: any = {
+      apiKey: credentials.apiKey,
+      secret: credentials.apiSecret,
+      enableRateLimit: true,
+    };
+
+    if (credentials.apiPassword) {
+      config.password = credentials.apiPassword;
+    }
+
+    if (credentials.sandbox) {
+      config.sandbox = true;
+    }
+
+    return new ExchangeClass(config);
+  }
+
+  /**
+   * Create exchange connection
+   */
+  static async createConnection(data: CreateExchangeConnectionData) {
+    logger.info('Creating exchange connection', {
+      userId: data.userId,
+      exchangeId: data.exchangeId,
+    });
+
+    // Encrypt credentials
+    const encryptedApiKey = encrypt(data.apiKey);
+    const encryptedApiSecret = encrypt(data.apiSecret);
+    const encryptedApiPassword = data.apiPassword ? encrypt(data.apiPassword) : null;
+
+    // Test connection first
+    try {
+      const exchange = this.createCCXTInstance(data.exchangeId, {
+        apiKey: data.apiKey,
+        apiSecret: data.apiSecret,
+        apiPassword: data.apiPassword,
+        sandbox: data.sandbox,
+      });
+
+      await exchange.fetchBalance();
+      logger.info('Exchange connection verified', { exchangeId: data.exchangeId });
+    } catch (error) {
+      logger.error('Failed to verify exchange connection', {
+        exchangeId: data.exchangeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new BadRequestError('Invalid API credentials or exchange connection failed');
+    }
+
+    // Create connection record
+    const [connection] = await db
+      .insert(exchangeConnections)
+      .values({
+        userId: data.userId,
+        tenantId: data.tenantId,
+        exchangeId: data.exchangeId,
+        exchangeName: data.exchangeId.toUpperCase(),
+        apiKey: encryptedApiKey,
+        apiSecret: encryptedApiSecret,
+        apiPassword: encryptedApiPassword,
+        sandbox: data.sandbox || false,
+        enableTrading: data.enableTrading || false,
+        enableWithdrawal: data.enableWithdrawal || false,
+        isVerified: true,
+        status: 'active',
+      })
+      .returning();
+
+    logger.info('Exchange connection created', { connectionId: connection.id });
+
+    return connection;
+  }
+
+  /**
+   * Get user exchange connections
+   */
+  static async getUserConnections(userId: string, tenantId: string) {
+    return await db
+      .select()
+      .from(exchangeConnections)
+      .where(
+        and(
+          eq(exchangeConnections.userId, userId),
+          eq(exchangeConnections.tenantId, tenantId),
+          eq(exchangeConnections.status, 'active')
+        )
+      );
+  }
+
+  /**
+   * Get connection by ID
+   */
+  static async getConnectionById(id: string, userId: string, tenantId: string) {
+    const [connection] = await db
+      .select()
+      .from(exchangeConnections)
+      .where(
+        and(
+          eq(exchangeConnections.id, id),
+          eq(exchangeConnections.userId, userId),
+          eq(exchangeConnections.tenantId, tenantId)
+        )
+      )
+      .limit(1);
+
+    if (!connection) {
+      throw new NotFoundError('Exchange connection not found');
+    }
+
+    return connection;
+  }
+
+  /**
+   * Get CCXT instance for connection
+   */
+  static async getCCXTInstance(
+    connectionId: string,
+    userId: string,
+    tenantId: string
+  ): Promise<ccxt.Exchange> {
+    const connection = await this.getConnectionById(connectionId, userId, tenantId);
+
+    const credentials: ExchangeCredentials = {
+      apiKey: decrypt(connection.apiKey),
+      apiSecret: decrypt(connection.apiSecret),
+      apiPassword: connection.apiPassword ? decrypt(connection.apiPassword) : undefined,
+      sandbox: connection.sandbox,
+    };
+
+    return this.createCCXTInstance(connection.exchangeId as ExchangeId, credentials);
+  }
+
+  /**
+   * Fetch balances
+   */
+  static async fetchBalances(
+    connectionId: string,
+    userId: string,
+    tenantId: string
+  ): Promise<ExchangeBalance[]> {
+    logger.info('Fetching balances', { connectionId });
+
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    const balance = await exchange.fetchBalance();
+
+    const balances: ExchangeBalance[] = [];
+    for (const [currency, amounts] of Object.entries(balance)) {
+      if (currency === 'info' || currency === 'free' || currency === 'used' || currency === 'total') {
+        continue;
+      }
+
+      const typedAmounts = amounts as any;
+      if (typedAmounts.total > 0) {
+        balances.push({
+          currency,
+          free: typedAmounts.free || 0,
+          used: typedAmounts.used || 0,
+          total: typedAmounts.total || 0,
+        });
+      }
+    }
+
+    // Update cached balances
+    await db
+      .update(exchangeConnections)
+      .set({
+        balances: balances as any,
+        lastSyncAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(exchangeConnections.id, connectionId));
+
+    return balances;
+  }
+
+  /**
+   * Fetch ticker
+   */
+  static async fetchTicker(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol: string
+  ): Promise<ExchangeTicker> {
+    logger.info('Fetching ticker', { connectionId, symbol });
+
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    const ticker = await exchange.fetchTicker(symbol);
+
+    return {
+      symbol: ticker.symbol,
+      timestamp: ticker.timestamp || Date.now(),
+      datetime: ticker.datetime || new Date().toISOString(),
+      high: ticker.high || 0,
+      low: ticker.low || 0,
+      bid: ticker.bid || 0,
+      ask: ticker.ask || 0,
+      last: ticker.last || 0,
+      close: ticker.close || 0,
+      baseVolume: ticker.baseVolume || 0,
+      quoteVolume: ticker.quoteVolume || 0,
+      percentage: ticker.percentage || 0,
+    };
+  }
+
+  /**
+   * Delete connection
+   */
+  static async deleteConnection(id: string, userId: string, tenantId: string) {
+    logger.info('Deleting exchange connection', { connectionId: id });
+
+    await db
+      .update(exchangeConnections)
+      .set({
+        status: 'disabled',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(exchangeConnections.id, id),
+          eq(exchangeConnections.userId, userId),
+          eq(exchangeConnections.tenantId, tenantId)
+        )
+      );
+
+    logger.info('Exchange connection deleted', { connectionId: id });
+  }
+}
