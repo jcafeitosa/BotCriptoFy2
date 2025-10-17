@@ -251,14 +251,14 @@ class CacheManager {
         await this.delete(namespace, options.key);
         invalidated = 1;
       } else if (options.pattern) {
-        // Invalidate by pattern (requires scanning, expensive operation)
+        // Invalidate by pattern (uses SCAN for safe iteration)
         logger.warn('Pattern-based invalidation is expensive', { pattern: options.pattern });
-        // TODO: Implement pattern-based invalidation with SCAN
+        invalidated = await this.invalidateByPattern(options.pattern);
       } else if (options.namespace) {
         // Invalidate entire namespace
-        const _pattern = `${options.namespace}:*`;
+        const pattern = `cache:${options.namespace}:*`;
         logger.warn('Namespace invalidation', { namespace: options.namespace });
-        // TODO: Implement namespace invalidation with SCAN
+        invalidated = await this.invalidateByPattern(pattern);
       }
 
       logger.info('Cache invalidated', { options, count: invalidated });
@@ -270,6 +270,44 @@ class CacheManager {
       });
       return 0;
     }
+  }
+
+  /**
+   * Invalidate cache keys by pattern using SCAN
+   */
+  private async invalidateByPattern(pattern: string): Promise<number> {
+    let cursor = '0';
+    let invalidated = 0;
+    const batchSize = 100;
+
+    do {
+      try {
+        // Use SCAN to iterate without blocking
+        const [nextCursor, keys] = await redis.scan(cursor, pattern, batchSize);
+        cursor = nextCursor;
+
+        if (keys && keys.length > 0) {
+          // Delete keys in batch
+          await redis.delMany(keys);
+          invalidated += keys.length;
+
+          logger.debug('Pattern invalidation batch', {
+            pattern,
+            keys: keys.length,
+            total: invalidated
+          });
+        }
+      } catch (error) {
+        logger.error('Pattern invalidation error', {
+          pattern,
+          cursor,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        break;
+      }
+    } while (cursor !== '0');
+
+    return invalidated;
   }
 
   /**
@@ -314,6 +352,69 @@ class CacheManager {
         size: 0,
       };
     });
+  }
+
+  /**
+   * Warm cache with predefined data loaders
+   */
+  async warmCache(
+    loaders: Array<{
+      namespace: string;
+      key: string;
+      loader: () => Promise<any>;
+      ttl?: number;
+    }>
+  ): Promise<void> {
+    logger.info('Starting cache warming', { loadersCount: loaders.length });
+
+    let warmed = 0;
+    let failed = 0;
+
+    for (const item of loaders) {
+      try {
+        const value = await item.loader();
+        await this.set(item.namespace, item.key, value, item.ttl);
+        warmed++;
+
+        logger.debug('Cache warmed', {
+          namespace: item.namespace,
+          key: item.key,
+        });
+      } catch (error) {
+        failed++;
+        logger.error('Cache warming failed', {
+          namespace: item.namespace,
+          key: item.key,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    logger.info('Cache warming completed', { warmed, failed });
+  }
+
+  /**
+   * Get or set pattern (cache-aside): get from cache or load and cache
+   */
+  async getOrSet<T>(
+    namespace: string,
+    key: string,
+    loader: () => Promise<T>,
+    ttl?: number
+  ): Promise<T> {
+    // Try to get from cache first
+    const cached = await this.get<T>(namespace, key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    // Load from source
+    const value = await loader();
+
+    // Store in cache
+    await this.set(namespace, key, value, ttl);
+
+    return value;
   }
 
   /**

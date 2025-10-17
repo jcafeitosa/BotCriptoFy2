@@ -150,6 +150,29 @@ export async function del(key: string): Promise<void> {
 }
 
 /**
+ * Delete multiple keys
+ */
+export async function delMany(keys: string[]): Promise<void> {
+  if (keys.length === 0) {
+    return;
+  }
+
+  if (isRedisConnected() && client) {
+    try {
+      await client.del(keys);
+    } catch (error) {
+      logger.error('Redis DEL MANY error, falling back to in-memory', {
+        keysCount: keys.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      keys.forEach((key) => inMemoryStore.delete(key));
+    }
+  } else {
+    keys.forEach((key) => inMemoryStore.delete(key));
+  }
+}
+
+/**
  * Check if a key exists
  */
 export async function exists(key: string): Promise<boolean> {
@@ -191,6 +214,35 @@ export async function expire(key: string, seconds: number): Promise<void> {
     if (entry) {
       entry.expiry = Date.now() + seconds * 1000;
     }
+  }
+}
+
+/**
+ * Scan keys matching a pattern
+ */
+export async function scan(
+  cursor: string,
+  pattern: string,
+  count: number
+): Promise<[string, string[]]> {
+  if (isRedisConnected() && client) {
+    try {
+      const cursorNum = parseInt(cursor, 10) || 0;
+      // @ts-expect-error - Redis client scan accepts number but TypeScript definition is restrictive
+      const result = await client.scan(cursorNum, {
+        MATCH: pattern,
+        COUNT: count,
+      });
+      return [result.cursor.toString(), result.keys];
+    } catch (error) {
+      logger.error('Redis SCAN error, falling back to in-memory', {
+        pattern,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return inMemoryScan(pattern);
+    }
+  } else {
+    return inMemoryScan(pattern);
   }
 }
 
@@ -252,6 +304,19 @@ function inMemoryGet(key: string): string | null {
   return entry.value;
 }
 
+function inMemoryScan(pattern: string): [string, string[]] {
+  const keys: string[] = [];
+  const regex = new RegExp(pattern.replace(/\*/g, '.*').replace(/\?/g, '.'));
+
+  for (const [key] of inMemoryStore.entries()) {
+    if (regex.test(key)) {
+      keys.push(key);
+    }
+  }
+
+  return ['0', keys]; // In-memory always returns cursor 0 (no pagination)
+}
+
 // Clean up expired keys every 60 seconds (only for in-memory mode)
 if (!isRedisAvailable) {
   setInterval(() => {
@@ -274,8 +339,10 @@ export default {
   set,
   get,
   del,
+  delMany,
   exists,
   expire,
+  scan,
   flushAll,
   close: closeRedis,
 };

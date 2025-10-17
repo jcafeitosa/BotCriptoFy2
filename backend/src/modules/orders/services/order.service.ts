@@ -4,12 +4,12 @@
  */
 
 import { db } from '@/db';
-import { eq, and, inArray, gte, lte, desc, sql } from 'drizzle-orm';
+import { eq, and, inArray, gte, lte, desc } from 'drizzle-orm';
 import { ExchangeService } from '../../exchanges/services/exchange.service';
 import { exchangeConnections } from '../../exchanges/schema/exchanges.schema';
-import { tradingOrders, orderFills, orderHistory } from '../schema/orders.schema';
+import { tradingOrders, orderFills } from '../schema/orders.schema';
 import logger from '@/utils/logger';
-import { NotFoundError, BadRequestError, UnauthorizedError } from '@/utils/errors';
+import { NotFoundError, BadRequestError } from '@/utils/errors';
 import type {
   TradingOrder,
   OrderFill,

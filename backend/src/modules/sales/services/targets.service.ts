@@ -145,14 +145,13 @@ export class TargetsService {
   }
 
   /**
-   * Get user performance
+   * Get user performance (without rank calculation)
+   * Internal method to avoid recursion
    */
-  static async getUserPerformance(
+  private static async getUserPerformanceInternal(
     userId: string,
     tenantId: string
-  ): Promise<UserPerformance> {
-    logger.info('Getting user performance', { userId, tenantId });
-
+  ): Promise<Omit<UserPerformance, 'rank'>> {
     // Get user info
     const [user] = await db
       .select()
@@ -197,9 +196,6 @@ export class TargetsService {
       open: userDeals.filter((d) => d.status === 'open').length,
     };
 
-    // Get rank (placeholder - would need to compare with all users)
-    const rank = 0; // TODO: Calculate actual rank
-
     return {
       userId: user.id,
       userName: user.name,
@@ -208,6 +204,28 @@ export class TargetsService {
       targetAmount,
       achievementRate,
       deals: dealsStats,
+    };
+  }
+
+  /**
+   * Get user performance
+   */
+  static async getUserPerformance(
+    userId: string,
+    tenantId: string
+  ): Promise<UserPerformance> {
+    logger.info('Getting user performance', { userId, tenantId });
+
+    // Get performance data
+    const performance = await this.getUserPerformanceInternal(userId, tenantId);
+
+    // Calculate rank by comparing with all users
+    const allPerformances = await this.getAllUserPerformances(tenantId);
+    const userPerformance = allPerformances.find((p) => p.userId === userId);
+    const rank = userPerformance?.rank || allPerformances.length + 1;
+
+    return {
+      ...performance,
       rank,
     };
   }
@@ -227,13 +245,13 @@ export class TargetsService {
 
     const uniqueUserIds = [...new Set(usersWithDeals.map((u) => u.userId))];
 
-    // Get performance for each user
+    // Get performance for each user (using internal method to avoid recursion)
     const performances: UserPerformance[] = [];
 
     for (const userId of uniqueUserIds) {
       try {
-        const performance = await this.getUserPerformance(userId, tenantId);
-        performances.push(performance);
+        const performance = await this.getUserPerformanceInternal(userId, tenantId);
+        performances.push({ ...performance, rank: 0 }); // Temporary rank
       } catch (error) {
         logger.warn('Failed to get user performance', { userId, error });
       }

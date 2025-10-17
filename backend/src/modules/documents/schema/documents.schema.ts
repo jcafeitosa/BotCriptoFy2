@@ -21,8 +21,9 @@ import { users } from '../../auth/schema/auth.schema';
 
 /**
  * Storage Provider Types
+ * Note: Only 'local' is currently supported. S3 and GCS can be added when needed.
  */
-export type StorageProvider = 'local' | 's3' | 'gcs';
+export type StorageProvider = 'local';
 
 /**
  * Access Level Types

@@ -26,6 +26,8 @@ export interface ProductLineItem {
   quantity: number;
   price: number;
   total: number;
+  isRecurring?: boolean;
+  billingFrequency?: 'monthly' | 'quarterly' | 'annually';
 }
 
 /**

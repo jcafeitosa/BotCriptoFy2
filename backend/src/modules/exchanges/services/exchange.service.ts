@@ -14,7 +14,7 @@ import type {
   ExchangeId,
   ExchangeCredentials,
   CreateExchangeConnectionData,
-  UpdateExchangeConnectionData,
+  // UpdateExchangeConnectionData, // TODO: Implement update functionality
   ExchangeBalance,
   ExchangeTicker,
 } from '../types/exchanges.types';

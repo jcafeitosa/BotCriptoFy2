@@ -177,14 +177,30 @@ export function calculateMRR(deals: Deal[]): number {
   const wonDeals = deals.filter((deal) => deal.status === 'won');
 
   return wonDeals.reduce((sum, deal) => {
-    // Assuming products have recurring flag and frequency
-    // This is simplified - actual implementation would check product metadata
-    const dealValue = parseFloat(deal.value.toString());
+    if (!deal.products || deal.products.length === 0) {
+      return sum;
+    }
 
-    // For this example, assume 20% of deals are recurring monthly
-    // In real implementation, check deal.products for recurring items
-    const isRecurring = Math.random() > 0.8; // Placeholder
-    return sum + (isRecurring ? dealValue : 0);
+    // Calculate MRR from recurring products
+    const recurringRevenue = deal.products.reduce((productSum, product) => {
+      if (!product.isRecurring) {
+        return productSum;
+      }
+
+      const productTotal = product.total;
+
+      // Convert to monthly based on billing frequency
+      let monthlyValue = productTotal;
+      if (product.billingFrequency === 'quarterly') {
+        monthlyValue = productTotal / 3;
+      } else if (product.billingFrequency === 'annually') {
+        monthlyValue = productTotal / 12;
+      }
+
+      return productSum + monthlyValue;
+    }, 0);
+
+    return sum + recurringRevenue;
   }, 0);
 }
 

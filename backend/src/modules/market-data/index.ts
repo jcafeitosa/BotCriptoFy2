@@ -8,5 +8,6 @@ export * from './services/ohlcv.service';
 export * from './services/trades.service';
 export * from './services/orderbook.service';
 export * from './services/ticker.service';
-export * from './websocket/websocket-manager';
+// WebSocket manager removed - requires ccxt.pro or native WebSocket implementation
+// export * from './websocket/websocket-manager';
 export { marketDataRoutes } from './routes';
