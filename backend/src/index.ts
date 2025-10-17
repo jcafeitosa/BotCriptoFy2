@@ -58,7 +58,7 @@ import { positionsRouter } from './modules/positions';
 import { riskRoutes } from './modules/risk';
 import { botsRoutes } from './modules/bots';
 import { indicatorsRoutes } from './modules/indicators';
-import { sentimentRoutes } from './modules/sentiment';
+import { sentimentRoutes } from './modules/sentiment/routes/sentiment.routes';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -204,6 +204,7 @@ const app = (new Elysia()
           { name: 'Presets', description: 'Indicator configuration presets and templates' },
           { name: 'Cache', description: 'Indicator result caching for performance' },
           { name: 'Statistics', description: 'Indicator usage statistics and metrics' },
+          { name: 'Sentiment', description: 'Sentiment analysis from news and social media (RSS, Twitter, Reddit, AI-powered)' },
 
           // Social Trading
           { name: 'Social - Traders', description: 'Trader profiles, verification, and statistics' },

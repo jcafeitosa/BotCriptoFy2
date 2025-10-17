@@ -6,11 +6,11 @@
  */
 
 import Snoowrap from 'snoowrap';
-import type { RedditMention, RedditStreamConfig } from '../../types/social.types';
 
-// Type definitions for snoowrap objects
+// Types from snoowrap
 type Submission = any;
 type Comment = any;
+import type { RedditMention, RedditStreamConfig } from '../../types/social.types';
 
 /**
  * Default crypto subreddits to monitor
