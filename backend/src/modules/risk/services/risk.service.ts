@@ -6,6 +6,8 @@
 import { db } from '@/db';
 import { riskProfiles, riskLimits, riskMetrics, riskAlerts } from '../schema/risk.schema';
 import { positions } from '../../positions/schema/positions.schema';
+import { wallets } from '../../banco/schema/wallet.schema';
+import { walletService } from '../../banco/services/wallet.service';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import type {
@@ -352,9 +354,23 @@ class RiskService implements IRiskService {
           )
         );
 
+      // Get user's wallet for cash balance
+      const userWallets = await db
+        .select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, userId), eq(wallets.tenantId, tenantId)))
+        .limit(1);
+
+      let cashBalance = 0;
+      if (userWallets.length > 0) {
+        const summary = await walletService.getWalletSummary(userWallets[0].id);
+        if (summary) {
+          cashBalance = parseFloat(summary.totalValueUsd);
+        }
+      }
+
       // Calculate portfolio value and exposures
       let portfolioValue = 0;
-      const cashBalance = 0; // TODO: Get from wallet/balance
       let longExposure = 0;
       let shortExposure = 0;
       let marginUsed = 0;
@@ -394,6 +410,37 @@ class RiskService implements IRiskService {
       // Calculate leverage
       const currentLeverage = portfolioValue > 0 ? grossExposure / portfolioValue : 1;
 
+      // Calculate margin available from wallet
+      let marginAvailable = 0;
+      let marginUtilization = 0;
+
+      if (userWallets.length > 0) {
+        const walletSummary = await walletService.getWalletSummary(userWallets[0].id);
+        if (walletSummary) {
+          const totalBalance = parseFloat(walletSummary.totalValueUsd);
+
+          // Calculate locked funds (sum of locked balances across all assets)
+          let lockedFunds = 0;
+          for (const asset of walletSummary.assets) {
+            const lockedBalance = parseFloat(asset.lockedBalance || '0');
+            const assetValueUsd = parseFloat(asset.valueUsd || '0');
+            // Proportional locked value in USD
+            const totalAssetBalance = parseFloat(asset.balance);
+            if (totalAssetBalance > 0) {
+              lockedFunds += (lockedBalance / totalAssetBalance) * assetValueUsd;
+            }
+          }
+
+          // marginAvailable = totalBalance - marginUsed - lockedFunds
+          marginAvailable = Math.max(0, totalBalance - marginUsed - lockedFunds);
+
+          // marginUtilization = (marginUsed / totalBalance) * 100
+          if (totalBalance > 0) {
+            marginUtilization = (marginUsed / totalBalance) * 100;
+          }
+        }
+      }
+
       // Calculate drawdown
       const drawdownAnalysis = await this.analyzeDrawdown(userId, tenantId);
 
@@ -430,8 +477,8 @@ class RiskService implements IRiskService {
           shortExposurePercent: shortExposurePercent.toString(),
           currentLeverage: currentLeverage.toString(),
           marginUsed: marginUsed.toString(),
-          marginAvailable: '0', // TODO: Calculate from wallet
-          marginUtilization: '0',
+          marginAvailable: marginAvailable.toString(),
+          marginUtilization: marginUtilization.toString(),
           openPositions: openPositions.length.toString(),
           largestPosition: largestPosition.toString(),
           largestPositionPercent: largestPositionPercent.toString(),
@@ -859,12 +906,41 @@ class RiskService implements IRiskService {
       // Scale by time horizon (square root of time rule)
       valueAtRisk *= Math.sqrt(timeHorizon);
 
+      // Get position-level breakdown
+      const openPositions = await db
+        .select()
+        .from(positions)
+        .where(
+          and(
+            eq(positions.userId, userId),
+            eq(positions.tenantId, tenantId),
+            eq(positions.status, 'open')
+          )
+        );
+
+      const breakdown = openPositions.map((pos) => {
+        const unrealizedPnl = parseFloat(pos.unrealizedPnl || '0');
+        const riskAmount = Math.abs(unrealizedPnl);
+        const contribution = riskAmount; // Contribution to overall VaR
+        const contributionPercent = valueAtRisk > 0 ? (contribution / valueAtRisk) * 100 : 0;
+
+        return {
+          positionId: pos.id,
+          symbol: pos.symbol,
+          contribution,
+          contributionPercent,
+        };
+      });
+
+      // Sort by contribution descending
+      breakdown.sort((a, b) => b.contribution - a.contribution);
+
       return {
         valueAtRisk,
         confidence,
         timeHorizon,
         method,
-        breakdown: [], // TODO: Implement position-level breakdown
+        breakdown,
       };
     } catch (error) {
       logger.error('Failed to calculate VaR', {
