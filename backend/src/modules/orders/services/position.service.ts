@@ -175,6 +175,7 @@ export class PositionService {
     exchangeConnectionId: string
   ): Promise<number> {
     try {
+      // Get connection to retrieve exchangeId
       const [connection] = await db
         .select()
         .from(exchangeConnections)
@@ -189,18 +190,12 @@ export class PositionService {
 
       if (!connection) throw new NotFoundError('Exchange connection not found');
 
-      const exchange = ExchangeService.createCCXTInstance(connection.exchangeId, {
-        apiKey: connection.apiKey,
-        apiSecret: connection.apiSecret,
-      });
-
-      // Fetch positions from exchange (if supported)
-      if (!exchange.has['fetchPositions']) {
-        logger.warn('Exchange does not support positions', { exchangeId: connection.exchangeId });
-        return 0;
-      }
-
-      const exchangePositions = await exchange.fetchPositions();
+      // Fetch positions from exchange using centralized ExchangeService
+      const exchangePositions = await ExchangeService.fetchPositions(
+        exchangeConnectionId,
+        userId,
+        tenantId
+      );
 
       let synced = 0;
       for (const exchangePosition of exchangePositions) {
