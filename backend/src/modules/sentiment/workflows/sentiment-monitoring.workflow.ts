@@ -21,7 +21,7 @@ export interface SentimentMonitoringConfig {
 
   /**
    * Execution interval (cron expression)
-   * Default: '*/15 * * * *' (every 15 minutes)
+   * Default: every 15 minutes
    */
   schedule: string;
 
