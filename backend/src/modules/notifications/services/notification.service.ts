@@ -538,8 +538,14 @@ export async function getDeliveryLogs(notificationId: string) {
 
 /**
  * Initialize notification queue workers
+ * Must be called after queue.initialize()
  */
-export function initializeNotificationWorkers() {
+export async function initializeNotificationWorkers(): Promise<void> {
+  logger.info('[NOTIFICATION] Initializing notification queue workers...');
+
+  // Initialize BullMQ queue first
+  await notificationQueue.initialize();
+
   // Register workers for each notification type (SMS removed - no Twilio)
   const types: NotificationType[] = ['email', 'push', 'telegram', 'in_app'];
 
@@ -549,7 +555,7 @@ export function initializeNotificationWorkers() {
     });
   });
 
-  logger.info('Notification queue workers initialized', {
+  logger.info('[NOTIFICATION] Notification queue workers initialized successfully', {
     availableTypes: types,
   });
 }

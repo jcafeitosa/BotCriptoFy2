@@ -59,6 +59,7 @@ import { riskRoutes } from './modules/risk';
 import { botsRoutes } from './modules/bots';
 import { indicatorsRoutes } from './modules/indicators';
 import { sentimentRoutes } from './modules/sentiment/routes/sentiment.routes';
+import { initializeNotificationWorkers } from './modules/notifications/services/notification.service';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -374,6 +375,18 @@ const app = (new Elysia()
 // Initialize Redis before starting server
 await redis.initialize();
 
+// Initialize Notification Queue Workers (BullMQ with Redis)
+try {
+  await initializeNotificationWorkers();
+  logger.info('Notification system initialized successfully', { source: 'server' });
+} catch (error) {
+  logger.error('Failed to initialize notification system', {
+    source: 'server',
+    error: error instanceof Error ? error.message : String(error),
+  });
+  // Continue startup even if notifications fail (non-critical)
+}
+
 // Initialize Tax Jurisdiction Service (load config from database)
 // await taxJurisdictionService.initialize().catch((error) => {
 //   logger.error('Failed to initialize tax jurisdiction service', {
@@ -423,6 +436,11 @@ const shutdown = async (signal: string) => {
   });
 
   try {
+    // Close notification queue
+    const { shutdownQueue } = await import('./modules/notifications/utils/notification-queue');
+    await shutdownQueue();
+    logger.info('Notification queue closed', { source: 'server' });
+
     // Close Redis connection
     await redis.close();
     logger.info('Redis connection closed', { source: 'server' });
