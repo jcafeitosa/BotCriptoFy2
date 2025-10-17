@@ -48,6 +48,7 @@ import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analytic
 import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesRoutes, analyticsRoutes as supportAnalyticsRoutes } from './modules/support/routes';
 import { exchangesRoutes } from './modules/exchanges';
 import { marketDataRoutes } from './modules/market-data';
+import { ordersRoutes } from './modules/orders';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -183,6 +184,8 @@ const app = new Elysia()
           // Trading System
           { name: 'Exchanges', description: 'Exchange connections and credentials management (105 exchanges via CCXT)' },
           { name: 'Market Data', description: 'OHLCV, trades, order book, and ticker data collection' },
+          { name: 'Orders', description: 'Trading orders with 8 order types (market, limit, stop, trailing)' },
+          { name: 'Positions', description: 'Trading positions management for futures/margin trading' },
         ],
         servers: [
           {
@@ -306,6 +309,7 @@ const app = new Elysia()
   // Trading System Routes (requires authentication)
   .use(exchangesRoutes)
   .use(marketDataRoutes)
+  .use(ordersRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)
