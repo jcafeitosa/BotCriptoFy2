@@ -6,6 +6,7 @@
 import { db } from '@/db';
 import { eq, and, inArray, gte, lte, desc } from 'drizzle-orm';
 import { ExchangeService } from '../../exchanges/services/exchange.service';
+import { riskService } from '../../risk/services/risk.service';
 import { exchangeConnections } from '../../exchanges/schema/exchanges.schema';
 import { tradingOrders, orderFills } from '../schema/orders.schema';
 import logger from '@/utils/logger';
@@ -54,6 +55,50 @@ export class OrderService {
 
       // Validate order parameters
       this.validateOrderRequest(request);
+
+      // ⚠️ CRITICAL: Risk Management Validation
+      // ALL orders MUST pass risk validation before execution
+      const effectivePrice = request.price || 0; // For market orders, we'll use 0 (will be filled at market price)
+      const riskValidation = await riskService.validateTrade(
+        userId,
+        tenantId,
+        {
+          symbol: request.symbol,
+          side: request.side === 'buy' ? 'long' : 'short',
+          quantity: request.amount,
+          price: effectivePrice,
+          stopLoss: request.stopPrice,
+        }
+      );
+
+      // Reject order if risk validation fails
+      if (!riskValidation.allowed) {
+        const violationMessage = riskValidation.violations.join('; ');
+        logger.warn('Order rejected by risk management', {
+          userId,
+          tenantId,
+          symbol: request.symbol,
+          violations: riskValidation.violations,
+          warnings: riskValidation.warnings,
+        });
+        throw new BadRequestError(`Order rejected by risk management: ${violationMessage}`);
+      }
+
+      // Log risk warnings (non-blocking)
+      if (riskValidation.warnings.length > 0) {
+        logger.warn('Order approved with risk warnings', {
+          userId,
+          tenantId,
+          symbol: request.symbol,
+          warnings: riskValidation.warnings,
+        });
+      }
+
+      logger.info('Order passed risk validation', {
+        userId,
+        symbol: request.symbol,
+        warnings: riskValidation.warnings,
+      });
 
       // Generate client order ID
       const clientOrderId = `${tenantId.slice(0, 8)}-${randomUUID()}`;
