@@ -13,7 +13,7 @@ import { errorRoutes } from './routes/error.routes';
 import { authRoutes, authCustomRoutes, adminAuthRoutes, devAuthRoutes } from './modules/auth';
 import { userRoutes } from './modules/users';
 import { tenantRoutes } from './modules/tenants';
-import { departmentRoutes } from './modules/departments';
+import { departmentRoutes, membershipRoutes, analyticsRoutes } from './modules/departments';
 import { notificationRoutes } from './modules/notifications';
 import { configurationRoutes } from './modules/configurations';
 import { securityRoutes } from './modules/security';
@@ -42,6 +42,9 @@ import {
 import { ceoRoutes } from './modules/ceo';
 import { walletRoutes, portfolioRoutes } from './modules/banco';
 import { affiliateModule } from './modules/affiliate';
+import { mmnModule } from './modules/mmn';
+import { p2pMarketplaceModule } from './modules/p2p-marketplace';
+import { socialTradingModule } from './modules/social-trading';
 import { documentsRoutes, foldersRoutes, sharesRoutes } from './modules/documents/routes';
 import { marketingRoutes } from './modules/marketing/routes';
 import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analyticsRoutes as salesAnalyticsRoutes } from './modules/sales/routes';
@@ -49,6 +52,10 @@ import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesR
 import { exchangesRoutes } from './modules/exchanges';
 import { marketDataRoutes } from './modules/market-data';
 import { ordersRoutes } from './modules/orders';
+import { strategiesRoutes } from './modules/strategies';
+import { positionsRouter } from './modules/positions';
+import { riskRoutes } from './modules/risk';
+import { botsRoutes } from './modules/bots';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -72,7 +79,7 @@ logger.info(`Starting server on port ${PORT}`, {
   clustering: WORKER_COUNT !== '1',
 });
 
-// @ts-ignore - Type instantiation depth exceeded due to many chained .use() calls
+// @ts-expect-error - Type instantiation depth exceeded due to many chained .use() calls
 const app = (new Elysia()
   // ===========================================
   // MIDDLEWARE LAYER (Order matters!)
@@ -187,6 +194,18 @@ const app = (new Elysia()
           { name: 'Market Data', description: 'OHLCV, trades, order book, and ticker data collection' },
           { name: 'Orders', description: 'Trading orders with 8 order types (market, limit, stop, trailing)' },
           { name: 'Positions', description: 'Trading positions management for futures/margin trading' },
+          { name: 'Strategies', description: 'Trading strategies, signals, and backtesting system' },
+          { name: 'Risk Management', description: 'Portfolio risk analysis, position sizing, VaR, and performance metrics' },
+          { name: 'Bots', description: 'Automated trading bots with grid, DCA, scalping, and other strategies' },
+
+          // Social Trading
+          { name: 'Social - Traders', description: 'Trader profiles, verification, and statistics' },
+          { name: 'Social - Following', description: 'Follow/unfollow traders and manage connections' },
+          { name: 'Social - Copy Trading', description: 'Copy trading settings, execution, and management' },
+          { name: 'Social - Signals', description: 'Trading signals with performance tracking' },
+          { name: 'Social - Leaderboard', description: 'Rankings and performance comparisons' },
+          { name: 'Social - Feed', description: 'Social feed with posts, likes, comments, and shares' },
+          { name: 'Social - Analytics', description: 'Performance metrics, Sharpe ratio, Sortino ratio, and statistics' },
         ],
         servers: [
           {
@@ -233,6 +252,8 @@ const app = (new Elysia()
 
   // Department Routes (requires authentication)
   .use(departmentRoutes)
+  .use(membershipRoutes)
+  .use(analyticsRoutes)
 
   // Security Routes (requires authentication, admin for management)
   .use(securityRoutes)
@@ -284,6 +305,15 @@ const app = (new Elysia()
   // Affiliate Routes (requires authentication, admin for admin routes)
   .use(affiliateModule)
 
+  // MMN Routes (Multi-Level Marketing - requires authentication)
+  .use(mmnModule)
+
+  // P2P Marketplace Routes (Peer-to-peer trading - requires authentication)
+  .use(p2pMarketplaceModule)
+
+  // Social Trading Routes (copy trading, signals, leaderboard - requires authentication)
+  .use(socialTradingModule)
+
   // Document Management Routes (requires authentication)
   .use(documentsRoutes)
   .use(foldersRoutes)
@@ -311,6 +341,10 @@ const app = (new Elysia()
   .use(exchangesRoutes)
   .use(marketDataRoutes)
   .use(ordersRoutes)
+  .use(strategiesRoutes)
+  .use(positionsRouter)
+  .use(riskRoutes)
+  .use(botsRoutes)
 
   // Metrics Routes (Prometheus endpoint - no auth required)
   .use(metricsRoutes)

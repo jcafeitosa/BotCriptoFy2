@@ -13,10 +13,14 @@ export interface TraderProfile {
   displayName: string;
   bio: string | null;
   avatar: string | null;
+  country: string | null;
   tradingSince: Date;
   specialties: string[] | null;
+  strategyType: StrategyType | null;
   isPublic: boolean;
   allowCopying: boolean;
+  maxCopiers: number | null;
+  currentCopiers: number;
   isVerified: boolean;
   isPremium: boolean;
   subscriptionFee: string | null;
@@ -24,6 +28,8 @@ export interface TraderProfile {
   totalTrades: number;
   winRate: string;
   status: TraderStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CreateTraderRequest {
