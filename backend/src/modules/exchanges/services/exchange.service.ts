@@ -17,6 +17,7 @@ import type {
   // UpdateExchangeConnectionData, // TODO: Implement update functionality
   ExchangeBalance,
   ExchangeTicker,
+  ExchangePosition,
 } from '../types/exchanges.types';
 
 export class ExchangeService {
@@ -280,5 +281,73 @@ export class ExchangeService {
       );
 
     logger.info('Exchange connection deleted', { connectionId: id });
+  }
+
+  /**
+   * Fetch positions from exchange
+   */
+  static async fetchPositions(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol?: string
+  ): Promise<ExchangePosition[]> {
+    logger.info('Fetching positions', { connectionId, symbol });
+
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+
+    // Check if exchange supports fetching positions
+    if (!exchange.has['fetchPositions']) {
+      throw new BadRequestError(
+        `Exchange ${exchange.id} does not support fetching positions`
+      );
+    }
+
+    // Fetch positions from exchange
+    const ccxtPositions = symbol
+      ? await exchange.fetchPositions([symbol])
+      : await exchange.fetchPositions();
+
+    // Map CCXT positions to our format
+    const positions: ExchangePosition[] = ccxtPositions
+      .filter((pos) => pos.contracts !== undefined && pos.contracts > 0)
+      .map((pos) => ({
+        symbol: pos.symbol,
+        id: pos.id,
+        timestamp: pos.timestamp,
+        datetime: pos.datetime,
+        contracts: pos.contracts,
+        contractSize: pos.contractSize,
+        side: (pos.side === 'long' ? 'long' : 'short') as 'long' | 'short',
+        notional: pos.notional,
+        leverage: pos.leverage,
+        unrealizedPnl: pos.unrealizedPnl,
+        realizedPnl: pos.realizedPnl,
+        collateral: pos.collateral,
+        entryPrice: pos.entryPrice,
+        markPrice: pos.markPrice,
+        liquidationPrice: pos.liquidationPrice,
+        marginMode: pos.marginMode,
+        hedged: pos.hedged,
+        maintenanceMargin: pos.maintenanceMargin,
+        maintenanceMarginPercentage: pos.maintenanceMarginPercentage,
+        initialMargin: pos.initialMargin,
+        initialMarginPercentage: pos.initialMarginPercentage,
+        marginRatio: pos.marginRatio,
+        lastUpdateTimestamp: pos.lastUpdateTimestamp,
+        lastPrice: pos.lastPrice,
+        stopLossPrice: pos.stopLossPrice,
+        takeProfitPrice: pos.takeProfitPrice,
+        percentage: pos.percentage,
+        info: pos.info,
+      }));
+
+    logger.info('Positions fetched successfully', {
+      connectionId,
+      symbol,
+      positionsCount: positions.length,
+    });
+
+    return positions;
   }
 }
