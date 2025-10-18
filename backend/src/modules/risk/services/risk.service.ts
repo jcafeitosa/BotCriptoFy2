@@ -13,10 +13,11 @@ import logger from '@/utils/logger';
 import RiskCacheService from './risk-cache.service';
 import RiskLockService from './risk-lock.service';
 import RiskRateService from './risk-rate.service';
-import { riskNotificationService } from './risk-notification.service';
-import { riskWebSocketService } from './risk-websocket.service';
+import { sendNotification } from '../../notifications/services/notification.service';
 import { getRiskRepositoryFactory } from '../repositories/factories/risk-repository.factory';
 import type { IRiskRepositoryFactory } from '../repositories/interfaces/risk-repository.interface';
+import type { SendNotificationRequest } from '../../notifications/types/notification.types';
+import { getRiskAlertTemplate } from '../templates/risk-notification-templates';
 import type {
   RiskProfile,
   RiskLimit,
@@ -1529,20 +1530,18 @@ class RiskService implements IRiskService {
    */
   private async sendAlertNotifications(alert: RiskAlert): Promise<void> {
     try {
-      // Determine notification channels based on severity
-      const channels = this.getNotificationChannelsForSeverity(alert.severity);
+      // Determine notification types based on severity
+      const notificationTypes = this.getNotificationTypesForSeverity(alert.severity);
 
-      // Send via notification service
-      await riskNotificationService.sendRiskAlert(alert, channels);
-
-      // Send via WebSocket
-      await riskWebSocketService.sendRiskAlert(alert.userId, alert.tenantId, alert);
+      // Send notifications for each type
+      const promises = notificationTypes.map(type => this.sendRiskAlertNotification(alert, type));
+      await Promise.allSettled(promises);
 
       logger.debug('Alert notifications sent', {
         alertId: alert.id,
         userId: alert.userId,
         severity: alert.severity,
-        channels: channels.length,
+        types: notificationTypes.length,
       });
     } catch (error) {
       logger.error('Failed to send alert notifications', {
@@ -1553,20 +1552,130 @@ class RiskService implements IRiskService {
   }
 
   /**
-   * Get notification channels based on alert severity
+   * Send individual risk alert notification
    */
-  private getNotificationChannelsForSeverity(severity: string): string[] {
+  private async sendRiskAlertNotification(alert: RiskAlert, type: 'email' | 'push' | 'in_app' | 'telegram' | 'webhook' | 'slack'): Promise<void> {
+    try {
+      // Get template for this severity and type
+      const templateId = getRiskAlertTemplate(alert.severity, type);
+
+      const request: SendNotificationRequest = {
+        userId: alert.userId,
+        tenantId: alert.tenantId,
+        templateId,
+        type,
+        category: 'trading',
+        priority: this.mapSeverityToPriority(alert.severity),
+        subject: this.getAlertSubject(alert),
+        content: this.getAlertContent(alert),
+        variables: {
+          alertId: alert.id,
+          alertType: alert.alertType,
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.message,
+          limitType: alert.limitType,
+          limitValue: alert.limitValue,
+          currentValue: alert.currentValue,
+          threshold: alert.threshold,
+          createdAt: alert.createdAt.toISOString(),
+        },
+        metadata: {
+          riskAlert: true,
+          alertType: alert.alertType,
+          limitType: alert.limitType,
+          templateId,
+        },
+      };
+
+      await sendNotification(request);
+
+      logger.debug('Risk alert notification sent', {
+        alertId: alert.id,
+        userId: alert.userId,
+        type,
+        templateId,
+        severity: alert.severity,
+      });
+    } catch (error) {
+      logger.error('Failed to send risk alert notification', {
+        alertId: alert.id,
+        userId: alert.userId,
+        type,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Get notification types based on alert severity
+   */
+  private getNotificationTypesForSeverity(severity: string): ('email' | 'push' | 'in_app' | 'telegram' | 'webhook' | 'slack')[] {
     switch (severity) {
       case 'critical':
-        return ['websocket', 'email', 'sms', 'slack'];
+        return ['email', 'push', 'in_app', 'telegram', 'webhook'];
       case 'high':
-        return ['websocket', 'email', 'slack'];
+        return ['email', 'push', 'in_app', 'webhook'];
       case 'medium':
-        return ['websocket', 'email'];
+        return ['email', 'push', 'in_app'];
       case 'low':
-        return ['websocket'];
+        return ['push', 'in_app'];
       default:
-        return ['websocket'];
+        return ['push', 'in_app'];
+    }
+  }
+
+  /**
+   * Map alert severity to notification priority
+   */
+  private mapSeverityToPriority(severity: string): 'low' | 'normal' | 'high' | 'urgent' {
+    switch (severity) {
+      case 'critical': return 'urgent';
+      case 'high': return 'high';
+      case 'medium': return 'normal';
+      case 'low': return 'low';
+      default: return 'normal';
+    }
+  }
+
+  /**
+   * Get alert subject for notifications
+   */
+  private getAlertSubject(alert: RiskAlert): string {
+    const emoji = this.getSeverityEmoji(alert.severity);
+    return `${emoji} Risk Alert: ${alert.title}`;
+  }
+
+  /**
+   * Get alert content for notifications
+   */
+  private getAlertContent(alert: RiskAlert): string {
+    let content = `**${alert.title}**\n\n${alert.message}`;
+    
+    if (alert.limitType && alert.limitValue && alert.currentValue) {
+      content += `\n\n**Details:**\n`;
+      content += `• Limit Type: ${alert.limitType}\n`;
+      content += `• Current Value: ${alert.currentValue}\n`;
+      content += `• Limit Value: ${alert.limitValue}\n`;
+      content += `• Threshold: ${alert.threshold}%\n`;
+    }
+
+    content += `\n**Alert ID:** ${alert.id}\n`;
+    content += `**Created:** ${alert.createdAt.toISOString()}`;
+
+    return content;
+  }
+
+  /**
+   * Get emoji for severity level
+   */
+  private getSeverityEmoji(severity: string): string {
+    switch (severity) {
+      case 'critical': return '🚨';
+      case 'high': return '⚠️';
+      case 'medium': return '📊';
+      case 'low': return 'ℹ️';
+      default: return '📊';
     }
   }
 

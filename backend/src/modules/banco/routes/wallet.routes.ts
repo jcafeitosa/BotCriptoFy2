@@ -22,7 +22,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ user, tenantId }) => {
+    async ({ user, tenantId }: any) => {
       logger.info('Listing wallets', { userId: user.id });
       const rows = await walletService.listUserWallets(user.id, tenantId);
       return { success: true, data: rows, count: rows.length };
@@ -43,7 +43,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/lock',
     { beforeHandle: [requirePermission('wallets', 'manage')] },
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await walletService.setWalletLock(params.id, user.id, tenantId, true, body.reason);
       return result;
     },
@@ -65,7 +65,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/unlock',
     { beforeHandle: [requirePermission('wallets', 'manage')] },
-    async ({ params, user, tenantId }) => {
+    async ({ params, user, tenantId }: any) => {
       const result = await walletService.setWalletLock(params.id, user.id, tenantId, false);
       return result;
     },
@@ -86,7 +86,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/:id/transactions/export',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, query, user, set }) => {
+    async ({ params, query, user, set }: any) => {
       const csv = await walletService.exportTransactionsCsv({
         walletId: params.id,
         userId: user.id,
@@ -123,7 +123,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       logger.info('Creating wallet', { userId: user.id, type: body.type });
 
       const result = await walletService.createWallet({
@@ -180,7 +180,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/:id',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, user }) => {
+    async ({ params, user }: any) => {
       logger.info('Getting wallet summary', { walletId: params.id, userId: user.id });
 
       const summary = await walletService.getWalletSummary(params.id);
@@ -224,7 +224,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/:id/assets/:asset',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, user }) => {
+    async ({ params, user }: any) => {
       logger.info('Getting asset balance', {
         walletId: params.id,
         asset: params.asset,
@@ -265,7 +265,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/deposit',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       logger.info('Processing deposit', {
         walletId: params.id,
         asset: body.asset,
@@ -316,7 +316,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/withdraw',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       logger.info('Creating withdrawal request', {
         walletId: params.id,
         asset: body.asset,
@@ -367,7 +367,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/transfer',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       logger.info('Processing transfer', {
         fromWalletId: params.id,
         toWalletId: body.toWalletId,
@@ -415,7 +415,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/:id/transactions',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, query, user }) => {
+    async ({ params, query, user }: any) => {
       logger.info('Getting transactions', { walletId: params.id, userId: user.id });
 
       const transactions = await walletService.getTransactions({
@@ -460,7 +460,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/goals',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body, user }) => {
+    async ({ params, body, user }: any) => {
       const result = await walletService.createSavingsGoal({
         userId: user.id,
         walletId: params.id,
@@ -500,7 +500,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/:id/goals',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, user }) => {
+    async ({ params, user }: any) => {
       const rows = await walletService.listSavingsGoals(user.id, params.id);
       return { success: true, data: rows, count: rows.length };
     },
@@ -521,7 +521,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/goals/:goalId/progress',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body, user }) => {
+    async ({ params, body, user }: any) => {
       const result = await walletService.addSavingsProgress(params.goalId, user.id, body.amount);
       return result;
     },
@@ -543,7 +543,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/withdrawals/:id/approve',
     { beforeHandle: [requirePermission('wallets', 'manage')] },
-    async ({ params, body, user }) => {
+    async ({ params, body, user }: any) => {
       logger.info('Approving/rejecting withdrawal', {
         withdrawalId: params.id,
         approved: body.approved,
@@ -582,7 +582,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .post(
     '/:id/withdraw/preview',
     { beforeHandle: [requirePermission('wallets', 'write')] },
-    async ({ params, body }) => {
+    async ({ params, body }: any) => {
       const amount = body.amount as number;
       const platformFee = amount * 0.005;
       const networkFee = 0;
@@ -621,7 +621,7 @@ export const walletRoutes = new Elysia({ prefix: '/api/v1/wallets' })
   .get(
     '/withdrawals',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ user }) => {
+    async ({ user }: any) => {
       const rows = await walletService.listUserWithdrawals(user.id);
       return { success: true, data: rows, count: rows.length };
     },

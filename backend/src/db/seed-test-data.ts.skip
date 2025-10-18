@@ -11,7 +11,7 @@ import 'dotenv/config';
 import { db } from './connection';
 import { users } from '../modules/auth/schema/auth.schema';
 import { tenants, tenantMembers } from '../modules/tenants/schema/tenants.schema';
-import { exchanges } from '../modules/exchanges/schema/exchanges.schema';
+import { exchangeConfigurations } from '../modules/exchanges/schema/exchanges.schema';
 import { tradingStrategies } from '../modules/strategies/schema/strategies.schema';
 import { bots, botTemplates } from '../modules/bots/schema/bots.schema';
 import logger from '../utils/logger';

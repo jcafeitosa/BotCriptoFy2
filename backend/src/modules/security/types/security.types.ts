@@ -48,7 +48,9 @@ export type ResourceType =
   | 'documents'
   | 'audit'
   | 'exchanges'
-  | 'wallets';
+  | 'wallets'
+  | 'marketing'
+  | 'mmn';
 
 /**
  * Permission format: resource:action

@@ -91,7 +91,7 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
   // Raw logs (unmasked) - requires audit:view_all
   .use(new Elysia().use(requirePermission('audit', 'view_all')).get(
     '/logs/raw',
-    async ({ query, session }) => {
+    async ({ query, session }: any) => {
       const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
       const limit = clampLimit(query.limit ? parseInt(query.limit) : 100);
       const offset = query.offset ? Math.max(0, parseInt(query.offset)) : 0;
@@ -293,7 +293,7 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
   // Raw export (unmasked) - requires audit:view_all
   .use(new Elysia().use(requirePermission('audit', 'view_all')).get(
     '/export/raw',
-    async ({ query, session }) => {
+    async ({ query, session }: any) => {
       const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
       const format = (query.format || 'jsonl').toLowerCase();
       const pageSize = clampLimit(query.pageSize ? parseInt(query.pageSize) : 500, 2000, 500);

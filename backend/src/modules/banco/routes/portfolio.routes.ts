@@ -22,7 +22,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .get(
     '/analytics',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ user, tenantId }) => {
+    async ({ user, tenantId }: any) => {
       logger.info('Getting portfolio analytics', { userId: user.id });
 
       const result = await portfolioService.getPortfolioAnalytics(user.id, tenantId);
@@ -46,7 +46,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .get(
     '/assets/:asset/stats',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       logger.info('Getting asset statistics', { asset: params.asset });
 
       const result = await portfolioService.getAssetStatistics(params.asset as any, tenantId);
@@ -72,7 +72,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .get(
     '/wallets/:id/activity',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       logger.info('Getting wallet activity', {
         walletId: params.id,
         days: query.days,
@@ -105,7 +105,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .get(
     '/prices/:asset',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ params }) => {
+    async ({ params }: any) => {
       logger.info('Getting asset price', { asset: params.asset });
 
       const price = await priceService.getPrice(params.asset as any);
@@ -143,7 +143,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .post(
     '/prices',
     { beforeHandle: [requirePermission('wallets', 'read')] },
-    async ({ body }) => {
+    async ({ body }: any) => {
       logger.info('Getting multiple asset prices', { assets: body.assets });
 
       const prices = await priceService.getPrices(body.assets as any[]);
@@ -174,7 +174,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .post(
     '/convert',
     { beforeHandle: [requirePermission('trading', 'read')] },
-    async ({ body }) => {
+    async ({ body }: any) => {
       logger.info('Converting assets', {
         from: body.fromAsset,
         to: body.toAsset,
@@ -227,7 +227,7 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
   .post(
     '/update-allocation',
     { beforeHandle: [requirePermission('trading', 'read')] },
-    async ({ user }) => {
+    async ({ user }: any) => {
       logger.info('Updating portfolio allocation', { userId: user.id });
 
       await portfolioService.calculatePortfolioAllocation(user.id);
