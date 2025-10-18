@@ -18,6 +18,8 @@ import { getRiskRepositoryFactory } from '../repositories/factories/risk-reposit
 import type { IRiskRepositoryFactory } from '../repositories/interfaces/risk-repository.interface';
 import type { SendNotificationRequest } from '../../notifications/types/notification.types';
 import { getRiskAlertTemplate } from '../templates/risk-notification-templates';
+import { monteCarloRiskService } from './risk-monte-carlo.service';
+import { portfolioOptimizationService } from './risk-portfolio-optimization.service';
 import type {
   RiskProfile,
   RiskLimit,
@@ -1851,26 +1853,38 @@ class RiskService implements IRiskService {
   }
 
   /**
-   * Run stress test scenarios
+   * Run stress test scenarios using Monte Carlo simulation
    */
   async runStressTest(userId: string, tenantId: string, scenarios: any[] = []): Promise<any[]> {
     try {
-      const defaultScenarios = [
-        { name: 'Market Crash', marketCrash: 0.2 },
-        { name: 'Volatility Spike', volatilitySpike: 0.5 },
-        { name: 'Liquidity Crisis', liquidityCrisis: 0.3 },
-        { name: 'Black Swan', marketCrash: 0.4, volatilitySpike: 0.8 },
-      ];
+      const positions = await this.getOpenPositions(userId, tenantId);
+      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      
+      // Create risk factors from positions
+      const riskFactors = monteCarloRiskService.createDefaultRiskFactors(positions);
+      
+      // Create stress test scenarios
+      const stressScenarios = scenarios.length > 0 
+        ? this.convertToStressScenarios(scenarios)
+        : monteCarloRiskService.createDefaultStressScenarios();
+      
+      // Run Monte Carlo stress test
+      const results = await monteCarloRiskService.runStressTestScenarios(
+        portfolioValue,
+        positions,
+        riskFactors,
+        stressScenarios
+      );
 
-      const testScenarios = scenarios.length > 0 ? scenarios : defaultScenarios;
-      const results = [];
-
-      for (const scenario of testScenarios) {
-        const result = await this.simulateStressScenario(userId, tenantId, scenario);
-        results.push(result);
-      }
-
-      return results;
+      return results.map(result => ({
+        name: stressScenarios[result.scenario - 1]?.name || `Scenario ${result.scenario}`,
+        portfolioValue: result.portfolioValue,
+        return: (result.portfolioValue - portfolioValue) / portfolioValue,
+        lossAmount: Math.max(0, portfolioValue - result.portfolioValue),
+        lossPercent: Math.max(0, (portfolioValue - result.portfolioValue) / portfolioValue * 100),
+        probability: result.probability,
+        riskFactors: result.riskFactors,
+      }));
     } catch (error) {
       logger.error('Failed to run stress test', { userId, error });
       return [];
@@ -1927,23 +1941,46 @@ class RiskService implements IRiskService {
       const positions = await this.getOpenPositions(userId, tenantId);
       const portfolioValue = await this.getPortfolioValue(userId, tenantId);
 
-      // Simplified portfolio optimization
-      // In a full implementation, this would use quadratic programming
-      const currentWeights = positions.map(p => {
-        const value = parseFloat(p.currentPrice) * parseFloat(p.remainingQuantity);
-        return value / portfolioValue;
-      });
+      // Convert positions to asset data
+      const assets = positions.map(position => ({
+        symbol: position.asset || 'UNKNOWN',
+        expectedReturn: this.estimateExpectedReturn(position),
+        volatility: this.estimateVolatility(position),
+        marketCap: parseFloat(position.currentPrice) * parseFloat(position.remainingQuantity),
+        sector: this.getAssetSector(position.asset),
+        liquidity: this.estimateLiquidity(position),
+        currentWeight: (parseFloat(position.currentPrice) * parseFloat(position.remainingQuantity)) / portfolioValue,
+        price: parseFloat(position.currentPrice),
+        quantity: parseFloat(position.remainingQuantity),
+      }));
 
-      const optimizedWeights = this.calculateOptimalWeights(positions, options);
-      const rebalancingActions = this.calculateRebalancingActions(positions, optimizedWeights, portfolioValue);
+      // Create market data
+      const marketData = portfolioOptimizationService.createMarketDataFromAssets(assets);
+      
+      // Set up constraints
+      const constraints = {
+        ...portfolioOptimizationService.createDefaultConstraints(),
+        ...options.constraints,
+      };
+
+      // Optimize portfolio
+      const result = await portfolioOptimizationService.optimizePortfolio(
+        assets,
+        options.objective || 'maximize_sharpe',
+        constraints,
+        marketData
+      );
 
       return {
-        currentWeights,
-        optimizedWeights,
-        rebalancingActions,
-        expectedReturn: this.calculateExpectedReturn(optimizedWeights, positions),
-        expectedRisk: this.calculateExpectedRisk(optimizedWeights, positions),
-        improvement: this.calculateImprovement(currentWeights, optimizedWeights),
+        currentWeights: assets.map(a => a.currentWeight),
+        optimalWeights: result.optimalWeights,
+        rebalancingActions: result.rebalancingActions,
+        expectedReturn: result.expectedReturn,
+        expectedRisk: result.expectedRisk,
+        sharpeRatio: result.sharpeRatio,
+        statistics: result.statistics,
+        constraints: result.constraints,
+        improvement: this.calculateImprovement(assets.map(a => a.currentWeight), result.optimalWeights),
       };
     } catch (error) {
       logger.error('Failed to optimize portfolio', { userId, error });
@@ -2271,6 +2308,104 @@ class RiskService implements IRiskService {
     // Simplified risk estimation
     // In a full implementation, this would use historical volatility
     return 0.2 + Math.random() * 0.3; // 20% to 50%
+  }
+
+  /**
+   * Convert custom scenarios to stress test scenarios
+   */
+  private convertToStressScenarios(scenarios: any[]): any[] {
+    return scenarios.map(scenario => ({
+      name: scenario.name || 'Custom Scenario',
+      marketShock: scenario.marketCrash || 0,
+      volatilityShock: scenario.volatilitySpike || 0,
+      correlationShock: scenario.correlationIncrease || 0,
+      liquidityShock: scenario.liquidityCrisis || 0,
+      probability: scenario.probability || 0.1,
+    }));
+  }
+
+  /**
+   * Estimate expected return for position
+   */
+  private estimateExpectedReturn(position: any): number {
+    // Simplified expected return estimation
+    // In a full implementation, this would use historical data
+    const baseReturn = 0.0001; // 0.01% daily base return
+    const volatility = this.estimateVolatility(position);
+    const riskPremium = volatility * 0.1; // 10% of volatility as risk premium
+    return baseReturn + riskPremium + (Math.random() - 0.5) * 0.001; // Add some randomness
+  }
+
+  /**
+   * Estimate volatility for position
+   */
+  private estimateVolatility(position: any): number {
+    // Simplified volatility estimation
+    // In a full implementation, this would use historical volatility
+    const asset = position.asset?.toLowerCase() || '';
+    
+    // Major cryptocurrencies have different volatilities
+    if (asset.includes('btc')) return 0.3; // 30% daily volatility
+    if (asset.includes('eth')) return 0.4; // 40% daily volatility
+    if (asset.includes('usdt') || asset.includes('usdc')) return 0.01; // 1% for stablecoins
+    
+    return 0.2 + Math.random() * 0.3; // 20-50% for other assets
+  }
+
+  /**
+   * Get asset sector
+   */
+  private getAssetSector(asset: string): string {
+    if (!asset) return 'unknown';
+    
+    const assetLower = asset.toLowerCase();
+    
+    if (assetLower.includes('btc')) return 'cryptocurrency';
+    if (assetLower.includes('eth')) return 'cryptocurrency';
+    if (assetLower.includes('usdt') || assetLower.includes('usdc')) return 'stablecoin';
+    if (assetLower.includes('defi')) return 'defi';
+    if (assetLower.includes('nft')) return 'nft';
+    
+    return 'cryptocurrency';
+  }
+
+  /**
+   * Estimate liquidity for position
+   */
+  private estimateLiquidity(position: any): number {
+    const asset = position.asset?.toLowerCase() || '';
+    
+    // Major cryptocurrencies are highly liquid
+    if (asset.includes('btc') || asset.includes('eth')) return 0.95;
+    if (asset.includes('usdt') || asset.includes('usdc')) return 0.98;
+    
+    return 0.6 + Math.random() * 0.3; // 60-90% for other assets
+  }
+
+  /**
+   * Calculate Monte Carlo VaR
+   */
+  async calculateMonteCarloVaR(userId: string, tenantId: string, config: any = {}): Promise<any> {
+    try {
+      const positions = await this.getOpenPositions(userId, tenantId);
+      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      
+      // Create risk factors from positions
+      const riskFactors = monteCarloRiskService.createDefaultRiskFactors(positions);
+      
+      // Calculate Monte Carlo VaR
+      const result = await monteCarloRiskService.calculateMonteCarloVaR(
+        portfolioValue,
+        positions,
+        riskFactors,
+        config
+      );
+      
+      return result;
+    } catch (error) {
+      logger.error('Failed to calculate Monte Carlo VaR', { userId, error });
+      throw error;
+    }
   }
 }
 
