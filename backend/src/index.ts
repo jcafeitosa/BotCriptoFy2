@@ -10,14 +10,15 @@ import { transformMiddleware } from './middleware/transform';
 import { healthRoutes } from './routes/health.routes';
 import { infoRoutes } from './routes/info.routes';
 import { errorRoutes } from './routes/error.routes';
-import { authRoutes, authCustomRoutes, adminAuthRoutes, devAuthRoutes } from './modules/auth';
-import { userRoutes } from './modules/users';
+import { authRoutes, authCustomRoutes, devAuthRoutes } from './modules/auth';
+import { userRoutes, adminUserRoutes } from './modules/users';
 import { tenantRoutes } from './modules/tenants';
 import { departmentRoutes, membershipRoutes, analyticsRoutes } from './modules/departments';
 import { notificationRoutes } from './modules/notifications';
 import { configurationRoutes } from './modules/configurations';
 import { securityRoutes } from './modules/security';
-import { auditRoutes } from './modules/audit';
+import { auditRoutes, auditMiddleware } from './modules/audit';
+import { optionalSessionGuard } from './modules/auth/middleware/session.middleware';
 import { rateLimitMiddleware, rateLimitRoutes } from './modules/rate-limiting';
 import { metricsMiddleware, metricsRoutes } from './monitoring';
 import {
@@ -50,7 +51,7 @@ import { marketingRoutes } from './modules/marketing/routes';
 import { contactsRoutes, dealsRoutes, pipelineRoutes, activitiesRoutes, analyticsRoutes as salesAnalyticsRoutes } from './modules/sales/routes';
 import { agentsRoutes } from './modules/agents';
 import { ticketsRoutes, slaRoutes, kbRoutes, automationsRoutes, cannedResponsesRoutes, analyticsRoutes as supportAnalyticsRoutes } from './modules/support/routes';
-import { exchangesRoutes } from './modules/exchanges';
+// import { exchangesRoutes } from './modules/exchanges'; // Module not yet implemented
 import { marketDataRoutes } from './modules/market-data';
 import { ordersRoutes } from './modules/orders';
 import { strategiesRoutes } from './modules/strategies';
@@ -60,6 +61,9 @@ import { botsRoutes } from './modules/bots';
 import { indicatorsRoutes } from './modules/indicators';
 import { sentimentRoutes } from './modules/sentiment/routes/sentiment.routes';
 import { initializeNotificationWorkers } from './modules/notifications/services/notification.service';
+import { initializeMarketDataPipeline } from './modules/market-data/websocket/pipeline';
+import { initializeMembershipEventBus } from './modules/tenants/events/membership-event-bus';
+import { initializeMembershipEventsConsumer } from './modules/users/services/membership-events.consumer';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -100,6 +104,12 @@ const app = (new Elysia()
 
   // 4. Metrics Middleware (collect HTTP metrics)
   .use(metricsMiddleware)
+
+  // 5. Optional session context (non-blocking) for cross-cutting features
+  .use(optionalSessionGuard)
+
+  // 6. Audit middleware (captures important events after responses)
+  .use(auditMiddleware)
 
   // ===========================================
   // INFRASTRUCTURE LAYER
@@ -247,7 +257,8 @@ const app = (new Elysia()
   // Authentication Routes (Better-Auth) - WITHOUT transform middleware
   .use(authRoutes)
   .use(authCustomRoutes)
-  .use(adminAuthRoutes)
+  // Admin user management moved to Users module
+  .use(adminUserRoutes)
   .use(devAuthRoutes)
 
   // Transform Middleware (applied AFTER auth routes to avoid conflicts with Better-Auth)
@@ -350,7 +361,7 @@ const app = (new Elysia()
   .use(supportAnalyticsRoutes)
 
   // Trading System Routes (requires authentication)
-  .use(exchangesRoutes)
+  // .use(exchangesRoutes) // Module not yet implemented
   .use(marketDataRoutes)
   .use(ordersRoutes)
   .use(strategiesRoutes)
@@ -385,6 +396,27 @@ try {
     error: error instanceof Error ? error.message : String(error),
   });
   // Continue startup even if notifications fail (non-critical)
+}
+
+// Initialize real-time market data pipeline (optional bootstrap)
+try {
+  await initializeMarketDataPipeline();
+} catch (error) {
+  logger.error('Failed to initialize market data pipeline', {
+    source: 'server',
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+// Initialize membership events (bus + consumer)
+try {
+  await initializeMembershipEventBus();
+  initializeMembershipEventsConsumer();
+} catch (error) {
+  logger.error('Failed to initialize membership events', {
+    source: 'server',
+    error: error instanceof Error ? error.message : String(error),
+  });
 }
 
 // Initialize Tax Jurisdiction Service (load config from database)

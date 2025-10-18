@@ -55,8 +55,9 @@ await connectToExchange('binance', {
 ```typescript
 import { subscribeToMarketData } from '@/modules/market-data/websocket';
 
-// Subscribe to BTC/USDT ticker
+// Subscribe to BTC/USDT ticker (explicit exchange recommended)
 await subscribeToMarketData({
+  exchangeId: 'binance',
   channel: 'ticker',
   symbol: 'BTC/USDT',
 });
@@ -136,8 +137,9 @@ class TradingBot {
       },
     });
 
-    // Subscribe to BTC/USDT
+    // Subscribe to BTC/USDT on Binance
     await this.wsManager.subscribe({
+      exchangeId: 'binance',
       channel: 'ticker',
       symbol: 'BTC/USDT',
     });
@@ -226,7 +228,7 @@ async connect(
 ): Promise<void>
 ```
 
-Connect to an exchange WebSocket.
+Connect to an exchange WebSocket. Adapters are created via the Exchanges module factory; do not instantiate adapter classes directly. Centralizing exchange connectivity enforces consistent policies and observability.
 
 **Example:**
 ```typescript
@@ -264,22 +266,27 @@ async subscribe(request: SubscriptionRequest): Promise<void>
 
 Subscribe to a market data channel.
 
+Note: When multiple exchanges are connected, include `exchangeId` in the request to avoid ambiguity and ensure the subscription is routed to the intended exchange.
+
 **Example:**
 ```typescript
-// Ticker
+// Ticker (explicit exchange)
 await wsManager.subscribe({
+  exchangeId: 'binance',
   channel: 'ticker',
   symbol: 'BTC/USDT',
 });
 
 // Trades
 await wsManager.subscribe({
+  exchangeId: 'kraken',
   channel: 'trades',
-  symbol: 'ETH/USDT',
+  symbol: 'ETH/USD',
 });
 
 // Order Book
 await wsManager.subscribe({
+  exchangeId: 'binance',
   channel: 'orderbook',
   symbol: 'BTC/USDT',
   params: { depth: 20 },
@@ -287,6 +294,7 @@ await wsManager.subscribe({
 
 // Candles
 await wsManager.subscribe({
+  exchangeId: 'coinbase',
   channel: 'candles',
   symbol: 'BTC/USDT',
   params: { interval: '1m' },
@@ -333,6 +341,22 @@ getHealthStatus(): {
 Get health status of all connections.
 
 ---
+
+## 🌐 HTTP Endpoints (Read‑only)
+
+The backend exposes read‑only endpoints for monitoring WebSocket health and activity.
+
+- GET `/api/v1/market-data/ws/status`
+  - Returns system metrics: active connections, max/available slots, subscriptions count by exchange, health summary, and Redis metrics when enabled.
+
+- GET `/api/v1/market-data/ws/connections`
+  - Returns connection status per exchange (state, connectedAt, reconnectAttempts, subscriptions).
+
+- GET `/api/v1/market-data/ws/subscriptions`
+  - Returns active subscriptions grouped by exchange.
+
+All routes require authentication via the standard session guard.
+
 
 ## 🎧 Events
 

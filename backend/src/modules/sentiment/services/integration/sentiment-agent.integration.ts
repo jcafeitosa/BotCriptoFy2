@@ -523,7 +523,7 @@ export const SentimentAgentActions = {
    */
   'sentiment:get_stats': {
     description: 'Get sentiment service statistics',
-    async handler(_input: {}) {
+    async handler(_input: Record<string, never>) {
       return {
         sentiment: hybridSentimentService?.getUsageStats(),
         trending: trendingTopicsService.getStats(),

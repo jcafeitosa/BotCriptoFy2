@@ -4,7 +4,7 @@
  * @see docs/database-schema.md:84-110
  */
 
-import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { users } from '../../auth/schema/auth.schema';
 
 /**
@@ -22,7 +22,10 @@ export const tenants = pgTable('tenants', {
   metadata: text('metadata').default('{}'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantsTypeIdx: index('tenants_type_idx').on(table.type),
+  tenantsStatusIdx: index('tenants_status_idx').on(table.status),
+}));
 
 /**
  * Tenant Members Table

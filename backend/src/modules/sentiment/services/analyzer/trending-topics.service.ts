@@ -171,7 +171,11 @@ export class TrendingTopicsService {
       // Find related symbols
       const relatedSymbols = Array.from(stats.symbols);
 
-      const trending: TrendingTopic = {
+      // Calculate total engagement
+      const totalEngagement = recentPoints.reduce((sum, p) => sum + p.engagement, 0);
+      const avgEngagement = recentPoints.length > 0 ? totalEngagement / recentPoints.length : 0;
+
+      const trending: TrendingTopic & { velocity?: number; engagement?: { total: number; average: number }; peakTime?: Date } = {
         id: crypto.randomUUID(),
         keyword: stats.topic,
         type: topic.startsWith('#') ? 'hashtag' : 'keyword',
@@ -189,6 +193,13 @@ export class TrendingTopicsService {
         period: '1h',
         timestamp: now,
         topPosts: [],
+        // Additional fields for backward compatibility with tests
+        velocity: stats.velocity,
+        engagement: {
+          total: totalEngagement,
+          average: avgEngagement,
+        },
+        peakTime,
       };
 
       trendingList.push(trending);
@@ -384,7 +395,7 @@ export class TrendingTopicsService {
     // Filter stop words and crypto-specific terms
     const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'has', 'had', 'was', 'been', 'have', 'this', 'that', 'with', 'from', 'will', 'what', 'when', 'where']);
 
-    const cryptoTerms = new Set(['bitcoin', 'ethereum', 'crypto', 'blockchain', 'btc', 'eth', 'altcoin', 'defi', 'nft', 'trading', 'market', 'price']);
+    const cryptoTerms = new Set(['bitcoin', 'ethereum', 'crypto', 'blockchain', 'btc', 'eth', 'altcoin', 'defi', 'nft', 'trading', 'market', 'price', 'breakout', 'pump', 'dump', 'bull', 'bear', 'rally', 'surge', 'crash']);
 
     const keywords: string[] = [];
 

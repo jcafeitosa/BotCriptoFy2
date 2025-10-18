@@ -13,6 +13,7 @@
  */
 
 import type { MiddlewareHandler } from 'astro';
+import { API_URL } from '../lib/config';
 
 /**
  * Protected routes configuration
@@ -87,7 +88,7 @@ async function verifySession(cookies: any): Promise<any> {
     }
 
     // PERFORMANCE: Fazer request ao backend apenas uma vez
-    const response = await fetch('http://localhost:3000/api/auth/session', {
+    const response = await fetch(`${API_URL}/api/auth/session`, {
       headers: {
         Cookie: `better-auth.session_token=${sessionToken}; better-auth.session_data=${sessionData}`,
       },

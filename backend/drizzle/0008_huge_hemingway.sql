@@ -1,4 +1,7 @@
-CREATE TABLE "subscription_history" (
+-- Ensure pgcrypto for gen_random_uuid
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS "subscription_history" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"plan_id" uuid,
@@ -32,7 +35,7 @@ CREATE TABLE "subscription_history" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_invoices" (
+CREATE TABLE IF NOT EXISTS "subscription_invoices" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"plan_id" uuid,
@@ -65,7 +68,7 @@ CREATE TABLE "subscription_invoices" (
 	CONSTRAINT "subscription_invoices_stripe_invoice_id_unique" UNIQUE("stripe_invoice_id")
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_notifications" (
+CREATE TABLE IF NOT EXISTS "subscription_notifications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"user_id" uuid,
@@ -89,7 +92,7 @@ CREATE TABLE "subscription_notifications" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_features" (
+CREATE TABLE IF NOT EXISTS "subscription_features" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"display_name" varchar(100) NOT NULL,
@@ -107,7 +110,7 @@ CREATE TABLE "subscription_features" (
 	CONSTRAINT "subscription_features_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_plans" (
+CREATE TABLE IF NOT EXISTS "subscription_plans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"display_name" varchar(100) NOT NULL,
@@ -133,7 +136,7 @@ CREATE TABLE "subscription_plans" (
 	CONSTRAINT "subscription_plans_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "tenant_subscription_plans" (
+CREATE TABLE IF NOT EXISTS "tenant_subscription_plans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -151,7 +154,7 @@ CREATE TABLE "tenant_subscription_plans" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_quotas" (
+CREATE TABLE IF NOT EXISTS "subscription_quotas" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -172,7 +175,7 @@ CREATE TABLE "subscription_quotas" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_usage" (
+CREATE TABLE IF NOT EXISTS "subscription_usage" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -199,7 +202,7 @@ CREATE TABLE "subscription_usage" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "subscription_usage_events" (
+CREATE TABLE IF NOT EXISTS "subscription_usage_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
 	"usage_id" uuid,
@@ -219,19 +222,83 @@ CREATE TABLE "subscription_usage_events" (
 	"event_time" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_previous_plan_id_subscription_plans_id_fk" FOREIGN KEY ("previous_plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_notifications" ADD CONSTRAINT "subscription_notifications_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_notifications" ADD CONSTRAINT "subscription_notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tenant_subscription_plans" ADD CONSTRAINT "tenant_subscription_plans_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tenant_subscription_plans" ADD CONSTRAINT "tenant_subscription_plans_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_quotas" ADD CONSTRAINT "subscription_quotas_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_quotas" ADD CONSTRAINT "subscription_quotas_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_usage" ADD CONSTRAINT "subscription_usage_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_usage" ADD CONSTRAINT "subscription_usage_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_usage_events" ADD CONSTRAINT "subscription_usage_events_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "subscription_usage_events" ADD CONSTRAINT "subscription_usage_events_usage_id_subscription_usage_id_fk" FOREIGN KEY ("usage_id") REFERENCES "public"."subscription_usage"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_history_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_history_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_history_previous_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_previous_plan_id_subscription_plans_id_fk" FOREIGN KEY ("previous_plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_history_user_id_users_id_fk') THEN
+    ALTER TABLE "subscription_history" ADD CONSTRAINT "subscription_history_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_invoices_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_invoices_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_notifications_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_notifications" ADD CONSTRAINT "subscription_notifications_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_notifications_user_id_users_id_fk') THEN
+    ALTER TABLE "subscription_notifications" ADD CONSTRAINT "subscription_notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenant_subscription_plans_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "tenant_subscription_plans" ADD CONSTRAINT "tenant_subscription_plans_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenant_subscription_plans_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "tenant_subscription_plans" ADD CONSTRAINT "tenant_subscription_plans_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_quotas_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_quotas" ADD CONSTRAINT "subscription_quotas_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_quotas_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "subscription_quotas" ADD CONSTRAINT "subscription_quotas_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_usage_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_usage" ADD CONSTRAINT "subscription_usage_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_usage_plan_id_subscription_plans_id_fk') THEN
+    ALTER TABLE "subscription_usage" ADD CONSTRAINT "subscription_usage_plan_id_subscription_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."subscription_plans"("id") ON DELETE restrict ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_usage_events_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "subscription_usage_events" ADD CONSTRAINT "subscription_usage_events_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_usage_events_usage_id_subscription_usage_id_fk') THEN
+    ALTER TABLE "subscription_usage_events" ADD CONSTRAINT "subscription_usage_events_usage_id_subscription_usage_id_fk" FOREIGN KEY ("usage_id") REFERENCES "public"."subscription_usage"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;

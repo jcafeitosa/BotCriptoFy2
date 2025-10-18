@@ -12,12 +12,16 @@ import Stripe from 'stripe';
 import { db } from '@/db';
 import * as authSchema from '../schema/auth.schema';
 import logger from '@/utils/logger';
+import { subscriptionPlans } from '@/modules/subscriptions/schema/subscription-plans.schema';
+import { eq } from 'drizzle-orm';
+import { sendResetPasswordEmail, sendVerificationEmail } from './email.service';
 
 /**
  * Stripe Client Instance
+ * Using latest stable API version
  */
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-02-24.acacia' as any,
+  apiVersion: '2025-09-30.clover',
 });
 
 /**
@@ -51,22 +55,10 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     sendResetPassword: async ({ user, url }: { user: any; url: string }) => {
-      // Email sending via SMTP (configured via environment variables)
-      // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD required
-      logger.info('Password reset requested', {
-        email: user.email,
-        resetUrl: url,
-      });
-      // Implementation: Use nodemailer or similar SMTP client
+      await sendResetPasswordEmail(user.email, url);
     },
     sendVerificationEmail: async ({ user, url }: { user: any; url: string }) => {
-      // Email sending via SMTP (configured via environment variables)
-      // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD required
-      logger.info('Email verification requested', {
-        email: user.email,
-        verificationUrl: url,
-      });
-      // Implementation: Use nodemailer or similar SMTP client
+      await sendVerificationEmail(user.email, url);
     },
   },
 
@@ -158,90 +150,47 @@ export const auth = betterAuth({
       subscription: {
         enabled: true,
         plans: async () => {
-          // Planos de assinatura integrados com Stripe
-          // Os Stripe Price IDs devem ser configurados no Stripe Dashboard primeiro
-          return [
-            {
-              name: 'free',
-              limits: {
-                maxBots: 1,
-                maxStrategies: 3,
-                maxBacktests: 5,
-                maxExchanges: 1,
-                maxApiCalls: 1000,
-              },
-              // Free plan não tem price ID (não cobra)
-            },
-            {
-              name: 'pro',
-              // Stripe Price IDs (configure via environment variables)
-              priceId: process.env.STRIPE_PRICE_PRO_MONTHLY,
-              annualDiscountPriceId: process.env.STRIPE_PRICE_PRO_YEARLY,
-              limits: {
-                maxBots: 10,
-                maxStrategies: 50,
-                maxBacktests: 100,
-                maxExchanges: 5,
-                maxApiCalls: 100000,
-              },
-              freeTrial: {
-                days: 14, // 14 days
+          // Load active public plans from DB and map to plugin format
+          const plans = await db
+            .select()
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.isActive, true));
+
+          return plans.map((p) => {
+            // Filter limits to only include numeric values (Stripe plugin expects Record<string, number>)
+            const numericLimits: Record<string, number> = {};
+            if (p.limits) {
+              for (const [key, value] of Object.entries(p.limits)) {
+                if (typeof value === 'number') {
+                  numericLimits[key] = value;
+                }
+              }
+            }
+
+            return {
+              name: p.slug || p.name,
+              priceId: p.stripePriceIdMonthly || undefined,
+              annualDiscountPriceId: p.stripePriceIdYearly || undefined,
+              limits: Object.keys(numericLimits).length > 0 ? numericLimits : undefined,
+              freeTrial: p.trialDays && p.trialDays > 0 ? {
+                days: p.trialDays,
                 onTrialStart: async (subscription: any) => {
-                  logger.info('Pro plan trial started', {
+                  logger.info('Trial started', {
+                    plan: p.slug,
                     subscriptionId: subscription.id,
                     referenceId: subscription.referenceId,
                   });
                 },
                 onTrialEnd: async (data: any) => {
-                  logger.info('Pro plan trial ended', {
+                  logger.info('Trial ended', {
+                    plan: p.slug,
                     subscriptionId: data.subscription.id,
                     referenceId: data.subscription.referenceId,
                   });
                 },
-              },
-            },
-            {
-              name: 'enterprise',
-              // Stripe Price IDs (configure via environment variables)
-              priceId: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
-              annualDiscountPriceId: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
-              limits: {
-                maxBots: 999999,
-                maxStrategies: 999999,
-                maxBacktests: 999999,
-                maxExchanges: 999999,
-                maxApiCalls: 10000000,
-              },
-              freeTrial: {
-                days: 30, // 30 days
-                onTrialStart: async (subscription: any) => {
-                  logger.info('Enterprise plan trial started', {
-                    subscriptionId: subscription.id,
-                    referenceId: subscription.referenceId,
-                  });
-                },
-                onTrialEnd: async (data: any) => {
-                  logger.info('Enterprise plan trial ended', {
-                    subscriptionId: data.subscription.id,
-                    referenceId: data.subscription.referenceId,
-                  });
-                },
-              },
-            },
-            {
-              name: 'internal',
-              // Plano interno para influencers/parceiros - SEM Stripe (gratuito)
-              // Atribuído manualmente via admin panel
-              limits: {
-                maxBots: 50,
-                maxStrategies: 200,
-                maxBacktests: 500,
-                maxExchanges: 10,
-                maxApiCalls: 500000,
-              },
-              // Sem trial (já é gratuito permanentemente)
-            },
-          ];
+              } : undefined,
+            };
+          });
         },
       },
     }),

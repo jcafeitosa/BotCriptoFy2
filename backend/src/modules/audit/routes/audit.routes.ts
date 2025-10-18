@@ -20,8 +20,9 @@ import {
   getDataAccessHistory,
   checkDataRetentionCompliance,
 } from '../services/compliance.service';
-import { runAnomalyDetection } from '../services/anomaly-detection.service';
-import type { AuditEventType, AuditSeverity, AuditStatus, ComplianceCategory } from '../types/audit.types';
+import type { AuditEventType, AuditSeverity, AuditStatus, ComplianceCategory, BucketGranularity } from '../types/audit.types';
+import { sanitizeAuditLogForResponse, clampLimit } from '../utils/sanitize.util';
+import { getTimelineBuckets, getTopSummary } from '../services/audit-logger.service';
 
 /**
  * Audit routes plugin
@@ -40,6 +41,8 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
     async ({ query, session }) => {
       const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
 
+      const limit = clampLimit(query.limit ? parseInt(query.limit) : 100);
+      const offset = query.offset ? Math.max(0, parseInt(query.offset)) : 0;
       const logs = await queryAuditLogs({
         eventType: query.eventType as AuditEventType | undefined,
         severity: query.severity as AuditSeverity | undefined,
@@ -50,14 +53,17 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
         complianceCategory: query.complianceCategory as ComplianceCategory | undefined,
         startDate: query.startDate ? new Date(query.startDate) : undefined,
         endDate: query.endDate ? new Date(query.endDate) : undefined,
-        limit: query.limit ? parseInt(query.limit) : 100,
-        offset: query.offset ? parseInt(query.offset) : 0,
+        limit,
+        offset,
       });
+
+      // Always mask sensitive by default in /logs
+      const sanitized = logs.map((log) => sanitizeAuditLogForResponse(log, { maskSensitive: true }));
 
       return {
         success: true,
-        data: logs,
-        total: logs.length,
+        data: sanitized,
+        total: sanitized.length,
       };
     },
     {
@@ -81,6 +87,50 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
       },
     }
   )
+
+  // Raw logs (unmasked) - requires audit:view_all
+  .use(new Elysia().use(requirePermission('audit', 'view_all')).get(
+    '/logs/raw',
+    async ({ query, session }: any) => {
+      const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
+      const limit = clampLimit(query.limit ? parseInt(query.limit) : 100);
+      const offset = query.offset ? Math.max(0, parseInt(query.offset)) : 0;
+      const logs = await queryAuditLogs({
+        eventType: query.eventType as AuditEventType | undefined,
+        severity: query.severity as AuditSeverity | undefined,
+        status: query.status as AuditStatus | undefined,
+        userId: query.userId,
+        tenantId,
+        resource: query.resource,
+        complianceCategory: query.complianceCategory as ComplianceCategory | undefined,
+        startDate: query.startDate ? new Date(query.startDate) : undefined,
+        endDate: query.endDate ? new Date(query.endDate) : undefined,
+        limit,
+        offset,
+      });
+      return { success: true, data: logs, total: logs.length };
+    },
+    {
+      query: t.Object({
+        eventType: t.Optional(t.String()),
+        severity: t.Optional(t.String()),
+        status: t.Optional(t.String()),
+        userId: t.Optional(t.String()),
+        tenantId: t.Optional(t.String()),
+        resource: t.Optional(t.String()),
+        complianceCategory: t.Optional(t.String()),
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+        offset: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Audit'],
+        summary: 'Query raw audit logs',
+        description: 'Retrieve unmasked audit logs (requires audit:view_all)',
+      },
+    }
+  ))
 
   // Get audit log by ID
   .get(
@@ -136,6 +186,203 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
     }
   )
 
+  // Export audit logs (CSV or JSONL)
+  .get(
+    '/export',
+    async ({ query, session }) => {
+      const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
+      const format = (query.format || 'jsonl').toLowerCase();
+      const pageSize = clampLimit(query.pageSize ? parseInt(query.pageSize) : 500, 2000, 500);
+
+      const headers: Record<string, string> = {
+        'Content-Disposition': `attachment; filename="audit-export.${format === 'csv' ? 'csv' : 'jsonl'}"`,
+        'Cache-Control': 'no-cache',
+      };
+
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          let offset = 0;
+
+          // CSV header
+          if (format === 'csv') {
+            controller.enqueue(
+              encoder.encode(
+                'id,timestamp,eventType,severity,status,userId,tenantId,resource,resourceId,action,ipAddress,userAgent,complianceCategory\n'
+              )
+            );
+          }
+
+          while (true) {
+            const rows = await queryAuditLogs({
+              eventType: query.eventType as AuditEventType | undefined,
+              severity: query.severity as AuditSeverity | undefined,
+              status: query.status as AuditStatus | undefined,
+              userId: query.userId,
+              tenantId,
+              resource: query.resource,
+              complianceCategory: query.complianceCategory as ComplianceCategory | undefined,
+              startDate: query.startDate ? new Date(query.startDate) : undefined,
+              endDate: query.endDate ? new Date(query.endDate) : undefined,
+              limit: pageSize,
+              offset,
+            });
+
+            if (!rows.length) break;
+
+            for (const row of rows) {
+              const log = sanitizeAuditLogForResponse(row, { maskSensitive: true });
+              if (format === 'csv') {
+                const line = [
+                  log.id,
+                  new Date(log.timestamp).toISOString(),
+                  log.eventType,
+                  log.severity,
+                  log.status,
+                  log.userId || '',
+                  log.tenantId || '',
+                  log.resource || '',
+                  log.resourceId || '',
+                  log.action || '',
+                  log.ipAddress || '',
+                  (log.userAgent || '').replaceAll(',', ' '),
+                  log.complianceCategory || '',
+                ].join(',') + '\n';
+                controller.enqueue(encoder.encode(line));
+              } else {
+                controller.enqueue(encoder.encode(JSON.stringify(log) + '\n'));
+              }
+            }
+
+            offset += rows.length;
+          }
+
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson',
+          ...headers,
+        },
+      });
+    },
+    {
+      query: t.Object({
+        eventType: t.Optional(t.String()),
+        severity: t.Optional(t.String()),
+        status: t.Optional(t.String()),
+        userId: t.Optional(t.String()),
+        tenantId: t.Optional(t.String()),
+        resource: t.Optional(t.String()),
+        complianceCategory: t.Optional(t.String()),
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        format: t.Optional(t.String()), // csv | jsonl
+        pageSize: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Audit'],
+        summary: 'Export audit logs',
+        description: 'Export filtered audit logs as CSV or JSONL (always masked).',
+      },
+    }
+  )
+
+  // Raw export (unmasked) - requires audit:view_all
+  .use(new Elysia().use(requirePermission('audit', 'view_all')).get(
+    '/export/raw',
+    async ({ query, session }: any) => {
+      const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
+      const format = (query.format || 'jsonl').toLowerCase();
+      const pageSize = clampLimit(query.pageSize ? parseInt(query.pageSize) : 500, 2000, 500);
+      const headers: Record<string, string> = {
+        'Content-Disposition': `attachment; filename="audit-export-raw.${format === 'csv' ? 'csv' : 'jsonl'}"`,
+        'Cache-Control': 'no-cache',
+      };
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          let offset = 0;
+          if (format === 'csv') {
+            controller.enqueue(
+              encoder.encode(
+                'id,timestamp,eventType,severity,status,userId,tenantId,resource,resourceId,action,ipAddress,userAgent,complianceCategory\n'
+              )
+            );
+          }
+          while (true) {
+            const rows = await queryAuditLogs({
+              eventType: query.eventType as AuditEventType | undefined,
+              severity: query.severity as AuditSeverity | undefined,
+              status: query.status as AuditStatus | undefined,
+              userId: query.userId,
+              tenantId,
+              resource: query.resource,
+              complianceCategory: query.complianceCategory as ComplianceCategory | undefined,
+              startDate: query.startDate ? new Date(query.startDate) : undefined,
+              endDate: query.endDate ? new Date(query.endDate) : undefined,
+              limit: pageSize,
+              offset,
+            });
+            if (!rows.length) break;
+            for (const log of rows) {
+              if (format === 'csv') {
+                const line = [
+                  log.id,
+                  new Date(log.timestamp as any).toISOString(),
+                  log.eventType,
+                  log.severity,
+                  log.status,
+                  (log as any).userId || '',
+                  (log as any).tenantId || '',
+                  (log as any).resource || '',
+                  (log as any).resourceId || '',
+                  (log as any).action || '',
+                  (log as any).ipAddress || '',
+                  String((log as any).userAgent || '').replaceAll(',', ' '),
+                  (log as any).complianceCategory || '',
+                ].join(',') + '\n';
+                controller.enqueue(encoder.encode(line));
+              } else {
+                controller.enqueue(encoder.encode(JSON.stringify(log) + '\n'));
+              }
+            }
+            offset += rows.length;
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          'Content-Type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson',
+          ...headers,
+        },
+      });
+    },
+    {
+      query: t.Object({
+        eventType: t.Optional(t.String()),
+        severity: t.Optional(t.String()),
+        status: t.Optional(t.String()),
+        userId: t.Optional(t.String()),
+        tenantId: t.Optional(t.String()),
+        resource: t.Optional(t.String()),
+        complianceCategory: t.Optional(t.String()),
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        format: t.Optional(t.String()),
+        pageSize: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Audit'],
+        summary: 'Export raw audit logs',
+        description: 'Export unmasked audit logs (requires audit:view_all)',
+      },
+    }
+  ))
+
   // ===========================================
   // STATISTICS & ANALYTICS
   // ===========================================
@@ -166,6 +413,62 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
         tags: ['Audit'],
         summary: 'Get audit statistics',
         description: 'Get aggregated statistics for audit events in a time period',
+      },
+    }
+  )
+
+  // Time-bucketed timeline for charts
+  .get(
+    '/timeline/buckets',
+    async ({ query, session }) => {
+      const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
+      const startDate = query.startDate ? new Date(query.startDate) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const endDate = query.endDate ? new Date(query.endDate) : new Date();
+      const bucket = (query.bucket || 'hour') as BucketGranularity;
+
+      const data = await getTimelineBuckets(bucket, startDate, endDate, {
+        tenantId,
+        eventType: query.eventType as AuditEventType | undefined,
+      });
+
+      return { success: true, data };
+    },
+    {
+      query: t.Object({
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        tenantId: t.Optional(t.String()),
+        bucket: t.Optional(t.String()), // minute|hour|day
+        eventType: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Audit'],
+        summary: 'Timeline buckets',
+        description: 'Get time-bucketed counts for charts',
+      },
+    }
+  )
+
+  // Top slices for quick dashboards
+  .get(
+    '/summary/top',
+    async ({ query, session }) => {
+      const tenantId = query.tenantId || (session as any)?.activeOrganizationId;
+      const startDate = query.startDate ? new Date(query.startDate) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const endDate = query.endDate ? new Date(query.endDate) : new Date();
+      const result = await getTopSummary(startDate, endDate, tenantId);
+      return { success: true, data: result };
+    },
+    {
+      query: t.Object({
+        startDate: t.Optional(t.String()),
+        endDate: t.Optional(t.String()),
+        tenantId: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Audit'],
+        summary: 'Top summary slices',
+        description: 'Top event types, resources, users in a period',
       },
     }
   )
@@ -343,32 +646,4 @@ export const auditRoutes = new Elysia({ prefix: '/api/audit', name: 'audit-route
   )
 
   // ===========================================
-  // ANOMALY DETECTION (Admin only)
-  // ===========================================
-
-  // Run anomaly detection for a user
-  .post(
-    '/anomaly-detection',
-    async ({ body, session }) => {
-      const tenantId = body.tenantId || (session as any)?.activeOrganizationId;
-
-      const result = await runAnomalyDetection(body.userId, body.ipAddress, tenantId);
-
-      return {
-        success: true,
-        data: result,
-      };
-    },
-    {
-      body: t.Object({
-        userId: t.String({ description: 'User ID to check' }),
-        ipAddress: t.Optional(t.String({ description: 'IP address' })),
-        tenantId: t.Optional(t.String({ description: 'Tenant ID' })),
-      }),
-      detail: {
-        tags: ['Audit', 'Security'],
-        summary: 'Run anomaly detection',
-        description: 'Run comprehensive anomaly detection for a user (Admin only)',
-      },
-    }
-  );
+  ;

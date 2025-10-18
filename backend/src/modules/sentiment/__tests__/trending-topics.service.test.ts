@@ -57,9 +57,9 @@ describe('TrendingTopicsService', () => {
 
       expect(trending.length).toBeGreaterThan(0);
 
-      const btcTag = trending.find((t) => t.topic === '#btc');
+      const btcTag = trending.find((t) => t.keyword === '#btc');
       expect(btcTag).toBeDefined();
-      expect(btcTag!.mentions).toBeGreaterThanOrEqual(3);
+      expect(btcTag!.mentionCount).toBeGreaterThanOrEqual(3);
       expect(btcTag!.type).toBe('hashtag');
     });
 
@@ -73,7 +73,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const breakoutTopic = trending.find((t) => t.topic.includes('breakout'));
+      const breakoutTopic = trending.find((t) => t.keyword.includes('breakout'));
       expect(breakoutTopic).toBeDefined();
       expect(breakoutTopic!.type).toBe('keyword');
     });
@@ -85,7 +85,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const btcTag = trending.find((t) => t.topic === '#btc');
+      const btcTag = trending.find((t) => t.keyword === '#btc');
       expect(btcTag).toBeDefined();
       expect(btcTag!.score).toBeGreaterThan(0);
       expect(btcTag!.velocity).toBeGreaterThan(0);
@@ -104,7 +104,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const emergingTrend = trending.find((t) => t.topic === '#newcoin');
+      const emergingTrend = trending.find((t) => t.keyword === '#newcoin');
       expect(emergingTrend).toBeDefined();
       expect(emergingTrend!.trendType).toBe('emerging');
       expect(emergingTrend!.velocity).toBeGreaterThan(10); // High velocity
@@ -119,7 +119,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const btcTag = trending.find((t) => t.topic === '#btc');
+      const btcTag = trending.find((t) => t.keyword === '#btc');
       expect(btcTag).toBeDefined();
       expect(btcTag!.symbols).toContain('BTC');
     });
@@ -133,7 +133,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const trendingTag = trending.find((t) => t.topic === '#trending');
+      const trendingTag = trending.find((t) => t.keyword === '#trending');
       expect(trendingTag).toBeDefined();
       expect(trendingTag!.engagement).toBeDefined();
       expect(trendingTag!.engagement.total).toBeGreaterThan(0);
@@ -223,7 +223,7 @@ describe('TrendingTopicsService', () => {
       const trending = await service.processMentions(mentions);
 
       // Should not appear in trending (below threshold)
-      const lowVolTag = trending.find((t) => t.topic === '#lowvol');
+      const lowVolTag = trending.find((t) => t.keyword === '#lowvol');
       expect(lowVolTag).toBeUndefined();
     });
   });
@@ -274,7 +274,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const bitcoinTag = trending.find((t) => t.topic === '#bitcoin');
+      const bitcoinTag = trending.find((t) => t.keyword === '#bitcoin');
       expect(bitcoinTag).toBeDefined();
       // Sustained or emerging depending on velocity
       expect(['sustained', 'emerging', 'peak']).toContain(bitcoinTag!.trendType);
@@ -312,7 +312,7 @@ describe('TrendingTopicsService', () => {
 
       const trending = await service.processMentions(mentions);
 
-      const peakTag = trending.find((t) => t.topic === '#peak');
+      const peakTag = trending.find((t) => t.keyword === '#peak');
       expect(peakTag).toBeDefined();
       expect(peakTag!.peakTime).toBeDefined();
       expect(peakTag!.peakTime).toBeInstanceOf(Date);

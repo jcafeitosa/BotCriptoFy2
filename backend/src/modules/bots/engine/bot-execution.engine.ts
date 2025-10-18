@@ -702,7 +702,7 @@ export class BotExecutionEngine extends EventEmitter implements IExecutionEngine
    */
   private calculatePositionSize(signal: TradingSignal, riskValidation: RiskValidationResult): number {
     // Base capital allocation from bot configuration
-    let baseCapital = this.bot.allocatedCapital * (this.bot.positionSizePercent / 100);
+    const baseCapital = this.bot.allocatedCapital * (this.bot.positionSizePercent / 100);
 
     // Calculate signal strength multiplier (0.5 - 1.5)
     // Higher confidence signals get larger positions
@@ -1284,6 +1284,7 @@ export class BotExecutionEngine extends EventEmitter implements IExecutionEngine
 
       // Subscribe to ticker for this bot's symbol
       await marketDataWebSocketManager.subscribe({
+        exchangeId,
         channel: 'ticker',
         symbol: this.bot.symbol,
       });
@@ -1322,6 +1323,7 @@ export class BotExecutionEngine extends EventEmitter implements IExecutionEngine
 
       // Unsubscribe from ticker
       await marketDataWebSocketManager.unsubscribe({
+        exchangeId: this.bot.exchangeId as ExchangeId,
         channel: 'ticker',
         symbol: this.bot.symbol,
       });

@@ -5,6 +5,8 @@
 
 import { Elysia, t } from 'elysia';
 import { sessionGuard } from '../../auth/middleware/session.middleware';
+import { ensureTenantMember, ensureTenantAdmin } from '../services/tenant.service';
+import { TENANT_ROLES } from '../types/tenant.types';
 import {
   getTenantById,
   getUserTenants,
@@ -14,11 +16,12 @@ import {
   promoteToCEO,
   getCompanyTenant,
 } from '../services/tenant.service';
+import { TenantsCacheService } from '../services/tenant-cache.service';
 
 /**
  * Tenant routes plugin
  */
-export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-routes' })
+export const tenantRoutes = new Elysia({ prefix: '/api/v1/tenants', name: 'tenant-routes' })
   .use(sessionGuard)
 
   // Get all user's tenants
@@ -48,8 +51,9 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
   // Get tenant by ID
   .get(
     '/:id',
-    async ({ params }) => {
-      const tenant = await getTenantById(params.id);
+    async ({ params, user }) => {
+      await ensureTenantMember(params.id, user.id);
+      const tenant = await TenantsCacheService.getTenant(params.id);
       return { success: true, data: tenant };
     },
     {
@@ -67,18 +71,25 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
   // Get tenant members
   .get(
     '/:id/members',
-    async ({ params }) => {
-      const members = await getTenantMembers(params.id);
-      return { success: true, data: members };
+    async ({ params, user, query }) => {
+      await ensureTenantAdmin(params.id, user.id);
+      const page = query.page ?? 1;
+      const limit = query.limit ?? 50;
+      const result = await getTenantMembersPaginated(params.id, page, limit);
+      return { success: true, data: result.data, pagination: result.pagination };
     },
     {
       params: t.Object({
         id: t.String(),
       }),
+      query: t.Object({
+        page: t.Optional(t.Number()),
+        limit: t.Optional(t.Number()),
+      }),
       detail: {
         tags: ['Tenants'],
         summary: 'Get tenant members',
-        description: 'Get all members of a tenant',
+        description: 'Get tenant members with pagination',
       },
     }
   )
@@ -86,7 +97,8 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
   // Add member to tenant
   .post(
     '/:id/members',
-    async ({ params, body }) => {
+    async ({ params, body, user }) => {
+      await ensureTenantAdmin(params.id, user.id);
       const member = await addTenantMember(
         params.id,
         body.userId,
@@ -99,11 +111,14 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
       params: t.Object({
         id: t.String(),
       }),
-      body: t.Object({
-        userId: t.String(),
-        role: t.String(),
-        permissions: t.Optional(t.Record(t.String(), t.Any())),
-      }),
+      body: (() => {
+        const roleLiterals = (TENANT_ROLES as readonly string[]).map((r) => t.Literal(r));
+        return t.Object({
+          userId: t.String({ minLength: 3 }),
+          role: t.Union(roleLiterals as any),
+          permissions: t.Optional(t.Record(t.String(), t.Any())),
+        });
+      })(),
       detail: {
         tags: ['Tenants'],
         summary: 'Add member to tenant',
@@ -115,7 +130,8 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
   // Remove member from tenant
   .delete(
     '/:id/members/:userId',
-    async ({ params }) => {
+    async ({ params, user }) => {
+      await ensureTenantAdmin(params.id, user.id);
       const result = await removeTenantMember(params.id, params.userId);
       return { success: true, data: result };
     },
@@ -160,8 +176,10 @@ export const tenantRoutes = new Elysia({ prefix: '/api/tenants', name: 'tenant-r
   // Get company tenant info
   .get(
     '/company/info',
-    async () => {
-      const tenant = await getCompanyTenant();
+    async ({ user }) => {
+      const tenant = await TenantsCacheService.getCompanyTenant();
+      // Require membership to view company tenant details
+      await ensureTenantMember(tenant.id, user.id);
       return { success: true, data: tenant };
     },
     {

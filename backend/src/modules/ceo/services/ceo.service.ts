@@ -4,13 +4,24 @@
  */
 
 import { db } from '../../../db';
-import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, desc, isNotNull } from 'drizzle-orm';
 import { ceoDashboardConfigs, ceoKpis, ceoAlerts } from '../schema/ceo.schema';
 import { tenantSubscriptionPlans, subscriptionPlans } from '../../subscriptions/schema/subscription-plans.schema';
 import { subscriptionHistory } from '../../subscriptions/schema/subscription-history.schema';
 import { users } from '../../auth/schema/auth.schema';
+import { tenantMembers } from '../../tenants/schema/tenants.schema';
 import { cacheManager } from '../../../cache/cache-manager';
 import logger from '../../../utils/logger';
+import { invoices } from '../../financial/schema/invoices.schema';
+import { paymentTransactions, paymentGateways } from '../../financial/schema/payments.schema';
+import { chartOfAccounts, accountBalances } from '../../financial/schema/ledger.schema';
+import { tradingStrategies } from '../../strategies/schema/strategies.schema';
+import { bots } from '../../bots/schema/bots.schema';
+import { metricsRegistry } from '../../monitoring/metrics/registry';
+import { systemMetrics } from '../../monitoring/metrics/collectors/system.metrics';
+import { summarizeHttpMetrics } from '../utils/metrics.util';
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   DashboardData,
   DashboardConfig,
@@ -261,6 +272,88 @@ export class CeoService {
   }
 
   /**
+   * Acknowledge an alert
+   */
+  async acknowledgeAlert(tenantId: string, alertId: string, userId: string): Promise<ServiceResponse<Alert>> {
+    try {
+      const [updated] = await db
+        .update(ceoAlerts)
+        .set({ status: 'acknowledged', acknowledgedAt: new Date(), acknowledgedBy: userId, updatedAt: new Date() })
+        .where(and(eq(ceoAlerts.id, alertId as any), eq(ceoAlerts.tenantId, tenantId as any)))
+        .returning();
+      if (!updated) {
+        return { success: false, error: 'Alert not found', code: 'ALERT_NOT_FOUND' };
+      }
+      return { success: true, data: (updated as unknown) as Alert };
+    } catch (error) {
+      logger.error('Error acknowledging alert', { error, tenantId, alertId });
+      return { success: false, error: 'ALERT_ACK_ERROR', code: 'ALERT_ACK_ERROR' };
+    }
+  }
+
+  /** Resolve an alert */
+  async resolveAlert(tenantId: string, alertId: string, userId: string): Promise<ServiceResponse<Alert>> {
+    try {
+      const [updated] = await db
+        .update(ceoAlerts)
+        .set({ status: 'resolved', resolvedAt: new Date(), resolvedBy: userId, updatedAt: new Date() })
+        .where(and(eq(ceoAlerts.id, alertId as any), eq(ceoAlerts.tenantId, tenantId as any)))
+        .returning();
+      if (!updated) {
+        return { success: false, error: 'Alert not found', code: 'ALERT_NOT_FOUND' };
+      }
+      return { success: true, data: (updated as unknown) as Alert };
+    } catch (error) {
+      logger.error('Error resolving alert', { error, tenantId, alertId });
+      return { success: false, error: 'ALERT_RESOLVE_ERROR', code: 'ALERT_RESOLVE_ERROR' };
+    }
+  }
+
+  /** Dismiss an alert */
+  async dismissAlert(tenantId: string, alertId: string): Promise<ServiceResponse<Alert>> {
+    try {
+      const [updated] = await db
+        .update(ceoAlerts)
+        .set({ status: 'dismissed', updatedAt: new Date() })
+        .where(and(eq(ceoAlerts.id, alertId as any), eq(ceoAlerts.tenantId, tenantId as any)))
+        .returning();
+      if (!updated) return { success: false, error: 'Alert not found', code: 'ALERT_NOT_FOUND' };
+      return { success: true, data: (updated as unknown) as Alert };
+    } catch (error) {
+      logger.error('Error dismissing alert', { error, tenantId, alertId });
+      return { success: false, error: 'ALERT_DISMISS_ERROR', code: 'ALERT_DISMISS_ERROR' };
+    }
+  }
+
+  /**
+   * Trend: new users per day
+   */
+  async getUserTrends(tenantId: string, startDate: Date, endDate: Date): Promise<ServiceResponse<Array<{ bucket: string; count: number }>>> {
+    try {
+      const rows = await db
+        .select({
+          bucket: sql<string>`to_char(date_trunc('day', ${tenantMembers.joinedAt}) AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(tenantMembers)
+        .where(
+          and(
+            eq(tenantMembers.tenantId, tenantId as any),
+            gte(tenantMembers.joinedAt, startDate),
+            lte(tenantMembers.joinedAt, endDate)
+          )
+        )
+        .groupBy(sql`date_trunc('day', ${tenantMembers.joinedAt})`)
+        .orderBy(sql`date_trunc('day', ${tenantMembers.joinedAt})`);
+
+      return { success: true, data: rows };
+    } catch (error) {
+      logger.error('Error getting user trends', { error, tenantId });
+      return { success: false, error: 'USER_TRENDS_ERROR', code: 'USER_TRENDS_ERROR' };
+    }
+  }
+
+  /**
    * Get revenue metrics
    */
   async getRevenueMetrics(
@@ -415,36 +508,37 @@ export class CeoService {
     endDate: Date
   ): Promise<ServiceResponse<UserMetrics>> {
     try {
-      // Count total users
+      // Total users in tenant = active memberships count
       const totalUsersResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(users)
-        .where(lte(users.createdAt, endDate));
-
+        .from(tenantMembers)
+        .where(and(eq(tenantMembers.tenantId, tenantId as any), eq(tenantMembers.status, 'active')));
       const totalUsers = totalUsersResult[0]?.count || 0;
 
-      // Count new users in period
+      // New users in period = memberships joined in range
       const newUsersResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(users)
-        .where(and(gte(users.createdAt, startDate), lte(users.createdAt, endDate)));
-
+        .from(tenantMembers)
+        .where(
+          and(
+            eq(tenantMembers.tenantId, tenantId as any),
+            gte(tenantMembers.joinedAt, startDate),
+            lte(tenantMembers.joinedAt, endDate)
+          )
+        );
       const newUsers = newUsersResult[0]?.count || 0;
 
-      // For demo purposes, calculate some metrics
-      // In production, you'd query actual session/activity data
-      const activeUsers = Math.floor(totalUsers * 0.7); // 70% active assumption
-      const churnedUsers = Math.floor(totalUsers * 0.05); // 5% churn assumption
+      // Active/Churn approximations (until session/activity and churn events available)
+      const activeUsers = Math.floor(totalUsers * 0.7);
+      const churnedUsers = Math.floor(totalUsers * 0.05);
 
-      // Previous period comparison
+      // Previous period comparison based on membership snapshot
       const periodLength = endDate.getTime() - startDate.getTime();
-      const _prevStartDate = new Date(startDate.getTime() - periodLength);
-
+      const prevEnd = startDate;
       const prevTotalUsersResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(users)
-        .where(lte(users.createdAt, startDate));
-
+        .from(tenantMembers)
+        .where(and(eq(tenantMembers.tenantId, tenantId as any), lte(tenantMembers.joinedAt, prevEnd)));
       const prevTotalUsers = prevTotalUsersResult[0]?.count || 0;
       const prevActiveUsers = Math.floor(prevTotalUsers * 0.7);
 
@@ -718,20 +812,106 @@ export class CeoService {
     _endDate: Date
   ): Promise<ServiceResponse<FinancialHealthMetrics>> {
     try {
-      // These would typically come from financial/accounting modules
-      // Using placeholder values for demo
+      // Determine fiscal period (YYYY-MM) using endDate
+      const end = _endDate || new Date();
+      const fiscalPeriod = `${end.getUTCFullYear()}-${String(end.getUTCMonth() + 1).padStart(2, '0')}`;
+
+      // Profit & Loss for net margin
+      const { ReportService } = await import('../../financial/services/report.service');
+      const reportService = new ReportService();
+      const pl = await reportService.generateProfitLoss(tenantId, fiscalPeriod);
+
+      let netMargin = 0;
+      let revenueTotal = 0;
+      let expenseTotal = 0;
+      if (pl.success && pl.data) {
+        revenueTotal = parseFloat(pl.data.revenue.total);
+        expenseTotal = parseFloat(pl.data.expenses.total);
+        const netIncome = revenueTotal - expenseTotal;
+        netMargin = revenueTotal > 0 ? (netIncome / revenueTotal) * 100 : 0;
+      }
+
+      // Cash flow closing balance as cash balance
+      const cf = await reportService.generateCashFlow(tenantId, fiscalPeriod);
+      const cashBalance = cf.success && cf.data ? parseFloat(cf.data.closingBalance) : 0;
+
+      // Approximate cash burn: if net negative in P&L, use -(netIncome); else 0
+      const netIncome = revenueTotal - expenseTotal;
+      const cashBurn = netIncome < 0 ? Math.abs(netIncome) : 0;
+      const runwayMonths = cashBurn > 0 ? +(cashBalance / cashBurn).toFixed(2) : Infinity;
+
+      // Outstanding invoices (pending AR)
+      const [outstandingRow] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(${invoices.remainingAmount} AS DECIMAL)), 0)::text`,
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.tenantId, tenantId as any),
+            sql`${invoices.type} = 'income'`,
+            sql`${invoices.paymentStatus} IN ('pending','partial')`
+          )
+        );
+      const outstandingInvoices = parseFloat(outstandingRow?.total || '0');
+
+      // Overdue invoices (past due and not fully paid)
+      const now = new Date();
+      const [overdueRow] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(${invoices.remainingAmount} AS DECIMAL)), 0)::text`,
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.tenantId, tenantId as any),
+            sql`${invoices.type} = 'income'`,
+            lte(invoices.dueDate, now),
+            sql`${invoices.paymentStatus} <> 'paid'`
+          )
+        );
+      const overdueInvoices = parseFloat(overdueRow?.total || '0');
+
+      // Pending payments (AP transactions not completed)
+      const [pendingPaymentsRow] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(${paymentTransactions.amount} AS DECIMAL)), 0)::text`,
+        })
+        .from(paymentTransactions)
+        .where(
+          and(
+            eq(paymentTransactions.tenantId, tenantId as any),
+            sql`${paymentTransactions.status} IN ('pending','processing')`
+          )
+        );
+      const pendingPayments = parseFloat(pendingPaymentsRow?.total || '0');
+
+      // CAC/LTV best-effort placeholders from available data: derive from ARPU where possible
+      // ARPU proxy: monthly revenue per active subscription
+      const activeSubsCountRow = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tenantSubscriptionPlans)
+        .where(and(eq(tenantSubscriptionPlans.tenantId, tenantId), eq(tenantSubscriptionPlans.status, 'active')))
+        .limit(1);
+      const activeSubsCount = activeSubsCountRow[0]?.count || 0;
+      const mrrProxy = revenueTotal / Math.max(1, (_endDate.getTime() - _startDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const arpuProxy = activeSubsCount > 0 ? mrrProxy / activeSubsCount : 0;
+      const ltv = +(arpuProxy * 24).toFixed(2); // assume 24 months lifetime unless better data exists
+      const cac = 0; // marketing spend not modeled; report 0 until expense classification exists
+      const ltvCacRatio = cac > 0 ? +(ltv / cac).toFixed(2) : Infinity;
+
       const metrics: FinancialHealthMetrics = {
-        cac: 150, // Customer Acquisition Cost
-        ltv: 1800, // Lifetime Value
-        ltvCacRatio: 12, // 12:1 ratio (excellent)
-        grossMargin: 80, // 80%
-        netMargin: 25, // 25%
-        cashBalance: 500000,
-        cashBurn: 50000,
-        runwayMonths: 10,
-        outstandingInvoices: 25000,
-        overdueInvoices: 5000,
-        pendingPayments: 15000,
+        cac,
+        ltv,
+        ltvCacRatio,
+        grossMargin: netMargin, // without COGS classification, use net margin as conservative proxy
+        netMargin: +netMargin.toFixed(2),
+        cashBalance: +cashBalance.toFixed(2),
+        cashBurn: +cashBurn.toFixed(2),
+        runwayMonths: isFinite(runwayMonths) ? runwayMonths : 0,
+        outstandingInvoices: +outstandingInvoices.toFixed(2),
+        overdueInvoices: +overdueInvoices.toFixed(2),
+        pendingPayments: +pendingPayments.toFixed(2),
       };
 
       return { success: true, data: metrics };
@@ -754,20 +934,61 @@ export class CeoService {
     _endDate: Date
   ): Promise<ServiceResponse<SystemHealthMetrics>> {
     try {
-      // These would come from monitoring/observability modules
-      // Using placeholder values for demo
+      // Force collection of latest system metrics
+      systemMetrics.collect();
+      const metricsJSON = await metricsRegistry.getMetricsJSON();
+
+      const httpSummary = summarizeHttpMetrics(metricsJSON as any[]);
+      const totalApiCalls = httpSummary.totalApiCalls;
+      const errorRate = httpSummary.errorRatePercent;
+      const avgResponseTime = httpSummary.avgResponseTimeMs;
+
+      // Uptime approximation: process uptime vs period length (capped 100)
+      const periodSeconds = Math.max(1, Math.floor((_endDate.getTime() - _startDate.getTime()) / 1000));
+      const uptimeSeconds = Math.min(process.uptime(), periodSeconds);
+      const uptime = +Math.min(100, (uptimeSeconds / periodSeconds) * 100).toFixed(2);
+
+      // Storage usage (local provider)
+      const baseDir = process.env.STORAGE_LOCAL_PATH || './storage/documents';
+      const storageUsedBytes = await this.getDirectorySizeSafe(baseDir);
+      const storageUsed = +(storageUsedBytes / (1024 ** 3)).toFixed(2); // GB
+      const storageLimit = +(process.env.STORAGE_LIMIT_GB ? Number(process.env.STORAGE_LIMIT_GB) : 500);
+      const storagePercent = +Math.min(100, (storageUsed / storageLimit) * 100).toFixed(2);
+
+      // Active resources (DB counts)
+      const activeBotsRow = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(bots)
+        .where(and(eq(bots.tenantId, tenantId), eq(bots.status, 'running')))
+        .limit(1);
+      const activeBotsCount = activeBotsRow[0]?.count || 0;
+
+      const activeStrategiesRow = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tradingStrategies)
+        .where(and(eq(tradingStrategies.tenantId, tenantId), eq(tradingStrategies.status, 'active')))
+        .limit(1);
+      const activeStrategies = activeStrategiesRow[0]?.count || 0;
+
+      const activeWebhooksRow = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(paymentGateways)
+        .where(and(eq(paymentGateways.isActive, true), isNotNull(paymentGateways.webhookUrl)))
+        .limit(1);
+      const activeWebhooks = activeWebhooksRow[0]?.count || 0;
+
       const metrics: SystemHealthMetrics = {
-        avgResponseTime: 125, // ms
-        errorRate: 0.5, // 0.5%
-        uptime: 99.9, // 99.9%
-        totalApiCalls: 1500000,
-        apiCallsGrowth: 15, // 15% growth
-        storageUsed: 125, // GB
-        storageLimit: 500, // GB
-        storagePercent: 25, // 25%
-        activeBots: 45,
-        activeStrategies: 120,
-        activeWebhooks: 30,
+        avgResponseTime,
+        errorRate,
+        uptime,
+        totalApiCalls,
+        apiCallsGrowth: 0,
+        storageUsed,
+        storageLimit,
+        storagePercent,
+        activeBots: activeBotsCount,
+        activeStrategies,
+        activeWebhooks,
       };
 
       return { success: true, data: metrics };
@@ -778,6 +999,27 @@ export class CeoService {
         error: error instanceof Error ? error.message : 'Unknown error',
         code: 'SYSTEM_METRICS_ERROR',
       };
+    }
+  }
+
+  /**
+   * Compute directory size safely (returns 0 if not found)
+   */
+  private async getDirectorySizeSafe(dirPath: string): Promise<number> {
+    try {
+      const stat = await fs.promises.stat(dirPath).catch(() => null as any);
+      if (!stat) return 0;
+      if (stat.isFile()) return stat.size;
+      if (!stat.isDirectory()) return 0;
+      let total = 0;
+      const entries = await fs.promises.readdir(dirPath);
+      for (const entry of entries) {
+        const full = path.join(dirPath, entry);
+        total += await this.getDirectorySizeSafe(full);
+      }
+      return total;
+    } catch {
+      return 0;
     }
   }
 

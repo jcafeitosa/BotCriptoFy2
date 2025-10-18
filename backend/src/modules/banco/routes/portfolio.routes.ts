@@ -8,6 +8,7 @@ import { Elysia, t } from 'elysia';
 import { portfolioService } from '../services/portfolio.service';
 import { priceService } from '../services/price.service';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 
 export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
@@ -20,7 +21,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .get(
     '/analytics',
-    async ({ user, tenantId }) => {
+    { beforeHandle: [requirePermission('wallets', 'read')] },
+    async ({ user, tenantId }: any) => {
       logger.info('Getting portfolio analytics', { userId: user.id });
 
       const result = await portfolioService.getPortfolioAnalytics(user.id, tenantId);
@@ -43,7 +45,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .get(
     '/assets/:asset/stats',
-    async ({ params, tenantId }) => {
+    { beforeHandle: [requirePermission('wallets', 'read')] },
+    async ({ params, tenantId }: any) => {
       logger.info('Getting asset statistics', { asset: params.asset });
 
       const result = await portfolioService.getAssetStatistics(params.asset as any, tenantId);
@@ -68,7 +71,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .get(
     '/wallets/:id/activity',
-    async ({ params, query }) => {
+    { beforeHandle: [requirePermission('wallets', 'read')] },
+    async ({ params, query }: any) => {
       logger.info('Getting wallet activity', {
         walletId: params.id,
         days: query.days,
@@ -100,7 +104,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .get(
     '/prices/:asset',
-    async ({ params }) => {
+    { beforeHandle: [requirePermission('wallets', 'read')] },
+    async ({ params }: any) => {
       logger.info('Getting asset price', { asset: params.asset });
 
       const price = await priceService.getPrice(params.asset as any);
@@ -119,7 +124,9 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
     },
     {
       params: t.Object({
-        asset: t.String(),
+        asset: t.Union([
+          t.Literal('BTC'), t.Literal('ETH'), t.Literal('USDT'), t.Literal('USDC'), t.Literal('BNB'), t.Literal('SOL'), t.Literal('ADA'), t.Literal('DOT'), t.Literal('MATIC'), t.Literal('AVAX'), t.Literal('BRL'), t.Literal('USD'),
+        ]),
       }),
       detail: {
         tags: ['Banco - Prices'],
@@ -135,7 +142,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .post(
     '/prices',
-    async ({ body }) => {
+    { beforeHandle: [requirePermission('wallets', 'read')] },
+    async ({ body }: any) => {
       logger.info('Getting multiple asset prices', { assets: body.assets });
 
       const prices = await priceService.getPrices(body.assets as any[]);
@@ -147,7 +155,9 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
     },
     {
       body: t.Object({
-        assets: t.Array(t.String()),
+        assets: t.Array(t.Union([
+          t.Literal('BTC'), t.Literal('ETH'), t.Literal('USDT'), t.Literal('USDC'), t.Literal('BNB'), t.Literal('SOL'), t.Literal('ADA'), t.Literal('DOT'), t.Literal('MATIC'), t.Literal('AVAX'), t.Literal('BRL'), t.Literal('USD'),
+        ])),
       }),
       detail: {
         tags: ['Banco - Prices'],
@@ -163,7 +173,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .post(
     '/convert',
-    async ({ body }) => {
+    { beforeHandle: [requirePermission('trading', 'read')] },
+    async ({ body }: any) => {
       logger.info('Converting assets', {
         from: body.fromAsset,
         to: body.toAsset,
@@ -193,9 +204,13 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
     },
     {
       body: t.Object({
-        fromAsset: t.String(),
-        toAsset: t.String(),
-        amount: t.Number({ minimum: 0 }),
+        fromAsset: t.Union([
+          t.Literal('BTC'), t.Literal('ETH'), t.Literal('USDT'), t.Literal('USDC'), t.Literal('BNB'), t.Literal('SOL'), t.Literal('ADA'), t.Literal('DOT'), t.Literal('MATIC'), t.Literal('AVAX'), t.Literal('BRL'), t.Literal('USD'),
+        ]),
+        toAsset: t.Union([
+          t.Literal('BTC'), t.Literal('ETH'), t.Literal('USDT'), t.Literal('USDC'), t.Literal('BNB'), t.Literal('SOL'), t.Literal('ADA'), t.Literal('DOT'), t.Literal('MATIC'), t.Literal('AVAX'), t.Literal('BRL'), t.Literal('USD'),
+        ]),
+        amount: t.Number({ minimum: 0.00000001 }),
       }),
       detail: {
         tags: ['Banco - Prices'],
@@ -211,7 +226,8 @@ export const portfolioRoutes = new Elysia({ prefix: '/api/v1/portfolio' })
    */
   .post(
     '/update-allocation',
-    async ({ user }) => {
+    { beforeHandle: [requirePermission('trading', 'read')] },
+    async ({ user }: any) => {
       logger.info('Updating portfolio allocation', { userId: user.id });
 
       await portfolioService.calculatePortfolioAllocation(user.id);

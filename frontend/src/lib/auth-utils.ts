@@ -13,6 +13,7 @@
  */
 
 import { authClient } from './auth-client';
+import { API_URL } from './config';
 
 /**
  * User Profile Types
@@ -72,7 +73,7 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
     }
 
     // SECURITY: Fetch com cookies (Better Auth padrão)
-    const response = await fetch("http://localhost:3000/api/user/profile", {
+    const response = await fetch(`${API_URL}/api/user/profile`, {
       method: "GET",
       credentials: "include", // Envia cookies automaticamente
       headers: {

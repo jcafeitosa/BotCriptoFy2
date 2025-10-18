@@ -13,7 +13,7 @@ import {
   updateNotificationPreferences,
 } from '../services/notification.service';
 import type { NotificationStatus, NotificationCategory, NotificationPriority } from '../types/notification.types';
-import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { getUserPrimaryTenantId } from '../../tenants/services/membership.service';
 import { BadRequestError } from '@/utils/errors';
 
 export const notificationRoutes = new Elysia({ prefix: '/api/notifications', name: 'notification-routes' })

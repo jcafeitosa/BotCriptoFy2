@@ -12,6 +12,8 @@ import type {
   AuditSeverity,
   AuditStatistics,
   AuditStatus,
+  BucketGranularity,
+  TimelineBucket,
 } from '../types/audit.types';
 import logger from '@/utils/logger';
 
@@ -307,4 +309,78 @@ export async function searchAuditLogsByMetadata(
     .where(and(...conditions))
     .orderBy(desc(auditLogs.timestamp))
     .limit(limit);
+}
+
+/**
+ * Get time-bucketed counts for timeline charts
+ */
+export async function getTimelineBuckets(
+  granularity: BucketGranularity,
+  startDate: Date,
+  endDate: Date,
+  options: { tenantId?: string; eventType?: AuditEventType }
+): Promise<TimelineBucket[]> {
+  const unit = granularity;
+
+  const conditions = [between(auditLogs.timestamp, startDate, endDate)];
+  if (options.tenantId) conditions.push(eq(auditLogs.tenantId, options.tenantId));
+  if (options.eventType) conditions.push(eq(auditLogs.eventType, options.eventType));
+
+  const rows = await db
+    .select({
+      bucket: sql<string>`to_char(date_trunc(${unit}, ${auditLogs.timestamp}) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:00"Z"')`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(auditLogs)
+    .where(and(...conditions))
+    .groupBy(sql`date_trunc(${unit}, ${auditLogs.timestamp})`)
+    .orderBy(sql`date_trunc(${unit}, ${auditLogs.timestamp})`);
+
+  return rows.map((r) => ({ bucket: r.bucket, count: r.count }));
+}
+
+/**
+ * Get top summary slices for quick dashboards
+ */
+export async function getTopSummary(
+  startDate: Date,
+  endDate: Date,
+  tenantId?: string
+): Promise<{
+  topEventTypes: Array<{ key: string; count: number }>;
+  topResources: Array<{ key: string; count: number }>;
+  topUsers: Array<{ key: string; count: number }>;
+}> {
+  const conditions = [between(auditLogs.timestamp, startDate, endDate)];
+  if (tenantId) conditions.push(eq(auditLogs.tenantId, tenantId));
+
+  const [eventTypes, resources, users] = await Promise.all([
+    db
+      .select({ key: auditLogs.eventType, count: sql<number>`count(*)::int` })
+      .from(auditLogs)
+      .where(and(...conditions))
+      .groupBy(auditLogs.eventType)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10),
+    db
+      .select({ key: auditLogs.resource, count: sql<number>`count(*)::int` })
+      .from(auditLogs)
+      .where(and(...conditions, sql`${auditLogs.resource} IS NOT NULL`))
+      .groupBy(auditLogs.resource)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10),
+    db
+      .select({ key: auditLogs.userId, count: sql<number>`count(*)::int` })
+      .from(auditLogs)
+      .where(and(...conditions, sql`${auditLogs.userId} IS NOT NULL`))
+      .groupBy(auditLogs.userId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(10),
+  ]);
+
+  return {
+    topEventTypes: eventTypes.map((r) => ({ key: r.key, count: r.count })),
+    topResources: resources.map((r) => ({ key: r.key || 'unknown', count: r.count })),
+    topUsers: users.map((r) => ({ key: r.key || 'unknown', count: r.count })),
+  };
 }

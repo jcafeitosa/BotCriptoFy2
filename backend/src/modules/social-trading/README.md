@@ -11,6 +11,7 @@ Social trading platform with copy trading, leaderboards, performance analytics, 
 - ✅ Daily loss limits
 - ✅ Pair filtering
 - ✅ Trade size limits
+- ✅ Order execution via core trading service
 
 ### Leaderboards
 - ✅ Multi-period rankings (daily, weekly, monthly, yearly, all-time)

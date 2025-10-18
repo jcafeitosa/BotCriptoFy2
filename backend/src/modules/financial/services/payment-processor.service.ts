@@ -13,9 +13,10 @@ import {
   paymentWebhooks,
   paymentDunning,
   type PaymentTransaction,
+  type PaymentStatus,
   // type PaymentRefund, // Não usado ainda
 } from '../schema/payments.schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { gatewaySelector } from './gateway-selector.service';
 import { InfinityPayGateway } from './gateways/infinitypay.gateway';
 import { StripeGateway } from './gateways/stripe.gateway';
@@ -30,7 +31,11 @@ import type {
   GatewayConfig,
   WebhookEvent,
   ServiceResponse,
+  PaymentListFilters,
+  PaymentAnalytics,
+  PaymentTransactionDetail,
 } from '../types/payment.types';
+import type { PaginatedResponse } from '../types';
 
 /**
  * Payment Processor Service
@@ -489,6 +494,221 @@ export class PaymentProcessor {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get payment status',
         code: 'STATUS_ERROR',
+      };
+    }
+  }
+
+  async listTransactions(
+    tenantId: string,
+    filters: PaymentListFilters,
+    page = 1,
+    pageSize = 50
+  ): Promise<ServiceResponse<PaginatedResponse<PaymentTransaction>>> {
+    try {
+      const conditions: any[] = [eq(paymentTransactions.tenantId, tenantId)];
+
+      if (filters.status) {
+        conditions.push(eq(paymentTransactions.status, filters.status));
+      }
+
+      if (filters.paymentMethod) {
+        conditions.push(eq(paymentTransactions.paymentMethod, filters.paymentMethod as any));
+      }
+
+      if (filters.gateway) {
+        const gatewayId = await this.getGatewayId(filters.gateway);
+        if (gatewayId) {
+          conditions.push(eq(paymentTransactions.gatewayId, gatewayId));
+        }
+      }
+
+      if (filters.dateFrom) {
+        conditions.push(gte(paymentTransactions.createdAt, filters.dateFrom));
+      }
+
+      if (filters.dateTo) {
+        conditions.push(lte(paymentTransactions.createdAt, filters.dateTo));
+      }
+
+      const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(paymentTransactions)
+        .where(whereClause);
+
+      const transactions = await db
+        .select()
+        .from(paymentTransactions)
+        .where(whereClause)
+        .orderBy(desc(paymentTransactions.createdAt))
+        .limit(pageSize)
+        .offset((page - 1) * pageSize);
+
+      return {
+        success: true,
+        data: {
+          data: transactions,
+          total: count,
+          page,
+          pageSize,
+          totalPages: Math.ceil(count / pageSize),
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to list transactions',
+        code: 'PAYMENT_LIST_ERROR',
+      };
+    }
+  }
+
+  async getTransactionDetail(
+    transactionId: string,
+    tenantId: string
+  ): Promise<ServiceResponse<PaymentTransactionDetail>> {
+    try {
+      const transactionRows = await db
+        .select()
+        .from(paymentTransactions)
+        .where(and(eq(paymentTransactions.id, transactionId), eq(paymentTransactions.tenantId, tenantId)))
+        .limit(1);
+
+      if (transactionRows.length === 0) {
+        return {
+          success: false,
+          error: 'Transaction not found',
+          code: 'NOT_FOUND',
+        };
+      }
+
+      const [transaction] = transactionRows;
+
+      const refunds = await db
+        .select()
+        .from(paymentRefunds)
+        .where(eq(paymentRefunds.transactionId, transactionId))
+        .orderBy(desc(paymentRefunds.createdAt));
+
+      const webhooks = await db
+        .select()
+        .from(paymentWebhooks)
+        .where(eq(paymentWebhooks.externalId, transaction.externalId))
+        .orderBy(desc(paymentWebhooks.createdAt));
+
+      const [dunningRecord] = await db
+        .select()
+        .from(paymentDunning)
+        .where(eq(paymentDunning.transactionId, transactionId))
+        .limit(1);
+
+      return {
+        success: true,
+        data: {
+          transaction,
+          refunds,
+          webhooks,
+          dunning: dunningRecord || null,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to load transaction detail',
+        code: 'PAYMENT_DETAIL_ERROR',
+      };
+    }
+  }
+
+  async getAnalytics(
+    tenantId: string,
+    filters: { dateFrom?: Date; dateTo?: Date } = {}
+  ): Promise<ServiceResponse<PaymentAnalytics>> {
+    try {
+      const conditions: any[] = [eq(paymentTransactions.tenantId, tenantId)];
+      if (filters.dateFrom) {
+        conditions.push(gte(paymentTransactions.createdAt, filters.dateFrom));
+      }
+      if (filters.dateTo) {
+        conditions.push(lte(paymentTransactions.createdAt, filters.dateTo));
+      }
+
+      const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions);
+
+      const transactionRows = await db
+        .select({
+          id: paymentTransactions.id,
+          amount: paymentTransactions.amount,
+          currency: paymentTransactions.currency,
+          status: paymentTransactions.status,
+          paymentMethod: paymentTransactions.paymentMethod,
+          createdAt: paymentTransactions.createdAt,
+        })
+        .from(paymentTransactions)
+        .where(whereClause);
+
+      const totalsByCurrency: Record<string, number> = {};
+      const statusBreakdown: Record<PaymentStatus, { count: number; totalsByCurrency: Record<string, number> }> = {} as any;
+      const methodBreakdown: Record<string, number> = {};
+
+      const now = Date.now();
+      const dayAgo = now - 24 * 60 * 60 * 1000;
+      let failedToday = 0;
+
+      for (const row of transactionRows) {
+        const amount = parseFloat(String(row.amount || 0));
+        const currency = row.currency || 'UNK';
+
+        totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + amount;
+
+        if (!statusBreakdown[row.status as PaymentStatus]) {
+          statusBreakdown[row.status as PaymentStatus] = {
+            count: 0,
+            totalsByCurrency: {},
+          } as any;
+        }
+
+        const statusInfo = statusBreakdown[row.status as PaymentStatus];
+        statusInfo.count += 1;
+        statusInfo.totalsByCurrency[currency] = (statusInfo.totalsByCurrency[currency] || 0) + amount;
+
+        const methodKey = row.paymentMethod || 'unknown';
+        methodBreakdown[methodKey] = (methodBreakdown[methodKey] || 0) + 1;
+
+        if (row.status === 'failed') {
+          const createdAt = row.createdAt ? new Date(row.createdAt).getTime() : 0;
+          if (createdAt >= dayAgo) {
+            failedToday += 1;
+          }
+        }
+      }
+
+      const [{ count: activeDunning }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(paymentDunning)
+        .where(and(eq(paymentDunning.tenantId, tenantId), eq(paymentDunning.status, 'active')));
+
+      return {
+        success: true,
+        data: {
+          totalTransactions: transactionRows.length,
+          totalsByCurrency,
+          statusBreakdown,
+          methodBreakdown,
+          activeDunning,
+          failedToday,
+          timeRange: {
+            startDate: filters.dateFrom,
+            endDate: filters.dateTo,
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to compute analytics',
+        code: 'PAYMENT_ANALYTICS_ERROR',
       };
     }
   }

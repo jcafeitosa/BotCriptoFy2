@@ -7,8 +7,8 @@ import { BudgetService } from '../budget.service';
 import type { NewBudget, NewBudgetLine } from '../../types/financial.types';
 
 // Mock data
-const mockTenantId = 'tenant-123';
-const mockUserId = 'user-456';
+const mockTenantId = '00000000-0000-0000-0000-000000000001';
+const mockUserId = '00000000-0000-0000-0000-000000000101';
 
 const mockBudgetData: NewBudget = {
   tenantId: mockTenantId,
@@ -25,7 +25,7 @@ const mockBudgetData: NewBudget = {
 const mockBudgetLines: NewBudgetLine[] = [
   {
     budgetId: 'budget-001',
-    categoryId: 'category-office',
+    categoryId: '00000000-0000-0000-0000-000000000201',
     budgetedAmount: '50000.00',
     actualAmount: '0.00',
     variance: '0.00',

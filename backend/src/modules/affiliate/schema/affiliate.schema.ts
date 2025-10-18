@@ -79,7 +79,7 @@ export const affiliateProfiles = pgTable('affiliate_profiles', {
   taxId: varchar('tax_id', { length: 50 }), // CPF/CNPJ for Brazilian affiliates
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -130,7 +130,7 @@ export const affiliateReferrals = pgTable('affiliate_referrals', {
   firstPaymentAmount: decimal('first_payment_amount', { precision: 10, scale: 2 }),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -183,7 +183,7 @@ export const affiliateClicks = pgTable('affiliate_clicks', {
   convertedAt: timestamp('converted_at', { withTimezone: true }),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamp
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -231,7 +231,7 @@ export const affiliateConversions = pgTable('affiliate_conversions', {
   paidAt: timestamp('paid_at', { withTimezone: true }),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -277,7 +277,7 @@ export const affiliateCommissions = pgTable('affiliate_commissions', {
   releaseReason: text('release_reason'),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -339,7 +339,7 @@ export const affiliatePayouts = pgTable('affiliate_payouts', {
   internalNotes: text('internal_notes'),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -391,7 +391,7 @@ export const affiliateTiers = pgTable('affiliate_tiers', {
   isActive: boolean('is_active').notNull().default(true),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -438,7 +438,7 @@ export const affiliateGoals = pgTable('affiliate_goals', {
   rewardPaidAt: timestamp('reward_paid_at', { withTimezone: true }),
 
   // Metadata
-  metadata: jsonb('metadata').$type<Record<string, any>>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
 
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

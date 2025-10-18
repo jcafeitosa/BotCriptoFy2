@@ -4,22 +4,11 @@
  */
 
 import { MastraAgentService } from './mastra-agent.service';
-import { AgentService } from './agent.service';
 import { db } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { agents } from '../schema/agents.schema';
-import type { AgentType } from '../types/agents.types';
 
-/**
- * Workflow Context
- */
-interface WorkflowContext {
-  agentId: string;
-  tenantId: string;
-  agentType: AgentType;
-  trigger: string;
-}
 
 /**
  * Agent Workflows Service

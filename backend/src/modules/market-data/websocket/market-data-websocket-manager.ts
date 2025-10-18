@@ -7,24 +7,12 @@
 
 import { EventEmitter } from 'events';
 import logger from '@/utils/logger';
-import { BinanceAdapter } from './adapters/binance-adapter';
-import { CoinbaseAdapter } from './adapters/coinbase-adapter';
-import { KrakenAdapter } from './adapters/kraken-adapter';
+// Module not yet implemented
+// import { createWebSocketAdapter } from '@/modules/exchanges';
 import { RedisEventBridge, type RedisEventBridgeConfig } from './redis-event-bridge';
-import type {
-  ExchangeId,
-  IExchangeAdapter,
-  ConnectionConfig,
-  SubscriptionRequest,
-  ConnectionStatus,
-  OrderBook,
-  Trade,
-  Ticker,
-  Candle,
-  ExchangeEventName,
-  ExchangeEventListener,
-  ConnectionMetrics,
-} from './types';
+// Module not yet implemented
+// import type { ConnectionConfig, ExchangeId } from '@/modules/exchanges';
+import type { IExchangeAdapter, SubscriptionRequest, ConnectionStatus, OrderBook, Trade, Ticker, Candle, ExchangeEventName, ExchangeEventListener, ConnectionMetrics } from './types';
 
 /**
  * Manager Configuration
@@ -223,7 +211,7 @@ export class MarketDataWebSocketManager extends EventEmitter {
    * Subscribe to market data channel
    */
   async subscribe(request: SubscriptionRequest): Promise<void> {
-    const exchangeId = this.getExchangeFromSymbol(request.symbol);
+    const exchangeId = this.resolveExchangeForSubscribe(request);
 
     try {
       // Ensure connection exists
@@ -243,7 +231,7 @@ export class MarketDataWebSocketManager extends EventEmitter {
 
       // Store subscription
       const subs = this.subscriptions.get(exchangeId) || [];
-      subs.push(request);
+      subs.push({ ...request, exchangeId });
       this.subscriptions.set(exchangeId, subs);
 
       logger.info('Subscribed to market data', {
@@ -269,9 +257,15 @@ export class MarketDataWebSocketManager extends EventEmitter {
    * Unsubscribe from market data channel
    */
   async unsubscribe(request: SubscriptionRequest): Promise<void> {
-    const exchangeId = this.getExchangeFromSymbol(request.symbol);
+    const exchangeId = this.resolveExchangeForUnsubscribe(request);
+    if (!exchangeId) {
+      logger.warn('Unable to resolve exchange for unsubscribe', {
+        channel: request.channel,
+        symbol: request.symbol,
+      });
+      return;
+    }
     const adapter = this.adapters.get(exchangeId);
-
     if (!adapter) {
       logger.warn('Exchange not connected', { exchangeId });
       return;
@@ -481,16 +475,10 @@ export class MarketDataWebSocketManager extends EventEmitter {
    * Create adapter for exchange
    */
   private createAdapter(exchangeId: ExchangeId, config: ConnectionConfig): IExchangeAdapter {
-    switch (exchangeId) {
-      case 'binance':
-        return new BinanceAdapter(config);
-      case 'coinbase':
-        return new CoinbaseAdapter(config);
-      case 'kraken':
-        return new KrakenAdapter(config);
-      default:
-        throw new Error(`Unsupported exchange: ${exchangeId}`);
-    }
+    // Delegate creation to exchanges module to centralize exchange connectivity
+    // Module not yet implemented
+    throw new Error(`Exchanges module not yet implemented. Cannot create adapter for ${exchangeId}`);
+    // return createWebSocketAdapter(exchangeId, config);
   }
 
   /**
@@ -618,17 +606,110 @@ export class MarketDataWebSocketManager extends EventEmitter {
    * Get exchange ID from symbol
    * This is a simplified version - in production you'd maintain a symbol→exchange mapping
    */
-  private getExchangeFromSymbol(symbol: string): ExchangeId {
-    // For now, default to binance
-    // In production, you'd track which exchange each symbol belongs to
-    return 'binance';
+  private resolveExchangeForSubscribe(request: SubscriptionRequest): ExchangeId {
+    // Prefer explicit exchangeId when provided
+    if (request.exchangeId) {
+      return request.exchangeId;
+    }
+
+    // If only one adapter is connected, default to it for backward compatibility
+    if (this.adapters.size === 1) {
+      return Array.from(this.adapters.keys())[0];
+    }
+
+    // Ambiguous without explicit exchange when multiple exchanges are connected
+    throw new Error(
+      'Ambiguous subscription target: provide request.exchangeId when multiple exchanges are connected'
+    );
   }
+
+  private resolveExchangeForUnsubscribe(request: SubscriptionRequest): ExchangeId | null {
+    // Prefer explicit exchangeId when provided
+    if (request.exchangeId) {
+      return request.exchangeId;
+    }
+
+    // Look up which exchange holds this subscription
+    const key = `${request.channel}:${request.symbol}`;
+    for (const [ex, subs] of this.subscriptions.entries()) {
+      if (subs.some((s) => `${s.channel}:${s.symbol}` === key)) {
+        return ex;
+      }
+    }
+
+    // If only one adapter exists, use it
+    if (this.adapters.size === 1) {
+      return Array.from(this.adapters.keys())[0];
+    }
+
+    // Not resolvable
+    return null;
+  }
+}
+
+/**
+ * Build manager configuration from environment variables
+ */
+const AUTO_RECONNECT_ENV = process.env.MARKET_DATA_WS_AUTO_RECONNECT;
+const MAX_CONNECTIONS_ENV = process.env.MARKET_DATA_WS_MAX_CONNECTIONS;
+const CONNECTION_TIMEOUT_ENV = process.env.MARKET_DATA_WS_CONNECTION_TIMEOUT;
+const ENABLE_METRICS_ENV = process.env.MARKET_DATA_WS_ENABLE_METRICS;
+const ENABLE_REDIS_ENV = process.env.MARKET_DATA_WS_ENABLE_REDIS;
+
+const managerConfig: MarketDataManagerConfig = {
+  autoReconnect: AUTO_RECONNECT_ENV
+    ? AUTO_RECONNECT_ENV.toLowerCase() !== 'false'
+    : DEFAULT_CONFIG.autoReconnect,
+  enableMetrics: ENABLE_METRICS_ENV
+    ? ENABLE_METRICS_ENV.toLowerCase() !== 'false'
+    : DEFAULT_CONFIG.enableMetrics,
+  enableRedis: ENABLE_REDIS_ENV ? ENABLE_REDIS_ENV.toLowerCase() === 'true' : false,
+};
+
+const maxConnections = MAX_CONNECTIONS_ENV ? Number.parseInt(MAX_CONNECTIONS_ENV, 10) : NaN;
+if (!Number.isNaN(maxConnections) && maxConnections > 0) {
+  managerConfig.maxConnections = maxConnections;
+}
+
+const connectionTimeout = CONNECTION_TIMEOUT_ENV
+  ? Number.parseInt(CONNECTION_TIMEOUT_ENV, 10)
+  : NaN;
+if (!Number.isNaN(connectionTimeout) && connectionTimeout > 0) {
+  managerConfig.connectionTimeout = connectionTimeout;
+}
+
+if (managerConfig.enableRedis) {
+  const redisConfig: RedisEventBridgeConfig = {
+    redisUrl: process.env.MARKET_DATA_REDIS_URL || process.env.REDIS_URL,
+    host: process.env.MARKET_DATA_REDIS_HOST,
+    port: process.env.MARKET_DATA_REDIS_PORT
+      ? Number.parseInt(process.env.MARKET_DATA_REDIS_PORT, 10)
+      : undefined,
+    password: process.env.MARKET_DATA_REDIS_PASSWORD,
+    db: process.env.MARKET_DATA_REDIS_DB
+      ? Number.parseInt(process.env.MARKET_DATA_REDIS_DB, 10)
+      : undefined,
+    keyPrefix: process.env.MARKET_DATA_REDIS_PREFIX,
+    enablePublishing:
+      (process.env.MARKET_DATA_REDIS_PUBLISH ?? 'true').toLowerCase() !== 'false',
+    enableSubscription:
+      (process.env.MARKET_DATA_REDIS_SUBSCRIBE ?? 'true').toLowerCase() !== 'false',
+  };
+
+  // Remove undefined values so defaults remain intact
+  for (const key of Object.keys(redisConfig) as (keyof RedisEventBridgeConfig)[]) {
+    if (redisConfig[key] === undefined) {
+      delete redisConfig[key];
+    }
+  }
+
+  managerConfig.redis = redisConfig;
 }
 
 /**
  * Singleton instance for easy access
  */
-export const marketDataWebSocketManager = new MarketDataWebSocketManager();
+export const marketDataWebSocketManager = new MarketDataWebSocketManager(managerConfig);
 
 /**
  * Export convenience methods

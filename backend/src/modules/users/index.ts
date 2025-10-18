@@ -5,6 +5,7 @@
 
 // Routes
 export * from './routes/user.routes';
+export * from './routes/admin.routes';
 
 // Services
 export * from './services/user.service';

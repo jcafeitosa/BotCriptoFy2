@@ -3,7 +3,7 @@
  * Calculates and manages commissions
  */
 
-import { db } from '@/db';
+import { getAffiliateDb } from '../test-helpers/db-access';
 import { eq, and, desc, sql, inArray, gte, lte, isNull } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { NotFoundError } from '@/utils/errors';
@@ -40,9 +40,8 @@ export class AffiliateCommissionService {
     });
 
     // Get affiliate profile and tier
-    const profile = await AffiliateProfileService.getProfileById(
-      data.affiliateId,
-      '' // tenantId not needed for this query
+    const profile = await AffiliateProfileService.getProfileByIdAnyTenant(
+      data.affiliateId
     );
     if (!profile) {
       throw new NotFoundError('Affiliate profile not found');
@@ -50,7 +49,7 @@ export class AffiliateCommissionService {
 
     let tier = null;
     if (profile.tierId) {
-      const [tierData] = await db
+      const [tierData] = await getAffiliateDb()
         .select()
         .from(affiliateTiers)
         .where(eq(affiliateTiers.id, profile.tierId))
@@ -81,7 +80,7 @@ export class AffiliateCommissionService {
       currency: profile.currency || 'BRL',
     };
 
-    const [conversion] = await db
+    const [conversion] = await getAffiliateDb()
       .insert(affiliateConversions)
       .values(newConversion)
       .returning();
@@ -102,13 +101,13 @@ export class AffiliateCommissionService {
       holdUntil,
     };
 
-    const [commission] = await db
+    const [commission] = await getAffiliateDb()
       .insert(affiliateCommissions)
       .values(newCommission)
       .returning();
 
     // Update affiliate profile
-    await db
+    await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         totalEarned: sql`${affiliateProfiles.totalEarned} + ${calculation.totalAmount}`,
@@ -132,7 +131,7 @@ export class AffiliateCommissionService {
   static async approveCommission(id: string): Promise<AffiliateCommission> {
     logger.info('Approving commission', { commissionId: id });
 
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateCommissions)
       .set({
         status: 'approved',
@@ -156,7 +155,7 @@ export class AffiliateCommissionService {
     id: string,
     payoutId: string
   ): Promise<AffiliateCommission> {
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateCommissions)
       .set({
         status: 'paid',
@@ -215,12 +214,12 @@ export class AffiliateCommissionService {
       conditions.push(lte(affiliateCommissions.amount, filters.maxAmount.toString()));
     }
 
-    const [{ count }] = await db
+    const [{ count }] = await getAffiliateDb()
       .select({ count: sql<number>`count(*)::int` })
       .from(affiliateCommissions)
       .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-    const results = await db
+    const results = await getAffiliateDb()
       .select()
       .from(affiliateCommissions)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -247,7 +246,7 @@ export class AffiliateCommissionService {
    * Get pending commissions for affiliate
    */
   static async getPendingCommissions(affiliateId: string): Promise<AffiliateCommission[]> {
-    return await db
+    return await getAffiliateDb()
       .select()
       .from(affiliateCommissions)
       .where(
@@ -266,7 +265,7 @@ export class AffiliateCommissionService {
   static async getApprovedCommissions(affiliateId: string): Promise<AffiliateCommission[]> {
     const now = new Date();
     
-    return await db
+    return await getAffiliateDb()
       .select()
       .from(affiliateCommissions)
       .where(
@@ -284,7 +283,7 @@ export class AffiliateCommissionService {
    * Get total pending balance for affiliate
    */
   static async getPendingBalance(affiliateId: string): Promise<number> {
-    const [result] = await db
+    const [result] = await getAffiliateDb()
       .select({
         total: sql<string>`COALESCE(SUM(${affiliateCommissions.amount}), 0)`,
       })

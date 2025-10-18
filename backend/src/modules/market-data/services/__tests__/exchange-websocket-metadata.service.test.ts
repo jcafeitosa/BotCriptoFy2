@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { ExchangeWebSocketMetadataService } from '../exchange-websocket-metadata.service';
+import { ExchangeWebSocketMetadataService } from '../../../exchanges/services/exchange-websocket-metadata.service';
 
 describe('ExchangeWebSocketMetadataService', () => {
   describe('Binance Metadata', () => {

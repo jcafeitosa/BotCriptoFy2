@@ -46,7 +46,11 @@ export type ResourceType =
   | 'affiliates'
   | 'support'
   | 'documents'
-  | 'audit';
+  | 'audit'
+  | 'exchanges'
+  | 'wallets'
+  | 'marketing'
+  | 'mmn';
 
 /**
  * Permission format: resource:action

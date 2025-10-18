@@ -1,5 +1,7 @@
 # Repository Guidelines - Beecripto
 
+- Obrigatorio dialogos em PT-br
+
 - Obrigatorio desenvolver focado em performance, seguranca, velocidade, ix/ux, escalabilidade
 
 - Obrigatorio ao termino da tarefa se fazer pelo menos 3 perguntas criticas sobre a sua tarefa e ter certeza que todas as respostas foram positivas e em caso de nao, corrigir tudo.

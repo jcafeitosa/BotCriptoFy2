@@ -22,6 +22,7 @@ import {
   checkPermission,
 } from '../services/permission.service';
 import type { ResourceType, PermissionAction } from '../types/security.types';
+import { runAnomalyDetection } from '../services/anomaly-detection.service';
 
 /**
  * Security routes plugin
@@ -45,6 +46,32 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
         tags: ['Security'],
         summary: 'List all roles',
         description: 'Get list of all roles in the system',
+      },
+    }
+  )
+
+  // ===========================================
+  // ANOMALY DETECTION (Admin only)
+  // ===========================================
+
+  .use(requireAdmin())
+  .post(
+    '/anomaly-detection',
+    async ({ body, session }) => {
+      const tenantId = body.tenantId || (session as any)?.activeOrganizationId;
+      const result = await runAnomalyDetection(body.userId, body.ipAddress, tenantId);
+      return { success: true, data: result };
+    },
+    {
+      body: t.Object({
+        userId: t.String({ description: 'User ID to check' }),
+        ipAddress: t.Optional(t.String({ description: 'IP address' })),
+        tenantId: t.Optional(t.String({ description: 'Tenant ID' })),
+      }),
+      detail: {
+        tags: ['Security'],
+        summary: 'Run anomaly detection',
+        description: 'Run comprehensive anomaly detection for a user (Admin only)',
       },
     }
   )

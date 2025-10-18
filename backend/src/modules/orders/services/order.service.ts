@@ -5,9 +5,9 @@
 
 import { db } from '@/db';
 import { eq, and, inArray, gte, lte, desc } from 'drizzle-orm';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
+import { ExchangeConnectionService } from '../../exchanges/services/exchange-connection.service';
+import type { ExchangeConnectionSummary } from '../../exchanges/types/exchanges.types';
 import { riskService } from '../../risk/services/risk.service';
-import { exchangeConnections } from '../../exchanges/schema/exchanges.schema';
 import { tradingOrders, orderFills } from '../schema/orders.schema';
 import logger from '@/utils/logger';
 import { NotFoundError, BadRequestError } from '@/utils/errors';
@@ -37,21 +37,11 @@ export class OrderService {
       logger.info('Creating trading order', { userId, tenantId, request });
 
       // Validate exchange connection
-      const [connection] = await db
-        .select()
-        .from(exchangeConnections)
-        .where(
-          and(
-            eq(exchangeConnections.id, request.exchangeConnectionId),
-            eq(exchangeConnections.userId, userId),
-            eq(exchangeConnections.tenantId, tenantId)
-          )
-        )
-        .limit(1);
-
-      if (!connection) {
-        throw new NotFoundError('Exchange connection not found');
-      }
+      const connection = await ExchangeConnectionService.getConnectionSummary({
+        configurationId: request.exchangeConnectionId,
+        userId,
+        tenantId,
+      });
 
       // Validate order parameters
       this.validateOrderRequest(request);
@@ -132,7 +122,7 @@ export class OrderService {
         .returning();
 
       // Submit order to exchange (async)
-      this.submitOrderToExchange(order.id, connection, request).catch((error) => {
+      this.submitOrderToExchange(order.id, connection, userId, tenantId, request).catch((error) => {
         logger.error('Failed to submit order to exchange', {
           orderId: order.id,
           error: error instanceof Error ? error.message : String(error),
@@ -157,24 +147,25 @@ export class OrderService {
    */
   private static async submitOrderToExchange(
     orderId: string,
-    connection: any,
+    connection: ExchangeConnectionSummary,
+    userId: string,
+    tenantId: string,
     request: CreateOrderRequest
   ): Promise<void> {
-    try {
-      // Create exchange instance with credentials
-      const exchange = ExchangeService.createCCXTInstance(connection.exchangeId, {
-        apiKey: connection.apiKey,
-        apiSecret: connection.apiSecret,
-        apiPassword: connection.apiPassword || undefined,
-      });
+    const restHandle = await ExchangeConnectionService.acquireRestClientHandle({
+      configurationId: connection.id,
+      userId,
+      tenantId,
+    });
 
-      // Prepare order parameters
+    try {
+      const exchange = restHandle.client;
+
       const params: any = {};
       if (request.timeInForce) params.timeInForce = request.timeInForce;
       if (request.reduceOnly) params.reduceOnly = true;
       if (request.postOnly) params.postOnly = true;
 
-      // Submit order based on type
       let exchangeOrder: any;
 
       switch (request.type) {
@@ -186,7 +177,6 @@ export class OrderService {
             params
           );
           break;
-
         case 'limit':
           if (!request.price) throw new BadRequestError('Price required for limit order');
           exchangeOrder = await exchange.createLimitOrder(
@@ -197,7 +187,6 @@ export class OrderService {
             params
           );
           break;
-
         case 'stop_loss':
           if (!request.stopPrice) throw new BadRequestError('Stop price required for stop loss order');
           exchangeOrder = await exchange.createOrder(
@@ -209,7 +198,6 @@ export class OrderService {
             { ...params, stopPrice: request.stopPrice }
           );
           break;
-
         case 'stop_loss_limit':
           if (!request.stopPrice || !request.price) {
             throw new BadRequestError('Stop price and limit price required for stop loss limit order');
@@ -223,7 +211,6 @@ export class OrderService {
             { ...params, stopPrice: request.stopPrice }
           );
           break;
-
         case 'take_profit':
           if (!request.stopPrice) throw new BadRequestError('Stop price required for take profit order');
           exchangeOrder = await exchange.createOrder(
@@ -235,7 +222,6 @@ export class OrderService {
             { ...params, stopPrice: request.stopPrice }
           );
           break;
-
         case 'take_profit_limit':
           if (!request.stopPrice || !request.price) {
             throw new BadRequestError('Stop price and limit price required for take profit limit order');
@@ -249,7 +235,6 @@ export class OrderService {
             { ...params, stopPrice: request.stopPrice }
           );
           break;
-
         case 'trailing_stop':
           if (!request.trailingDelta && !request.trailingPercent) {
             throw new BadRequestError('Trailing delta or percent required for trailing stop');
@@ -267,12 +252,10 @@ export class OrderService {
             }
           );
           break;
-
         default:
           throw new BadRequestError(`Unsupported order type: ${request.type}`);
       }
 
-      // Update order with exchange response
       await db
         .update(tradingOrders)
         .set({
@@ -290,7 +273,6 @@ export class OrderService {
         status: exchangeOrder.status,
       });
     } catch (error) {
-      // Update order status to rejected
       await db
         .update(tradingOrders)
         .set({
@@ -298,8 +280,9 @@ export class OrderService {
           updatedAt: new Date(),
         })
         .where(eq(tradingOrders.id, orderId));
-
       throw error;
+    } finally {
+      restHandle.release();
     }
   }
 
@@ -460,26 +443,20 @@ export class OrderService {
 
     // Cancel on exchange if submitted
     if (order.exchangeOrderId) {
-      const [connection] = await db
-        .select()
-        .from(exchangeConnections)
-        .where(eq(exchangeConnections.id, order.exchangeConnectionId))
-        .limit(1);
-
-      if (connection) {
-        try {
-          const exchange = ExchangeService.createCCXTInstance(connection.exchangeId, {
-            apiKey: connection.apiKey,
-            apiSecret: connection.apiSecret,
-          });
-
-          await exchange.cancelOrder(order.exchangeOrderId, order.symbol);
-        } catch (error) {
-          logger.error('Failed to cancel order on exchange', {
-            orderId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
+      const restHandle = await ExchangeConnectionService.acquireRestClientHandle({
+        configurationId: order.exchangeConnectionId,
+        userId,
+        tenantId,
+      });
+      try {
+        await restHandle.client.cancelOrder(order.exchangeOrderId, order.symbol);
+      } catch (error) {
+        logger.error('Failed to cancel order on exchange', {
+          orderId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } finally {
+        restHandle.release();
       }
     }
 
@@ -603,63 +580,52 @@ export class OrderService {
     exchangeConnectionId: string
   ): Promise<number> {
     try {
-      const [connection] = await db
-        .select()
-        .from(exchangeConnections)
-        .where(
-          and(
-            eq(exchangeConnections.id, exchangeConnectionId),
-            eq(exchangeConnections.userId, userId),
-            eq(exchangeConnections.tenantId, tenantId)
-          )
-        )
-        .limit(1);
-
-      if (!connection) throw new NotFoundError('Exchange connection not found');
-
-      const exchange = ExchangeService.createCCXTInstance(connection.exchangeId, {
-        apiKey: connection.apiKey,
-        apiSecret: connection.apiSecret,
+      const restHandle = await ExchangeConnectionService.acquireRestClientHandle({
+        configurationId: exchangeConnectionId,
+        userId,
+        tenantId,
       });
 
-      // Fetch open orders from exchange
-      const openOrders = await exchange.fetchOpenOrders();
+      try {
+        const openOrders = await restHandle.client.fetchOpenOrders();
 
-      let synced = 0;
-      for (const exchangeOrder of openOrders) {
-        // Find matching order in database
-        const [dbOrder] = await db
-          .select()
-          .from(tradingOrders)
-          .where(
-            and(
-              eq(tradingOrders.exchangeOrderId, exchangeOrder.id),
-              eq(tradingOrders.userId, userId)
+        let synced = 0;
+        for (const exchangeOrder of openOrders) {
+          // Find matching order in database
+          const [dbOrder] = await db
+            .select()
+            .from(tradingOrders)
+            .where(
+              and(
+                eq(tradingOrders.exchangeOrderId, exchangeOrder.id),
+                eq(tradingOrders.userId, userId)
+              )
             )
-          )
-          .limit(1);
+            .limit(1);
 
-        if (dbOrder) {
-          // Update existing order
-          await db
-            .update(tradingOrders)
-            .set({
-              status: exchangeOrder.status as OrderStatus,
-              filled: exchangeOrder.filled?.toString(),
-              remaining: exchangeOrder.remaining?.toString(),
-              cost: exchangeOrder.cost?.toString(),
-              average: exchangeOrder.average?.toString(),
-              updatedAt: new Date(),
-            })
-            .where(eq(tradingOrders.id, dbOrder.id));
+          if (dbOrder) {
+            // Update existing order
+            await db
+              .update(tradingOrders)
+              .set({
+                status: exchangeOrder.status as OrderStatus,
+                filled: exchangeOrder.filled?.toString(),
+                remaining: exchangeOrder.remaining?.toString(),
+                cost: exchangeOrder.cost?.toString(),
+                average: exchangeOrder.average?.toString(),
+                updatedAt: new Date(),
+              })
+              .where(eq(tradingOrders.id, dbOrder.id));
 
-          synced++;
+            synced++;
+          }
         }
+
+        logger.info('Synced orders from exchange', { userId, exchangeConnectionId, synced });
+        return synced;
+      } finally {
+        restHandle.release();
       }
-
-      logger.info('Synced orders from exchange', { userId, exchangeConnectionId, synced });
-
-      return synced;
     } catch (error) {
       logger.error('Failed to sync orders', {
         userId,

@@ -5,6 +5,8 @@
 
 import { Elysia, t } from 'elysia';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
+import { botEngineRegistry } from '../engine/bot-engine.registry';
 import { botService } from '../services/bot.service';
 
 export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
@@ -21,6 +23,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/',
+    { beforeHandle: [requirePermission('bots', 'write')] },
     async ({ body, user, tenantId }: any) => {
       try {
         const bot = await botService.createBot(user.id, tenantId, body);
@@ -97,6 +100,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ user, tenantId, query }: any) => {
       try {
         const filters: any = {};
@@ -136,6 +140,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const bot = await botService.getBot(params.botId, user.id, tenantId);
@@ -165,6 +170,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .put(
     '/:botId',
+    { beforeHandle: [requirePermission('bots', 'write')] },
     async ({ params, body, user, tenantId }: any) => {
       try {
         const bot = await botService.updateBot(params.botId, user.id, tenantId, body);
@@ -220,6 +226,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .delete(
     '/:botId',
+    { beforeHandle: [requirePermission('bots', 'manage')] },
     async ({ params, user, tenantId }: any) => {
       try {
         await botService.deleteBot(params.botId, user.id, tenantId);
@@ -250,6 +257,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/start',
+    { beforeHandle: [requirePermission('bots', 'execute')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const execution = await botService.startBot(params.botId, user.id, tenantId);
@@ -276,6 +284,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/stop',
+    { beforeHandle: [requirePermission('bots', 'execute')] },
     async ({ params, body, user, tenantId }: any) => {
       try {
         await botService.stopBot(params.botId, user.id, tenantId, body?.reason);
@@ -307,6 +316,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/pause',
+    { beforeHandle: [requirePermission('bots', 'execute')] },
     async ({ params, user, tenantId }: any) => {
       try {
         await botService.pauseBot(params.botId, user.id, tenantId);
@@ -333,6 +343,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/resume',
+    { beforeHandle: [requirePermission('bots', 'execute')] },
     async ({ params, user, tenantId }: any) => {
       try {
         await botService.resumeBot(params.botId, user.id, tenantId);
@@ -359,6 +370,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/restart',
+    { beforeHandle: [requirePermission('bots', 'execute')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const execution = await botService.restartBot(params.botId, user.id, tenantId);
@@ -389,6 +401,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId/statistics',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const statistics = await botService.getBotStatistics(params.botId, user.id, tenantId);
@@ -415,6 +428,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId/performance',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const performance = await botService.getBotPerformance(params.botId, user.id, tenantId);
@@ -441,6 +455,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId/health',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const health = await botService.getBotHealth(params.botId, user.id, tenantId);
@@ -467,6 +482,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/:botId/performance/update',
+    { beforeHandle: [requirePermission('bots', 'manage')] },
     async ({ params, user, tenantId }: any) => {
       try {
         await botService.updateBotPerformance(params.botId, user.id, tenantId);
@@ -497,6 +513,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/executions',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ user, tenantId, query }: any) => {
       try {
         const filters: any = {};
@@ -539,6 +556,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId/execution/current',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const execution = await botService.getCurrentExecution(params.botId, user.id, tenantId);
@@ -569,6 +587,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/trades',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ user, tenantId, query }: any) => {
       try {
         const filters: any = {};
@@ -617,6 +636,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/:botId/trades/open',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params, user, tenantId }: any) => {
       try {
         const trades = await botService.getOpenTrades(params.botId, user.id, tenantId);
@@ -647,6 +667,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/logs',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ user, tenantId, query }: any) => {
       try {
         const filters: any = {};
@@ -697,6 +718,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/templates',
+    { beforeHandle: [requirePermission('bots', 'write')] },
     async ({ body, user, tenantId }: any) => {
       try {
         const template = await botService.createTemplate(user.id, tenantId, body);
@@ -744,6 +766,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/templates',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ query }: any) => {
       try {
         const filters: any = {};
@@ -783,6 +806,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .get(
     '/templates/:templateId',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ params }: any) => {
       try {
         const template = await botService.getTemplate(params.templateId);
@@ -812,6 +836,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/templates/:templateId/clone',
+    { beforeHandle: [requirePermission('bots', 'write')] },
     async ({ params, body, user, tenantId }: any) => {
       try {
         const bot = await botService.cloneBotFromTemplate(params.templateId, user.id, tenantId, body || {});
@@ -839,6 +864,7 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
    */
   .post(
     '/validate',
+    { beforeHandle: [requirePermission('bots', 'read')] },
     async ({ body }: any) => {
       try {
         const result = await botService.validateBotConfiguration(body);
@@ -855,4 +881,67 @@ export const botsRoutes = new Elysia({ prefix: '/api/v1/bots' })
         description: 'Validate bot configuration before creation',
       },
     }
-  );
+  )
+
+  /**
+   * Engine Metrics
+   * GET /api/v1/bots/:botId/engine/metrics
+   */
+  .get(
+    '/:botId/engine/metrics',
+    { beforeHandle: [requirePermission('bots', 'read')] },
+    async ({ params }: any) => {
+      const metrics = botEngineRegistry.getMetrics(params.botId);
+      if (!metrics) return { success: false, error: 'Engine not running' };
+      return { success: true, data: metrics };
+    },
+    {
+      params: t.Object({ botId: t.String() }),
+      detail: {
+        tags: ['Bots'],
+        summary: 'Get engine metrics',
+        description: 'Return live engine metrics for a running bot',
+      },
+    }
+  )
+
+  /**
+   * Engine State
+   * GET /api/v1/bots/:botId/engine/state
+   */
+  .get(
+    '/:botId/engine/state',
+    { beforeHandle: [requirePermission('bots', 'read')] },
+    async ({ params }: any) => {
+      const state = botEngineRegistry.getState(params.botId);
+      return { success: true, data: { state } };
+    },
+    {
+      params: t.Object({ botId: t.String() }),
+      detail: {
+        tags: ['Bots'],
+        summary: 'Get engine state',
+        description: 'Return live engine state for a bot',
+      },
+    }
+  )
+
+  /**
+   * List Running Engines
+   * GET /api/v1/bots/running
+   */
+  .get(
+    '/running',
+    { beforeHandle: [requirePermission('bots', 'read')] },
+    async () => {
+      const list = botEngineRegistry.list();
+      return { success: true, data: list, count: list.length };
+    },
+    {
+      detail: {
+        tags: ['Bots'],
+        summary: 'List running bot engines',
+        description: 'Return list of botIds with active engines',
+      },
+    }
+  )

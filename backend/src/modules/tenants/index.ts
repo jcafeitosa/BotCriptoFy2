@@ -6,4 +6,5 @@
 export * from './schema/tenants.schema';
 export * from './types/tenant.types';
 export * from './services/tenant.service';
+export * from './services/membership.service';
 export * from './routes/tenant.routes';

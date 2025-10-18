@@ -92,6 +92,26 @@ const systemPermissions: Array<[ResourceType, PermissionAction, string]> = [
   ['trading', 'execute', 'Execute trades'],
   ['trading', 'manage', 'Full trading management'],
 
+  // Financial
+  ['financial', 'read', 'View financial data and reports'],
+  ['financial', 'write', 'Create and update financial records'],
+  ['financial', 'manage', 'Approve sensitive financial actions'],
+
+  // Marketing
+  ['marketing', 'read', 'View marketing resources and analytics'],
+  ['marketing', 'write', 'Create and manage marketing assets'],
+  ['marketing', 'manage', 'Launch campaigns and perform admin marketing actions'],
+
+  // MMN
+  ['mmn', 'read', 'View MMN tree, volumes, commissions'],
+  ['mmn', 'write', 'Join MMN and manage own node'],
+  ['mmn', 'manage', 'Administer MMN tree, commissions, payouts'],
+
+  // Wallets (Banco)
+  ['wallets', 'read', 'View wallets, balances, portfolio'],
+  ['wallets', 'write', 'Create wallets, deposits, withdrawals, transfers'],
+  ['wallets', 'manage', 'Manage wallets (lock/unlock), approve withdrawals'],
+
   // Bots
   ['bots', 'read', 'View bots'],
   ['bots', 'write', 'Create and configure bots'],
@@ -140,6 +160,14 @@ const rolePermissionMappings = {
     'notifications:read', 'notifications:write', 'notifications:manage',
     // Trading
     'trading:read', 'trading:write', 'trading:execute', 'trading:manage',
+    // Financial
+    'financial:read', 'financial:write', 'financial:manage',
+    // Marketing
+    'marketing:read', 'marketing:write', 'marketing:manage',
+    // MMN
+    'mmn:read', 'mmn:write', 'mmn:manage',
+    // Wallets
+    'wallets:read', 'wallets:write', 'wallets:manage',
     // Bots
     'bots:read', 'bots:write', 'bots:execute', 'bots:manage',
     // Strategies
@@ -166,6 +194,14 @@ const rolePermissionMappings = {
     'notifications:read', 'notifications:write',
     // Trading
     'trading:read', 'trading:write', 'trading:execute',
+    // Financial
+    'financial:read', 'financial:write', 'financial:manage',
+    // Marketing
+    'marketing:read', 'marketing:write', 'marketing:manage',
+    // MMN
+    'mmn:read', 'mmn:write', 'mmn:manage',
+    // Wallets
+    'wallets:read', 'wallets:write',
     // Bots
     'bots:read', 'bots:write', 'bots:execute',
     // Strategies
@@ -188,6 +224,14 @@ const rolePermissionMappings = {
     'notifications:read',
     // Trading
     'trading:read', 'trading:write', 'trading:execute',
+    // Financial
+    'financial:read', 'financial:write',
+    // Marketing
+    'marketing:read', 'marketing:write',
+    // MMN
+    'mmn:read', 'mmn:write',
+    // Wallets
+    'wallets:read', 'wallets:write',
     // Bots
     'bots:read', 'bots:write',
     // Strategies
@@ -208,6 +252,14 @@ const rolePermissionMappings = {
     'notifications:read',
     // Trading
     'trading:read',
+    // Financial
+    'financial:read',
+    // Marketing
+    'marketing:read',
+    // MMN
+    'mmn:read',
+    // Wallets
+    'wallets:read',
     // Bots
     'bots:read',
     // Strategies

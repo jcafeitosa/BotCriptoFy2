@@ -174,7 +174,7 @@ wsManager.on('ticker', (data: Ticker) => {
 
 // 4. Subscribe to specific symbol
 await wsManager.subscribe({
-  exchange: 'binance',
+  exchangeId: 'binance',
   channel: 'ticker',
   symbol: 'BTC/USDT',
 });

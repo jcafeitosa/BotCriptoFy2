@@ -1,453 +1,340 @@
-/**
- * Exchange Service
- * Manages exchange connections using CCXT
- */
-
 import ccxt from 'ccxt';
 import { db } from '@/db';
-import { eq, and } from 'drizzle-orm';
-import logger from '@/utils/logger';
-import { exchangeConnections } from '../schema/exchanges.schema';
-import { encrypt, decrypt } from '../utils/encryption';
-import { NotFoundError, BadRequestError } from '@/utils/errors';
+import { exchanges } from '../schema/exchanges.schema';
+import { and, eq } from 'drizzle-orm';
 import type {
-  ExchangeId,
-  ExchangeCredentials,
-  CreateExchangeConnectionData,
-  UpdateExchangeConnectionData,
-  ExchangeBalance,
-  ExchangeTicker,
-  ExchangePosition,
+  ExchangeMetadata,
+  MarketDescription,
+  MarketQueryOptions,
+  ExchangeInfo,
 } from '../types/exchanges.types';
+import logger from '@/utils/logger';
+import { NotFoundError } from '@/utils/errors';
+
+const SUPPORTED_EXCHANGES: Array<ExchangeMetadata> = [
+  {
+    id: '',
+    slug: 'binance',
+    name: 'Binance',
+    displayName: 'Binance',
+    ccxtId: 'binance',
+    status: 'active',
+    country: 'Global',
+    website: 'https://www.binance.com',
+    apiDocsUrl: 'https://binance-docs.github.io/apidocs',
+    supportedPairs: [],
+    features: {
+      spotTrading: true,
+      marginTrading: true,
+      futuresTrading: true,
+      sandbox: true,
+      websockets: true,
+    },
+    websocket: {
+      public: true,
+      private: true,
+      url: 'wss://stream.binance.com:9443',
+    },
+  },
+  {
+    id: '',
+    slug: 'coinbase',
+    name: 'Coinbase Exchange',
+    displayName: 'Coinbase',
+    ccxtId: 'coinbase',
+    status: 'active',
+    country: 'United States',
+    website: 'https://exchange.coinbase.com',
+    apiDocsUrl: 'https://docs.cloud.coinbase.com/exchange',
+    supportedPairs: [],
+    features: {
+      spotTrading: true,
+      marginTrading: false,
+      futuresTrading: false,
+      sandbox: true,
+      websockets: true,
+    },
+    websocket: {
+      public: true,
+      private: true,
+      url: 'wss://ws-feed.exchange.coinbase.com',
+    },
+  },
+  {
+    id: '',
+    slug: 'kraken',
+    name: 'Kraken',
+    displayName: 'Kraken',
+    ccxtId: 'kraken',
+    status: 'active',
+    country: 'United States',
+    website: 'https://www.kraken.com',
+    apiDocsUrl: 'https://docs.kraken.com/websockets',
+    supportedPairs: [],
+    features: {
+      spotTrading: true,
+      marginTrading: true,
+      futuresTrading: true,
+      sandbox: false,
+      websockets: true,
+    },
+    websocket: {
+      public: true,
+      private: true,
+      url: 'wss://ws.kraken.com',
+    },
+  },
+  {
+    id: '',
+    slug: 'bybit',
+    name: 'Bybit',
+    displayName: 'Bybit',
+    ccxtId: 'bybit',
+    status: 'active',
+    country: 'Global',
+    website: 'https://www.bybit.com',
+    apiDocsUrl: 'https://bybit-exchange.github.io/docs/v5',
+    supportedPairs: [],
+    features: {
+      spotTrading: true,
+      marginTrading: true,
+      futuresTrading: true,
+      sandbox: true,
+      websockets: true,
+    },
+    websocket: {
+      public: true,
+      private: true,
+      url: 'wss://stream.bybit.com/v5/public/spot',
+    },
+  },
+  {
+    id: '',
+    slug: 'okx',
+    name: 'OKX',
+    displayName: 'OKX',
+    ccxtId: 'okx',
+    status: 'active',
+    country: 'Global',
+    website: 'https://www.okx.com',
+    apiDocsUrl: 'https://www.okx.com/docs-v5',
+    supportedPairs: [],
+    features: {
+      spotTrading: true,
+      marginTrading: true,
+      futuresTrading: true,
+      sandbox: true,
+      websockets: true,
+    },
+    websocket: {
+      public: true,
+      private: true,
+      url: 'wss://ws.okx.com:8443/ws/v5/public',
+    },
+  },
+];
 
 export class ExchangeService {
-  /**
-   * Get ALL supported exchanges from CCXT (100+)
-   */
-  static getSupportedExchanges(): ExchangeId[] {
-    return ccxt.exchanges.sort();
-  }
-
-  /**
-   * Check if exchange is supported
-   */
-  static isExchangeSupported(exchangeId: string): boolean {
-    return ccxt.exchanges.includes(exchangeId);
-  }
-
-  /**
-   * Create CCXT instance
-   */
-  static createCCXTInstance(
-    exchangeId: ExchangeId,
-    credentials: ExchangeCredentials
-  ): InstanceType<typeof ccxt.Exchange> {
-    // Validate exchange is supported
-    if (!this.isExchangeSupported(exchangeId)) {
-      throw new BadRequestError(
-        `Exchange '${exchangeId}' not supported. Use /api/v1/exchanges/supported to see available exchanges.`
-      );
-    }
-
-    const ExchangeClass = (ccxt as any)[exchangeId];
-    if (!ExchangeClass) {
-      throw new BadRequestError(`Exchange ${exchangeId} not supported`);
-    }
-
-    const config: any = {
-      apiKey: credentials.apiKey,
-      secret: credentials.apiSecret,
-      enableRateLimit: true,
-    };
-
-    if (credentials.apiPassword) {
-      config.password = credentials.apiPassword;
-    }
-
-    if (credentials.sandbox) {
-      config.sandbox = true;
-    }
-
-    return new ExchangeClass(config);
-  }
-
-  /**
-   * Create exchange connection
-   */
-  static async createConnection(data: CreateExchangeConnectionData) {
-    logger.info('Creating exchange connection', {
-      userId: data.userId,
-      exchangeId: data.exchangeId,
-    });
-
-    // Encrypt credentials
-    const encryptedApiKey = encrypt(data.apiKey);
-    const encryptedApiSecret = encrypt(data.apiSecret);
-    const encryptedApiPassword = data.apiPassword ? encrypt(data.apiPassword) : null;
-
-    // Test connection first
+  static async bootstrapCatalog(): Promise<void> {
     try {
-      const exchange = this.createCCXTInstance(data.exchangeId, {
-        apiKey: data.apiKey,
-        apiSecret: data.apiSecret,
-        apiPassword: data.apiPassword,
-        sandbox: data.sandbox,
-      });
-
-      await exchange.fetchBalance();
-      logger.info('Exchange connection verified', { exchangeId: data.exchangeId });
-    } catch (error) {
-      logger.error('Failed to verify exchange connection', {
-        exchangeId: data.exchangeId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw new BadRequestError('Invalid API credentials or exchange connection failed');
-    }
-
-    // Create connection record
-    const [connection] = await db
-      .insert(exchangeConnections)
-      .values({
-        userId: data.userId,
-        tenantId: data.tenantId,
-        exchangeId: data.exchangeId,
-        exchangeName: data.exchangeId.toUpperCase(),
-        apiKey: encryptedApiKey,
-        apiSecret: encryptedApiSecret,
-        apiPassword: encryptedApiPassword,
-        sandbox: data.sandbox || false,
-        enableTrading: data.enableTrading || false,
-        enableWithdrawal: data.enableWithdrawal || false,
-        isVerified: true,
-        status: 'active',
-      })
-      .returning();
-
-    logger.info('Exchange connection created', { connectionId: connection.id });
-
-    return connection;
-  }
-
-  /**
-   * Update exchange connection
-   */
-  static async updateConnection(
-    id: string,
-    userId: string,
-    tenantId: string,
-    data: UpdateExchangeConnectionData
-  ) {
-    logger.info('Updating exchange connection', { connectionId: id, userId });
-
-    // Get existing connection
-    const connection = await this.getConnectionById(id, userId, tenantId);
-
-    // Build update object
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
-
-    // Update credentials if provided
-    if (data.apiKey) {
-      updateData.apiKey = encrypt(data.apiKey);
-    }
-    if (data.apiSecret) {
-      updateData.apiSecret = encrypt(data.apiSecret);
-    }
-    if (data.apiPassword !== undefined) {
-      updateData.apiPassword = data.apiPassword ? encrypt(data.apiPassword) : null;
-    }
-
-    // Update settings
-    if (data.sandbox !== undefined) {
-      updateData.sandbox = data.sandbox;
-    }
-    if (data.enableTrading !== undefined) {
-      updateData.enableTrading = data.enableTrading;
-    }
-    if (data.enableWithdrawal !== undefined) {
-      updateData.enableWithdrawal = data.enableWithdrawal;
-    }
-    if (data.status !== undefined) {
-      updateData.status = data.status;
-    }
-
-    // If credentials were updated, verify the connection
-    if (data.apiKey || data.apiSecret || data.apiPassword !== undefined) {
-      try {
-        const testCredentials: ExchangeCredentials = {
-          apiKey: data.apiKey || decrypt(connection.apiKey),
-          apiSecret: data.apiSecret || decrypt(connection.apiSecret),
-          apiPassword: data.apiPassword !== undefined
-            ? data.apiPassword
-            : connection.apiPassword
-              ? decrypt(connection.apiPassword)
-              : undefined,
-          sandbox: data.sandbox !== undefined ? data.sandbox : connection.sandbox,
-        };
-
-        const exchange = this.createCCXTInstance(
-          connection.exchangeId as ExchangeId,
-          testCredentials
-        );
-
-        await exchange.fetchBalance();
-        updateData.isVerified = true;
-        updateData.status = 'active';
-        logger.info('Updated connection verified', { connectionId: id });
-      } catch (error) {
-        logger.error('Failed to verify updated connection', {
-          connectionId: id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        updateData.isVerified = false;
-        updateData.status = 'error';
-        throw new BadRequestError('Invalid API credentials or connection failed');
+      const catalog = await db.select().from(exchanges);
+      if (catalog.length > 0) {
+        return;
       }
-    }
 
-    // Update connection
-    const [updated] = await db
-      .update(exchangeConnections)
-      .set(updateData)
-      .where(
-        and(
-          eq(exchangeConnections.id, id),
-          eq(exchangeConnections.userId, userId),
-          eq(exchangeConnections.tenantId, tenantId)
-        )
-      )
-      .returning();
-
-    if (!updated) {
-      throw new NotFoundError('Exchange connection not found');
-    }
-
-    logger.info('Exchange connection updated', { connectionId: id });
-
-    return updated;
-  }
-
-  /**
-   * Get user exchange connections
-   */
-  static async getUserConnections(userId: string, tenantId: string) {
-    return await db
-      .select()
-      .from(exchangeConnections)
-      .where(
-        and(
-          eq(exchangeConnections.userId, userId),
-          eq(exchangeConnections.tenantId, tenantId),
-          eq(exchangeConnections.status, 'active')
-        )
+      await db.insert(exchanges).values(
+        SUPPORTED_EXCHANGES.map((item) => ({
+          slug: item.slug,
+          name: item.name,
+          displayName: item.displayName,
+          status: item.status,
+          country: item.country,
+          website: item.website,
+          apiDocsUrl: item.apiDocsUrl,
+          supportedFeatures: item.features,
+          supportedPairs: item.supportedPairs ?? [],
+        }))
       );
-  }
-
-  /**
-   * Get connection by ID
-   */
-  static async getConnectionById(id: string, userId: string, tenantId: string) {
-    const [connection] = await db
-      .select()
-      .from(exchangeConnections)
-      .where(
-        and(
-          eq(exchangeConnections.id, id),
-          eq(exchangeConnections.userId, userId),
-          eq(exchangeConnections.tenantId, tenantId)
-        )
-      )
-      .limit(1);
-
-    if (!connection) {
-      throw new NotFoundError('Exchange connection not found');
-    }
-
-    return connection;
-  }
-
-  /**
-   * Get CCXT instance for connection
-   */
-  static async getCCXTInstance(
-    connectionId: string,
-    userId: string,
-    tenantId: string
-  ): Promise<InstanceType<typeof ccxt.Exchange>> {
-    const connection = await this.getConnectionById(connectionId, userId, tenantId);
-
-    const credentials: ExchangeCredentials = {
-      apiKey: decrypt(connection.apiKey),
-      apiSecret: decrypt(connection.apiSecret),
-      apiPassword: connection.apiPassword ? decrypt(connection.apiPassword) : undefined,
-      sandbox: connection.sandbox,
-    };
-
-    return this.createCCXTInstance(connection.exchangeId as ExchangeId, credentials);
-  }
-
-  /**
-   * Fetch balances
-   */
-  static async fetchBalances(
-    connectionId: string,
-    userId: string,
-    tenantId: string
-  ): Promise<ExchangeBalance[]> {
-    logger.info('Fetching balances', { connectionId });
-
-    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
-    const balance = await exchange.fetchBalance();
-
-    const balances: ExchangeBalance[] = [];
-    for (const [currency, amounts] of Object.entries(balance)) {
-      if (currency === 'info' || currency === 'free' || currency === 'used' || currency === 'total') {
-        continue;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('relation "exchanges" does not exist')) {
+        logger.warn('Exchanges table not found. Run migrations to persist exchange metadata. Falling back to in-memory registry.');
+      } else {
+        logger.error('Failed to bootstrap exchanges catalog', { error: message });
       }
+    }
+  }
 
-      const typedAmounts = amounts as any;
-      if (typedAmounts.total > 0) {
-        balances.push({
-          currency,
-          free: typedAmounts.free || 0,
-          used: typedAmounts.used || 0,
-          total: typedAmounts.total || 0,
-        });
+  static async listExchanges(): Promise<ExchangeMetadata[]> {
+    let records: Array<{
+      id: string;
+      slug: string;
+      name: string;
+      displayName: string;
+      status: string;
+      country: string | null;
+      website: string | null;
+      apiDocsUrl: string | null;
+      supportedFeatures: unknown;
+      supportedPairs: unknown;
+    }> = [];
+
+    try {
+      records = await db
+        .select({
+          id: exchanges.id,
+          slug: exchanges.slug,
+          name: exchanges.name,
+          displayName: exchanges.displayName,
+          status: exchanges.status,
+          country: exchanges.country,
+          website: exchanges.website,
+          apiDocsUrl: exchanges.apiDocsUrl,
+          supportedFeatures: exchanges.supportedFeatures,
+          supportedPairs: exchanges.supportedPairs,
+        })
+        .from(exchanges);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('relation "exchanges" does not exist')) {
+        logger.error('Failed to load exchanges from database', { error: message });
       }
     }
 
-    // Update cached balances
-    await db
-      .update(exchangeConnections)
-      .set({
-        balances: balances as any,
-        lastSyncAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(exchangeConnections.id, connectionId));
+    if (records.length === 0) {
+      return SUPPORTED_EXCHANGES;
+    }
 
-    return balances;
+    return records.map((row) => {
+      const base = SUPPORTED_EXCHANGES.find((item) => item.slug === row.slug);
+      return {
+        ...row,
+        ccxtId: base?.ccxtId ?? row.slug,
+        features: {
+          spotTrading: Boolean((row.supportedFeatures as any)?.spotTrading ?? base?.features.spotTrading ?? false),
+          marginTrading: Boolean((row.supportedFeatures as any)?.marginTrading ?? base?.features.marginTrading ?? false),
+          futuresTrading: Boolean((row.supportedFeatures as any)?.futuresTrading ?? base?.features.futuresTrading ?? false),
+          sandbox: Boolean((row.supportedFeatures as any)?.sandbox ?? base?.features.sandbox ?? false),
+          websockets: Boolean((row.supportedFeatures as any)?.websockets ?? base?.features.websockets ?? false),
+        },
+        websocket: base?.websocket,
+      } as ExchangeMetadata;
+    });
   }
 
-  /**
-   * Fetch ticker
-   */
-  static async fetchTicker(
-    connectionId: string,
-    userId: string,
-    tenantId: string,
-    symbol: string
-  ): Promise<ExchangeTicker> {
-    logger.info('Fetching ticker', { connectionId, symbol });
+  static async getExchangeBySlug(slug: string): Promise<ExchangeMetadata | null> {
+    const all = await this.listExchanges();
+    return all.find((item) => item.slug === slug) ?? null;
+  }
 
-    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
-    const ticker = await exchange.fetchTicker(symbol);
+  static async getMarkets(exchangeSlug: string, options: MarketQueryOptions = {}): Promise<MarketDescription[]> {
+    const exchange = await this.getExchangeBySlug(exchangeSlug);
+    if (!exchange) {
+      throw new NotFoundError(`Exchange ${exchangeSlug} is not registered`);
+    }
+
+    const ccxtInstance = this.buildCcxtClient(exchange.ccxtId);
+
+    const markets = await ccxtInstance.fetchMarkets();
+    const filtered = options.quote
+      ? markets.filter((market) => market.quote?.toUpperCase() === options.quote?.toUpperCase())
+      : markets;
+
+    const limit = options.limit ?? 50;
+    return filtered.slice(0, limit).map((market) => ({
+      symbol: market.symbol,
+      base: market.base ?? '',
+      quote: market.quote ?? '',
+      active: market.active ?? true,
+      type: market.type ?? 'spot',
+      precision: {
+        amount: market.precision?.amount,
+        price: market.precision?.price,
+      },
+      limits: {
+        amount: market.limits?.amount,
+        price: market.limits?.price,
+        cost: market.limits?.cost,
+      },
+    }));
+  }
+
+  static resolveExchangeId(identifier: string): string {
+    const normalized = identifier.toLowerCase();
+    const entry = SUPPORTED_EXCHANGES.find(
+      (item) => item.slug.toLowerCase() === normalized || item.ccxtId.toLowerCase() === normalized
+    );
+    if (!entry) {
+      throw new NotFoundError(`Exchange ${identifier} is not supported`);
+    }
+    return entry.ccxtId;
+  }
+
+  static buildCcxtClient(exchangeIdentifier: string, credentials?: { apiKey?: string; secret?: string; password?: string; sandbox?: boolean }) {
+    const ccxtId = this.resolveExchangeId(exchangeIdentifier);
+    const ExchangeClass = (ccxt as any)[ccxtId];
+    if (!ExchangeClass) {
+      throw new NotFoundError(`Exchange adapter for ${ccxtId} is not available in CCXT`);
+    }
+
+    const instance = new ExchangeClass({ enableRateLimit: true });
+    if (credentials?.apiKey) instance.apiKey = credentials.apiKey;
+    if (credentials?.secret) instance.secret = credentials.secret;
+    if (credentials?.password) instance.password = credentials.password;
+    if (credentials?.sandbox && typeof instance.setSandboxMode === 'function') {
+      instance.setSandboxMode(true);
+    }
+
+    return instance;
+  }
+
+  static createCCXTInstance(
+    exchangeIdentifier: string,
+    credentials?: { apiKey?: string; apiSecret?: string; apiPassword?: string; sandbox?: boolean }
+  ) {
+    return this.buildCcxtClient(exchangeIdentifier, {
+      apiKey: credentials?.apiKey,
+      secret: credentials?.apiSecret,
+      password: credentials?.apiPassword,
+      sandbox: credentials?.sandbox,
+    });
+  }
+
+  static async fetchPositions(
+    exchangeIdentifier: string,
+    credentials: { apiKey?: string; apiSecret?: string; apiPassword?: string; sandbox?: boolean },
+    symbols?: string[]
+  ) {
+    const client = this.createCCXTInstance(exchangeIdentifier, credentials);
+    if (typeof client.fetchPositions !== 'function') {
+      throw new NotFoundError('Exchange does not support position fetching via CCXT');
+    }
+    return client.fetchPositions(symbols);
+  }
+
+  static isExchangeSupported(identifier: string): boolean {
+    try {
+      this.resolveExchangeId(identifier);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  static async getExchangeInfo(identifier: string): Promise<ExchangeInfo> {
+    const client = this.buildCcxtClient(identifier);
+    const description = typeof client.describe === 'function' ? client.describe() : {};
 
     return {
-      symbol: ticker.symbol,
-      timestamp: ticker.timestamp || Date.now(),
-      datetime: ticker.datetime || new Date().toISOString(),
-      high: ticker.high || 0,
-      low: ticker.low || 0,
-      bid: ticker.bid || 0,
-      ask: ticker.ask || 0,
-      last: ticker.last || 0,
-      close: ticker.close || 0,
-      baseVolume: ticker.baseVolume || 0,
-      quoteVolume: ticker.quoteVolume || 0,
-      percentage: ticker.percentage || 0,
+      id: client.id,
+      name: client.name,
+      countries: description.countries,
+      has: description.has,
+      timeframes: description.timeframes,
+      urls: description.urls,
+      rateLimit: client.rateLimit,
+      version: client.version,
+      certified: Boolean(description.certified),
     };
-  }
-
-  /**
-   * Delete connection
-   */
-  static async deleteConnection(id: string, userId: string, tenantId: string) {
-    logger.info('Deleting exchange connection', { connectionId: id });
-
-    await db
-      .update(exchangeConnections)
-      .set({
-        status: 'disabled',
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(exchangeConnections.id, id),
-          eq(exchangeConnections.userId, userId),
-          eq(exchangeConnections.tenantId, tenantId)
-        )
-      );
-
-    logger.info('Exchange connection deleted', { connectionId: id });
-  }
-
-  /**
-   * Fetch positions from exchange
-   */
-  static async fetchPositions(
-    connectionId: string,
-    userId: string,
-    tenantId: string,
-    symbol?: string
-  ): Promise<ExchangePosition[]> {
-    logger.info('Fetching positions', { connectionId, symbol });
-
-    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
-
-    // Check if exchange supports fetching positions
-    if (!exchange.has['fetchPositions']) {
-      throw new BadRequestError(
-        `Exchange ${exchange.id} does not support fetching positions`
-      );
-    }
-
-    // Fetch positions from exchange
-    const ccxtPositions = symbol
-      ? await exchange.fetchPositions([symbol])
-      : await exchange.fetchPositions();
-
-    // Map CCXT positions to our format
-    const positions: ExchangePosition[] = ccxtPositions
-      .filter((pos) => pos.contracts !== undefined && pos.contracts > 0)
-      .map((pos) => ({
-        symbol: pos.symbol,
-        id: pos.id,
-        timestamp: pos.timestamp,
-        datetime: pos.datetime,
-        contracts: pos.contracts,
-        contractSize: pos.contractSize,
-        side: (pos.side === 'long' ? 'long' : 'short') as 'long' | 'short',
-        notional: pos.notional,
-        leverage: pos.leverage,
-        unrealizedPnl: pos.unrealizedPnl,
-        realizedPnl: pos.realizedPnl,
-        collateral: pos.collateral,
-        entryPrice: pos.entryPrice,
-        markPrice: pos.markPrice,
-        liquidationPrice: pos.liquidationPrice,
-        marginMode: pos.marginMode,
-        hedged: pos.hedged,
-        maintenanceMargin: pos.maintenanceMargin,
-        maintenanceMarginPercentage: pos.maintenanceMarginPercentage,
-        initialMargin: pos.initialMargin,
-        initialMarginPercentage: pos.initialMarginPercentage,
-        marginRatio: pos.marginRatio,
-        lastUpdateTimestamp: pos.lastUpdateTimestamp,
-        lastPrice: pos.lastPrice,
-        stopLossPrice: pos.stopLossPrice,
-        takeProfitPrice: pos.takeProfitPrice,
-        percentage: pos.percentage,
-        info: pos.info,
-      }));
-
-    logger.info('Positions fetched successfully', {
-      connectionId,
-      symbol,
-      positionsCount: positions.length,
-    });
-
-    return positions;
   }
 }

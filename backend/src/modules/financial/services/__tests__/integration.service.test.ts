@@ -7,8 +7,8 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { IntegrationService } from '../integration.service';
 
 // Mock data
-const mockTenantId = 'tenant-123';
-const mockUserId = 'user-456';
+const mockTenantId = '00000000-0000-0000-0000-000000000001';
+const mockUserId = '00000000-0000-0000-0000-000000000101';
 
 const mockInvoiceId = 'invoice-001';
 const mockExpenseId = 'expense-001';

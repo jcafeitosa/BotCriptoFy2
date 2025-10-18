@@ -8,10 +8,8 @@
 import { Elysia } from 'elysia';
 import { auth } from '../services/auth.config';
 import { UnauthorizedError, ForbiddenError } from '../../../utils/errors';
-import {
-  getUserRoles,
-  getUserPrimaryTenantId,
-} from '../services/session.service';
+import { getUserRoles } from '../../security/services/role.service';
+import { getUserPrimaryTenantId } from '../../tenants/services/membership.service';
 
 /**
  * Session Guard

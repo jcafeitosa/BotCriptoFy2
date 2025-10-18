@@ -5,8 +5,7 @@
 
 import { db } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
-import { exchangeConnections } from '../../exchanges/schema/exchanges.schema';
+import { ExchangeConnectionService } from '../../exchanges/services/exchange-connection.service';
 import { tradingPositions } from '../schema/orders.schema';
 import logger from '@/utils/logger';
 import { NotFoundError } from '@/utils/errors';
@@ -175,83 +174,76 @@ export class PositionService {
     exchangeConnectionId: string
   ): Promise<number> {
     try {
-      // Get connection to retrieve exchangeId
-      const [connection] = await db
-        .select()
-        .from(exchangeConnections)
-        .where(
-          and(
-            eq(exchangeConnections.id, exchangeConnectionId),
-            eq(exchangeConnections.userId, userId),
-            eq(exchangeConnections.tenantId, tenantId)
-          )
-        )
-        .limit(1);
-
-      if (!connection) throw new NotFoundError('Exchange connection not found');
-
-      // Fetch positions from exchange using centralized ExchangeService
-      const exchangePositions = await ExchangeService.fetchPositions(
-        exchangeConnectionId,
+      const restHandle = await ExchangeConnectionService.acquireRestClientHandle({
+        configurationId: exchangeConnectionId,
         userId,
-        tenantId
-      );
+        tenantId,
+      });
 
-      let synced = 0;
-      for (const exchangePosition of exchangePositions) {
-        // Find or create position in database
-        const [dbPosition] = await db
-          .select()
-          .from(tradingPositions)
-          .where(
-            and(
-              eq(tradingPositions.exchangeConnectionId, exchangeConnectionId),
-              eq(tradingPositions.symbol, exchangePosition.symbol),
-              eq(tradingPositions.status, 'open')
-            )
-          )
-          .limit(1);
-
-        if (dbPosition) {
-          // Update existing position
-          await this.updatePosition(dbPosition.id, {
-            contracts: exchangePosition.contracts || undefined,
-            markPrice: exchangePosition.markPrice || undefined,
-            liquidationPrice: exchangePosition.liquidationPrice || undefined,
-            unrealizedPnl: exchangePosition.unrealizedPnl || undefined,
-            percentage: exchangePosition.percentage || undefined,
-          });
-          synced++;
-        } else if (exchangePosition.contracts && Number(exchangePosition.contracts) > 0) {
-          // Create new position
-          await db.insert(tradingPositions).values({
-            userId,
-            tenantId,
-            exchangeConnectionId,
-            exchangeId: connection.exchangeId,
-            symbol: exchangePosition.symbol,
-            side: exchangePosition.side === 'long' ? 'long' : 'short',
-            contracts: Number(exchangePosition.contracts).toString(),
-            contractSize: exchangePosition.contractSize ? Number(exchangePosition.contractSize).toString() : undefined,
-            leverage: exchangePosition.leverage ? Number(exchangePosition.leverage).toString() : undefined,
-            collateral: exchangePosition.collateral ? Number(exchangePosition.collateral).toString() : undefined,
-            entryPrice: exchangePosition.entryPrice ? Number(exchangePosition.entryPrice).toString() : '0',
-            entryTimestamp: new Date(exchangePosition.timestamp || Date.now()),
-            markPrice: exchangePosition.markPrice?.toString(),
-            liquidationPrice: exchangePosition.liquidationPrice?.toString(),
-            unrealizedPnl: exchangePosition.unrealizedPnl?.toString(),
-            realizedPnl: '0',
-            percentage: exchangePosition.percentage?.toString(),
-            status: 'open',
-            info: exchangePosition.info,
-          });
-          synced++;
+      try {
+        if (typeof restHandle.client.fetchPositions !== 'function') {
+          throw new NotFoundError('Exchange does not support position fetching via CCXT');
         }
+
+        const exchangePositions = await restHandle.client.fetchPositions();
+
+        let synced = 0;
+        for (const exchangePosition of exchangePositions) {
+          // Find or create position in database
+          const [dbPosition] = await db
+            .select()
+            .from(tradingPositions)
+            .where(
+              and(
+                eq(tradingPositions.exchangeConnectionId, exchangeConnectionId),
+                eq(tradingPositions.symbol, exchangePosition.symbol),
+                eq(tradingPositions.status, 'open')
+              )
+            )
+            .limit(1);
+
+          if (dbPosition) {
+            // Update existing position
+            await this.updatePosition(dbPosition.id, {
+              contracts: exchangePosition.contracts || undefined,
+              markPrice: exchangePosition.markPrice || undefined,
+              liquidationPrice: exchangePosition.liquidationPrice || undefined,
+              unrealizedPnl: exchangePosition.unrealizedPnl || undefined,
+              percentage: exchangePosition.percentage || undefined,
+            });
+            synced++;
+          } else if (exchangePosition.contracts && Number(exchangePosition.contracts) > 0) {
+            // Create new position
+            await db.insert(tradingPositions).values({
+              userId,
+              tenantId,
+              exchangeConnectionId,
+              exchangeId: restHandle.connection.exchangeId,
+              symbol: exchangePosition.symbol,
+              side: exchangePosition.side === 'long' ? 'long' : 'short',
+              contracts: Number(exchangePosition.contracts).toString(),
+              contractSize: exchangePosition.contractSize ? Number(exchangePosition.contractSize).toString() : undefined,
+              leverage: exchangePosition.leverage ? Number(exchangePosition.leverage).toString() : undefined,
+              collateral: exchangePosition.collateral ? Number(exchangePosition.collateral).toString() : undefined,
+              entryPrice: exchangePosition.entryPrice ? Number(exchangePosition.entryPrice).toString() : '0',
+              entryTimestamp: new Date(exchangePosition.timestamp || Date.now()),
+              markPrice: exchangePosition.markPrice?.toString(),
+              liquidationPrice: exchangePosition.liquidationPrice?.toString(),
+              unrealizedPnl: exchangePosition.unrealizedPnl?.toString(),
+              realizedPnl: '0',
+              percentage: exchangePosition.percentage?.toString(),
+              status: 'open',
+              info: exchangePosition.info,
+            });
+            synced++;
+          }
+        }
+
+        logger.info('Synced positions from exchange', { userId, exchangeConnectionId, synced });
+        return synced;
+      } finally {
+        restHandle.release();
       }
-
-      logger.info('Synced positions from exchange', { userId, exchangeConnectionId, synced });
-
-      return synced;
     } catch (error) {
       logger.error('Failed to sync positions', {
         userId,

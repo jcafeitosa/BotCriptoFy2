@@ -12,7 +12,8 @@
 
 import { db } from '@/db';
 import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
+// Module not yet implemented
+// import { ExchangeService } from '../../exchanges/services/exchange.service';
 import {
   orderBookSnapshots,
   orderBookLevel1,

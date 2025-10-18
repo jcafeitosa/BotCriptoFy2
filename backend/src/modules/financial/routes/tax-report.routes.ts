@@ -6,26 +6,20 @@
 
 import { Elysia, t } from 'elysia';
 import { taxReportService } from '../services/tax-report.service';
+import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 
 export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
+  .use(sessionGuard)
+  .use(requireTenant)
   /**
    * Generate new tax report
    * Automatically calculates all taxes based on current jurisdiction
    */
   .post(
     '/generate',
-    async ({ body, headers }) => {
-      // Extract user info from headers (in production, use JWT)
-      const tenantId = headers['x-tenant-id'];
-      const userId = headers['x-user-id'] || 'unknown';
-
-      if (!tenantId) {
-        return {
-          success: false,
-          error: 'Tenant ID is required',
-        };
-      }
-
+    { beforeHandle: [requirePermission('financial', 'write')] },
+    async ({ body, user, tenantId }) => {
       const {
         reportType,
         fiscalYear,
@@ -37,13 +31,13 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
 
       // Generate report
       const result = await taxReportService.generateReport({
-        tenantId: tenantId as string,
+        tenantId,
         reportType: reportType as 'monthly' | 'quarterly' | 'annual' | 'custom',
         fiscalYear,
         fiscalPeriod,
         periodStartDate: new Date(periodStartDate),
         periodEndDate: new Date(periodEndDate),
-        generatedBy: userId as string,
+        generatedBy: user.id,
         generationMethod: (generationMethod || 'manual') as 'automatic' | 'manual' | 'scheduled',
       });
 
@@ -85,17 +79,8 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .post(
     '/generate/monthly',
-    async ({ body, headers }) => {
-      const tenantId = headers['x-tenant-id'];
-      const userId = headers['x-user-id'] || 'unknown';
-
-      if (!tenantId) {
-        return {
-          success: false,
-          error: 'Tenant ID is required',
-        };
-      }
-
+    { beforeHandle: [requirePermission('financial', 'write')] },
+    async ({ body, user, tenantId }) => {
       const { year, month } = body;
 
       // Calculate period dates
@@ -106,13 +91,13 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
 
       // Generate report
       const result = await taxReportService.generateReport({
-        tenantId: tenantId as string,
+        tenantId,
         reportType: 'monthly',
         fiscalYear: String(year),
         fiscalPeriod,
         periodStartDate,
         periodEndDate,
-        generatedBy: userId as string,
+        generatedBy: user.id,
         generationMethod: 'manual',
       });
 
@@ -144,19 +129,11 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .get(
     '/',
-    async ({ query, headers }) => {
-      const tenantId = headers['x-tenant-id'];
-
-      if (!tenantId) {
-        return {
-          success: false,
-          error: 'Tenant ID is required',
-        };
-      }
-
+    { beforeHandle: [requirePermission('financial', 'read')] },
+    async ({ query, tenantId }) => {
       const limit = query.limit ? parseInt(query.limit) : 50;
 
-      const result = await taxReportService.getReports(tenantId as string, limit);
+      const result = await taxReportService.getReports(tenantId, limit);
 
       return result;
     },
@@ -177,18 +154,11 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .get(
     '/:reportId',
-    async ({ params, headers }) => {
-      const tenantId = headers['x-tenant-id'];
+    { beforeHandle: [requirePermission('financial', 'read')] },
+    async ({ params, tenantId }) => {
       const { reportId } = params;
 
-      if (!tenantId) {
-        return {
-          success: false,
-          error: 'Tenant ID is required',
-        };
-      }
-
-      const result = await taxReportService.getReportById(reportId, tenantId as string);
+      const result = await taxReportService.getReportById(reportId, tenantId);
 
       return result;
     },

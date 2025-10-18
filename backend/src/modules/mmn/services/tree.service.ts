@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/db';
-import { eq, and,  isNull } from 'drizzle-orm';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@/utils/errors';
 import {
@@ -200,60 +200,88 @@ export class TreeService {
       };
     }
 
-    // Both positions occupied, find in downline using BFS
-    return await this.findInDownline(sponsor.id, tenantId, preferredPosition);
+    // Both positions occupied, traverse downline breadth-first
+    return await this.findPlacementInDownline([sponsor], tenantId, preferredPosition);
   }
 
   /**
-   * Find available position in downline using breadth-first search
+   * Find available position in downline using optimized breadth-first search
    */
-  private static async findInDownline(
-    rootId: string,
+  private static async findPlacementInDownline(
+    currentLevel: MmnTree[],
     tenantId: string,
     preferredPosition?: TreePosition
   ): Promise<SpilloverResult> {
-    const queue: string[] = [rootId];
     const visited = new Set<string>();
 
-    while (queue.length > 0) {
-      const nodeId = queue.shift()!;
+    let levelNodes = currentLevel;
 
-      if (visited.has(nodeId)) continue;
-      visited.add(nodeId);
+    while (levelNodes.length > 0) {
+      const nextIds: string[] = [];
 
-      const [node] = await db
-        .select()
-        .from(mmnTree)
-        .where(eq(mmnTree.id, nodeId))
-        .limit(1);
+      for (const node of levelNodes) {
+        if (visited.has(node.id)) continue;
+        visited.add(node.id);
 
-      if (!node) continue;
+        // Check for available positions
+        if (!node.leftChildId && (!preferredPosition || preferredPosition === 'left')) {
+          return {
+            parentId: node.id,
+            position: 'left',
+            level: node.level + 1,
+            path: calculatePath(node.path, 'left'),
+          };
+        }
 
-      // Check for available positions
-      if (!node.leftChildId && (!preferredPosition || preferredPosition === 'left')) {
-        return {
-          parentId: node.id,
-          position: 'left',
-          level: node.level + 1,
-          path: calculatePath(node.path, 'left'),
-        };
+        if (!node.rightChildId && (!preferredPosition || preferredPosition === 'right')) {
+          return {
+            parentId: node.id,
+            position: 'right',
+            level: node.level + 1,
+            path: calculatePath(node.path, 'right'),
+          };
+        }
+
+        if (node.leftChildId) nextIds.push(node.leftChildId);
+        if (node.rightChildId) nextIds.push(node.rightChildId);
       }
 
-      if (!node.rightChildId && (!preferredPosition || preferredPosition === 'right')) {
-        return {
-          parentId: node.id,
-          position: 'right',
-          level: node.level + 1,
-          path: calculatePath(node.path, 'right'),
-        };
+      if (nextIds.length === 0) {
+        break;
       }
 
-      // Add children to queue
-      if (node.leftChildId) queue.push(node.leftChildId);
-      if (node.rightChildId) queue.push(node.rightChildId);
+      levelNodes = await this.getNodesByIds(nextIds, tenantId);
     }
 
     throw new BadRequestError('No available positions found in tree');
+  }
+
+  /**
+   * Load nodes by ID preserving requested order
+   */
+  private static async getNodesByIds(ids: string[], tenantId: string): Promise<MmnTree[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows = await db
+      .select()
+      .from(mmnTree)
+      .where(
+        and(
+          inArray(mmnTree.id, ids),
+          eq(mmnTree.tenantId, tenantId)
+        )
+      );
+
+    const map = new Map<string, MmnTree>();
+    for (const row of rows) {
+      map.set(row.id, row);
+    }
+
+    return ids
+      .map((id) => map.get(id))
+      .filter((node): node is MmnTree => Boolean(node));
   }
 
   /**
@@ -333,18 +361,11 @@ export class TreeService {
     maxDepth: number,
     currentDepth: number
   ): Promise<TreeNode> {
-    // Get tenant ID from the node's database record
-    const [nodeWithTenant] = await db
-      .select()
-      .from(mmnTree)
-      .where(eq(mmnTree.id, node.id))
-      .limit(1);
-
     // Get current rank from ranks table
     let rankName = 'Distributor';
     try {
       const { RankService } = await import('./rank.service');
-      const currentRank = await RankService.getCurrentRank(node.userId, nodeWithTenant?.tenantId || '');
+      const currentRank = await RankService.getCurrentRank(node.userId, node.tenantId);
       if (currentRank) {
         rankName = currentRank.rankName;
       }
@@ -374,7 +395,6 @@ export class TreeService {
       return treeNode;
     }
 
-    // Load children
     if (node.leftChildId) {
       const [leftChild] = await db
         .select()

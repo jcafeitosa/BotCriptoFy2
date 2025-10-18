@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { invoiceService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 import type { InvoiceStatus } from '../schema/invoices.schema';
 
@@ -52,6 +53,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         invoiceNumber: t.String(),
         type: t.Union([t.Literal('income'), t.Literal('expense')]),
@@ -107,6 +109,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -149,6 +152,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         type: t.Optional(t.Union([t.Literal('income'), t.Literal('expense')])),
         status: t.Optional(t.String()),
@@ -189,6 +193,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         id: t.String(),
       }),
@@ -227,6 +232,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       params: t.Object({
         id: t.String(),
       }),
@@ -260,6 +266,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         id: t.String(),
       }),
@@ -298,6 +305,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -327,6 +335,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         id: t.String(),
       }),
@@ -366,5 +375,6 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
     }
   );

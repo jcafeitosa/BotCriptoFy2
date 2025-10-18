@@ -152,9 +152,7 @@ async function main() {
   results.push(await testEndpoint('financial', 'GET', '/api/v1/tax-jurisdiction/current'));
   printResult(results[results.length - 1]);
 
-  // Dev auth endpoints (dev only - should be disabled in production)
-  results.push(await testEndpoint('auth', 'GET', '/api/dev/auth/users'));
-  printResult(results[results.length - 1]);
+  // Dev endpoints intentionally excluded to avoid environment coupling
 
   console.log('\n' + '─'.repeat(80) + '\n');
 
@@ -191,11 +189,11 @@ async function main() {
   printResult(results[results.length - 1]);
 
   // Users
-  results.push(await testEndpoint('users', 'GET', '/api/user/profile'));
+  results.push(await testEndpoint('users', 'GET', '/api/v1/user/profile'));
   printResult(results[results.length - 1]);
 
   // Tenants
-  results.push(await testEndpoint('tenants', 'GET', '/api/tenants/me'));
+  results.push(await testEndpoint('tenants', 'GET', '/api/v1/tenants/me'));
   printResult(results[results.length - 1]);
 
   // Departments

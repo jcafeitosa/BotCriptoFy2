@@ -8,8 +8,8 @@ import { LedgerService } from '../ledger.service';
 import type { NewLedgerEntry, NewLedgerEntryLine } from '../../types/financial.types';
 
 // Mock data
-const mockTenantId = 'tenant-123';
-const mockUserId = 'user-456';
+const mockTenantId = '00000000-0000-0000-0000-000000000001';
+const mockUserId = '00000000-0000-0000-0000-000000000101';
 
 const mockAccountDebit = {
   id: 'account-cash',
@@ -20,7 +20,7 @@ const mockAccountDebit = {
 };
 
 const mockAccountCredit = {
-  id: 'account-revenue',
+  id: '00000000-0000-0000-0000-000000000601',
   accountNumber: '4010',
   accountName: 'Revenue',
   accountType: 'revenue' as const,
@@ -495,7 +495,7 @@ describe('LedgerService', () => {
           description: 'Cash',
         },
         {
-          accountId: 'account-revenue',
+          accountId: '00000000-0000-0000-0000-000000000601',
           entryType: 'credit',
           amount: '1000.00',
           description: 'Revenue',
@@ -507,7 +507,7 @@ describe('LedgerService', () => {
         { ...mockEntryData, entryNumber: 'JE-2025-002' },
         [
           {
-            accountId: 'account-expense',
+            accountId: '00000000-0000-0000-0000-000000000602',
             entryType: 'debit',
             amount: '300.00',
             description: 'Expense',
@@ -555,7 +555,7 @@ describe('LedgerService', () => {
           description: 'AR',
         },
         {
-          accountId: 'account-revenue',
+          accountId: '00000000-0000-0000-0000-000000000601',
           entryType: 'credit',
           amount: '1200.00',
           description: 'Revenue',

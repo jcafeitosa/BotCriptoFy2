@@ -6,15 +6,15 @@
 import { Elysia, t } from 'elysia';
 import { sessionGuard } from '../../auth/middleware/session.middleware';
 import { getUserProfile, getUserTenants } from '../services/user.service';
-import { db } from '@/db';
-import { sessions } from '../../auth/schema/auth.schema';
-import { eq } from 'drizzle-orm';
+import { setActiveOrganization } from '../../auth/services/session.service';
+import { UsersProfileService } from '../services/user-profile-cache.service';
+import { UsersTenantsCacheService } from '../services/user-tenants-cache.service';
 import { BadRequestError, NotFoundError } from '@/utils/errors';
 
 /**
  * User routes plugin
  */
-export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' })
+export const userRoutes = new Elysia({ prefix: '/api/v1/user', name: 'user-routes' })
   .use(sessionGuard)
   .get(
     '/profile',
@@ -22,8 +22,8 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
       // sessionGuard ensures user is authenticated
       // Get activeTenantId from session (stored as activeOrganizationId in Better-Auth)
       const activeTenantId = (session as any)?.activeOrganizationId || undefined;
-      const profile = await getUserProfile(user.id, activeTenantId);
-      return profile;
+      const profile = await UsersProfileService.getProfile(user.id, activeTenantId);
+      return { success: true, data: profile };
     },
     {
       detail: {
@@ -62,12 +62,8 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
   .get(
     '/tenants',
     async ({ user }) => {
-      const tenants = await getUserTenants(user.id);
-      return {
-        success: true,
-        data: tenants,
-        total: tenants.length,
-      };
+      const tenants = await UsersTenantsCacheService.getTenants(user.id);
+      return { success: true, data: tenants, total: tenants.length };
     },
     {
       detail: {
@@ -97,34 +93,17 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
         throw new BadRequestError('No active session found');
       }
 
-      await db
-        .update(sessions)
-        .set({
-          activeOrganizationId: body.tenantId,
-          updatedAt: new Date(),
-        })
-        .where(eq(sessions.id, session.id));
+      await setActiveOrganization(session.id, body.tenantId);
+      await UsersProfileService.invalidateProfile(user.id);
 
       // Get updated profile with new tenant
-      const profile = await getUserProfile(user.id, body.tenantId);
+      const profile = await UsersProfileService.getProfile(user.id, body.tenantId);
 
-      return {
-        success: true,
-        message: 'Tenant switched successfully',
-        data: {
-          activeTenant: {
-            id: targetTenant.id,
-            name: targetTenant.name,
-            type: targetTenant.type,
-            profileType: targetTenant.profileType,
-          },
-          profile,
-        },
-      };
+      return { success: true, data: { activeTenant: { id: targetTenant.id, name: targetTenant.name, type: targetTenant.type, profileType: targetTenant.profileType }, profile } };
     },
     {
       body: t.Object({
-        tenantId: t.String({ description: 'Tenant ID to switch to' }),
+        tenantId: t.String({ description: 'Tenant ID to switch to', minLength: 3, maxLength: 64, pattern: '^[A-Za-z0-9_-]+$' }),
       }),
       detail: {
         tags: ['User'],
@@ -142,7 +121,7 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
 
       if (!activeTenantId) {
         // No active tenant set, return user's first tenant
-        const tenants = await getUserTenants(user.id);
+        const tenants = await UsersTenantsCacheService.getTenants(user.id);
         if (tenants.length === 0) {
           return {
             success: false,
@@ -151,21 +130,11 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
           };
         }
 
-        return {
-          success: true,
-          message: 'No active tenant set, showing first tenant',
-          data: {
-            id: tenants[0].id,
-            name: tenants[0].name,
-            type: tenants[0].type,
-            profileType: tenants[0].profileType,
-            isDefault: true,
-          },
-        };
+        return { success: true, data: { id: tenants[0].id, name: tenants[0].name, type: tenants[0].type, profileType: tenants[0].profileType, isDefault: true } };
       }
 
       // Get active tenant details
-      const tenants = await getUserTenants(user.id);
+      const tenants = await UsersTenantsCacheService.getTenants(user.id);
       const activeTenant = tenants.find((t) => t.id === activeTenantId);
 
       if (!activeTenant) {
@@ -174,17 +143,7 @@ export const userRoutes = new Elysia({ prefix: '/api/user', name: 'user-routes' 
         });
       }
 
-      return {
-        success: true,
-        data: {
-          id: activeTenant.id,
-          name: activeTenant.name,
-          type: activeTenant.type,
-          profileType: activeTenant.profileType,
-          role: activeTenant.role,
-          memberStatus: activeTenant.status,
-        },
-      };
+      return { success: true, data: { id: activeTenant.id, name: activeTenant.name, type: activeTenant.type, profileType: activeTenant.profileType, role: activeTenant.role, memberStatus: activeTenant.status } };
     },
     {
       detail: {

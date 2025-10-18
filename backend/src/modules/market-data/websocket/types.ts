@@ -155,8 +155,13 @@ export type ChannelType = 'orderbook' | 'trades' | 'ticker' | 'candles';
  * Subscription request
  */
 export interface SubscriptionRequest {
+  /** Target exchange for the subscription. Strongly recommended when multiple exchanges are connected. */
+  readonly exchangeId?: ExchangeId;
+  /** Channel to subscribe to */
   readonly channel: ChannelType;
+  /** Unified CCXT-style symbol, e.g., BTC/USDT */
   readonly symbol: string;
+  /** Optional channel-specific params (e.g., depth, interval) */
   readonly params?: Record<string, unknown>;
 }
 
