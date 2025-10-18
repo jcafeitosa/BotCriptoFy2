@@ -305,10 +305,36 @@ export class AutomationsService {
       await db.update(tickets).set(updates).where(eq(tickets.id, ticket.id));
     }
 
-    // Send notification (if implemented)
+    // Send notification
     if (actions.sendNotification) {
       logger.info('Notification triggered by automation', { ticketId: ticket.id });
-      // TODO: Integrate with notification service
+
+      // Integrate with notification service
+      try {
+        const { sendNotification } = await import('../../notifications/services/notification.service');
+
+        await sendNotification({
+          userId: ticket.assignedTo || 'system',
+          tenantId: ticket.tenantId,
+          type: 'in_app',
+          category: 'support',
+          priority: 'normal',
+          subject: `Ticket #${ticket.id} - Automation Triggered`,
+          content: actions.sendNotification.message || `Automation triggered for ticket #${ticket.id}`,
+          metadata: {
+            ticketId: ticket.id,
+            trigger: 'automation',
+            automationAction: true,
+          },
+        });
+
+        logger.info('Automation notification sent', { ticketId: ticket.id });
+      } catch (error) {
+        logger.error('Failed to send automation notification', {
+          ticketId: ticket.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 

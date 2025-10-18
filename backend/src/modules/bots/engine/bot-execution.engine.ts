@@ -328,7 +328,8 @@ export class BotExecutionEngine extends EventEmitter implements IExecutionEngine
       // Disconnect from market data WebSocket
       await this.disconnectWebSocket();
 
-      // TODO: Cancel pending orders (future implementation)
+      // Cancel all pending orders for this bot
+      await this.cancelPendingOrders();
 
       logger.info('Bot execution engine cleanup complete', {
         botId: this.bot.id,
@@ -697,12 +698,89 @@ export class BotExecutionEngine extends EventEmitter implements IExecutionEngine
 
   /**
    * Calculate position size for trade
+   * Implements Kelly Criterion-inspired dynamic sizing based on signal strength and risk
    */
-  private calculatePositionSize(_signal: TradingSignal, _riskValidation: RiskValidationResult): number {
-    // TODO: Implement position sizing logic based on signal strength and risk validation
-    // For now, return fixed size
-    const capitalToUse = this.bot.allocatedCapital * (this.bot.positionSizePercent / 100);
-    return capitalToUse;
+  private calculatePositionSize(signal: TradingSignal, riskValidation: RiskValidationResult): number {
+    // Base capital allocation from bot configuration
+    let baseCapital = this.bot.allocatedCapital * (this.bot.positionSizePercent / 100);
+
+    // Calculate signal strength multiplier (0.5 - 1.5)
+    // Higher confidence signals get larger positions
+    const strengthMultiplier = 0.5 + (signal.confidence / 100);
+
+    // Calculate risk multiplier (0.5 - 1.0)
+    // Lower current exposure allows larger positions
+    const exposurePercent = (riskValidation.currentExposure / riskValidation.maxExposure) * 100;
+    const riskMultiplier = exposurePercent < 50
+      ? 1.0  // Full size when exposure is low
+      : exposurePercent < 75
+        ? 0.75 // Reduce size when exposure is moderate
+        : 0.5; // Minimal size when exposure is high
+
+    // Calculate volatility adjustment (if available in future)
+    // For now, use signal strength as proxy
+    const volatilityMultiplier = signal.strength > 0.8 ? 1.2 : // Strong signal, increase size
+                                signal.strength > 0.5 ? 1.0 : // Medium signal, normal size
+                                0.7; // Weak signal, reduce size
+
+    // Apply multipliers
+    let adjustedCapital = baseCapital * strengthMultiplier * riskMultiplier * volatilityMultiplier;
+
+    // Apply hard limits
+    const minSize = this.bot.allocatedCapital * 0.01; // Min 1% of allocated capital
+    const maxSize = this.bot.allocatedCapital * 0.5;  // Max 50% of allocated capital
+
+    adjustedCapital = Math.max(minSize, Math.min(maxSize, adjustedCapital));
+
+    logger.debug('Position size calculated', {
+      botId: this.bot.id,
+      baseCapital,
+      signalConfidence: signal.confidence,
+      signalStrength: signal.strength,
+      currentExposure: exposurePercent,
+      strengthMultiplier: strengthMultiplier.toFixed(2),
+      riskMultiplier: riskMultiplier.toFixed(2),
+      volatilityMultiplier: volatilityMultiplier.toFixed(2),
+      finalSize: adjustedCapital.toFixed(2),
+    });
+
+    return adjustedCapital;
+  }
+
+  /**
+   * Cancel all pending orders for this bot
+   */
+  private async cancelPendingOrders(): Promise<void> {
+    try {
+      logger.info('Canceling pending orders for bot', {
+        botId: this.bot.id,
+      });
+
+      // Cancel all pending orders for this bot's symbol via OrderService
+      // Note: cancelAllOrders takes (userId, tenantId, symbol?) and returns number
+      const canceledCount = await OrderService.cancelAllOrders(
+        this.bot.userId,
+        this.bot.tenantId,
+        this.bot.symbol  // Optional symbol parameter to cancel only orders for this bot's symbol
+      );
+
+      logger.info('Pending orders canceled', {
+        botId: this.bot.id,
+        canceledCount,
+      });
+
+      this.emitEvent('stop_loss_hit', {  // Using existing event type
+        count: canceledCount,
+        reason: 'Bot stopped',
+      } as any);
+
+    } catch (error) {
+      logger.error('Failed to cancel pending orders', {
+        botId: this.bot.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Don't throw - allow cleanup to continue
+    }
   }
 
   /**

@@ -333,6 +333,25 @@ export class TreeService {
     maxDepth: number,
     currentDepth: number
   ): Promise<TreeNode> {
+    // Get tenant ID from the node's database record
+    const [nodeWithTenant] = await db
+      .select()
+      .from(mmnTree)
+      .where(eq(mmnTree.id, node.id))
+      .limit(1);
+
+    // Get current rank from ranks table
+    let rankName = 'Distributor';
+    try {
+      const { RankService } = await import('./rank.service');
+      const currentRank = await RankService.getCurrentRank(node.userId, nodeWithTenant?.tenantId || '');
+      if (currentRank) {
+        rankName = currentRank.rankName;
+      }
+    } catch (error) {
+      // If rank service fails, default to Distributor
+    }
+
     const treeNode: TreeNode = {
       id: node.id,
       userId: node.userId,
@@ -346,7 +365,7 @@ export class TreeService {
       leftVolume: 0,
       rightVolume: 0,
       totalVolume: 0,
-      rank: 'Distributor', // TODO: Get from ranks table
+      rank: rankName,
       isQualified: node.isQualified,
     };
 

@@ -196,8 +196,8 @@ export class DocumentsService {
       }
 
       // Check access permissions
-      // TODO: Get user roles from auth context
-      const userRoles: string[] = [];
+      // Get user roles from auth context
+      const userRoles = await this.getUserRoles(userId, tenantId);
       const hasAccess =
         document.tenantId === tenantId &&
         (document.uploadedBy === userId ||
@@ -929,6 +929,78 @@ export class DocumentsService {
   }
 
   /**
+   * Get document shares
+   */
+  async getDocumentShares(
+    documentId: string,
+    userId: string,
+    tenantId: string
+  ): Promise<ServiceResponse<DocumentShareWithDetails[]>> {
+    try {
+      // Check document exists and user has access
+      const documentResult = await this.getDocumentById(documentId, userId, tenantId);
+      if (!documentResult.success) {
+        return { success: false, error: documentResult.error, code: documentResult.code };
+      }
+
+      // Get all shares for this document
+      const shares = await db.query.documentShares.findMany({
+        where: eq(documentShares.documentId, documentId),
+        with: {
+          document: true,
+          sharedWithUser: true,
+          sharedWithTenant: true,
+          createdByUser: true,
+        },
+        orderBy: desc(documentShares.createdAt),
+      });
+
+      // Map to detailed share objects
+      const sharesWithDetails: DocumentShareWithDetails[] = shares.map((share) => {
+        const isExpired = share.expiresAt ? new Date() > share.expiresAt : false;
+
+        return {
+          id: share.id,
+          documentId: share.documentId,
+          documentName: (share.document as any).name,
+          sharedWithUserId: share.sharedWithUserId || undefined,
+          sharedWithUserName: (share.sharedWithUser as any)?.name,
+          sharedWithTenantId: share.sharedWithTenantId || undefined,
+          sharedWithTenantName: (share.sharedWithTenant as any)?.name,
+          permission: share.permission,
+          expiresAt: share.expiresAt || undefined,
+          isExpired,
+          createdBy: share.createdBy,
+          createdByName: (share.createdByUser as any)?.name,
+          createdAt: share.createdAt,
+        };
+      });
+
+      logger.info('Document shares retrieved', {
+        documentId,
+        shareCount: sharesWithDetails.length,
+        userId,
+        tenantId,
+      });
+
+      return { success: true, data: sharesWithDetails };
+    } catch (error) {
+      logger.error('Get document shares failed', {
+        error: error instanceof Error ? error.message : String(error),
+        documentId,
+        userId,
+        tenantId,
+      });
+
+      return {
+        success: false,
+        error: 'Failed to get document shares',
+        code: 'QUERY_ERROR',
+      };
+    }
+  }
+
+  /**
    * Helper: Get share details
    */
   private async getShareDetails(shareId: string): Promise<DocumentShareWithDetails> {
@@ -992,6 +1064,33 @@ export class DocumentsService {
     };
 
     return mimeTypes[ext] || 'application/octet-stream';
+  }
+
+  /**
+   * Helper: Get user roles from auth service
+   */
+  private async getUserRoles(userId: string, tenantId: string): Promise<string[]> {
+    try {
+      // Import tenant membership service
+      const { getTenantMember } = await import('../../tenants/services/tenant.service');
+
+      // Get user's tenant membership to determine roles
+      const membership = await getTenantMember(tenantId, userId);
+
+      if (!membership || !membership.role) {
+        return [];
+      }
+
+      // Return role as an array (tenant members have single role, not array)
+      return [membership.role];
+    } catch (error) {
+      logger.warn('Failed to get user roles, defaulting to empty', {
+        userId,
+        tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
   }
 
   /**

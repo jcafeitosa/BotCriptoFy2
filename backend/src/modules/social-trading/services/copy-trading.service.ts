@@ -6,6 +6,7 @@
 import { db } from '../../../db';
 import { socialCopySettings, socialCopiedTrades, socialTraders } from '../schema/social.schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import logger from '../../../utils/logger';
 import type { CreateCopySettingsRequest, CopySettings, ServiceResponse } from '../types/social.types';
 import { prepareCopiedTrade, type TradeToConform } from '../utils/copy-engine';
 
@@ -264,10 +265,52 @@ export async function executeCopiedTrade(
       status: 'open',
     }).returning();
 
-    // TODO: Execute actual trade via orders module
-    // This would integrate with the orders service to place the actual order
+    // Execute actual trade via orders module
+    try {
+      const { OrderService } = await import('../../orders/services/order.service');
 
-    return { success: true, data: trade };
+      // Create order through Orders Service
+      // Note: We use the original trade's exchange connection if available,
+      // otherwise fall back to a default exchange connection for the copier
+      const order = await OrderService.createOrder(
+        settings.copierId,
+        settings.tenantId,
+        {
+          exchangeConnectionId: 'default', // TODO: Get copier's exchange connection
+          symbol: copiedTrade.symbol,
+          type: 'market', // Copy trades execute at market price
+          side: copiedTrade.side,
+          amount: copiedTrade.adjustedAmount,
+          timeInForce: 'GTC',
+          strategy: copySettingsId, // Track that this order is from copy trading
+          notes: `Copy trade from trader ${settings.traderId}`,
+        }
+      );
+
+      // Trade record is already created with status 'open'
+      // The order execution will be tracked separately in the orders module
+      logger.info('Copy trade order created', {
+        copyTradeId: trade.id,
+        orderId: order.id,
+        symbol: copiedTrade.symbol,
+      });
+
+      return { success: true, data: trade };
+    } catch (orderError) {
+      // Mark trade as failed if order creation fails
+      await db
+        .update(socialCopiedTrades)
+        .set({
+          status: 'failed',
+        })
+        .where(eq(socialCopiedTrades.id, trade.id));
+
+      return {
+        success: false,
+        error: `Trade copied but order failed: ${orderError instanceof Error ? orderError.message : String(orderError)}`,
+        code: 'ORDER_CREATION_FAILED',
+      };
+    }
   } catch (error) {
     return { success: false, error: 'Failed to execute copied trade', code: 'EXECUTE_TRADE_FAILED' };
   }

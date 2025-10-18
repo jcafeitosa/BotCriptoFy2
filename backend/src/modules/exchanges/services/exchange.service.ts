@@ -14,7 +14,7 @@ import type {
   ExchangeId,
   ExchangeCredentials,
   CreateExchangeConnectionData,
-  // UpdateExchangeConnectionData, // TODO: Implement update functionality
+  UpdateExchangeConnectionData,
   ExchangeBalance,
   ExchangeTicker,
   ExchangePosition,
@@ -126,6 +126,106 @@ export class ExchangeService {
     logger.info('Exchange connection created', { connectionId: connection.id });
 
     return connection;
+  }
+
+  /**
+   * Update exchange connection
+   */
+  static async updateConnection(
+    id: string,
+    userId: string,
+    tenantId: string,
+    data: UpdateExchangeConnectionData
+  ) {
+    logger.info('Updating exchange connection', { connectionId: id, userId });
+
+    // Get existing connection
+    const connection = await this.getConnectionById(id, userId, tenantId);
+
+    // Build update object
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    // Update credentials if provided
+    if (data.apiKey) {
+      updateData.apiKey = encrypt(data.apiKey);
+    }
+    if (data.apiSecret) {
+      updateData.apiSecret = encrypt(data.apiSecret);
+    }
+    if (data.apiPassword !== undefined) {
+      updateData.apiPassword = data.apiPassword ? encrypt(data.apiPassword) : null;
+    }
+
+    // Update settings
+    if (data.sandbox !== undefined) {
+      updateData.sandbox = data.sandbox;
+    }
+    if (data.enableTrading !== undefined) {
+      updateData.enableTrading = data.enableTrading;
+    }
+    if (data.enableWithdrawal !== undefined) {
+      updateData.enableWithdrawal = data.enableWithdrawal;
+    }
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+    }
+
+    // If credentials were updated, verify the connection
+    if (data.apiKey || data.apiSecret || data.apiPassword !== undefined) {
+      try {
+        const testCredentials: ExchangeCredentials = {
+          apiKey: data.apiKey || decrypt(connection.apiKey),
+          apiSecret: data.apiSecret || decrypt(connection.apiSecret),
+          apiPassword: data.apiPassword !== undefined
+            ? data.apiPassword
+            : connection.apiPassword
+              ? decrypt(connection.apiPassword)
+              : undefined,
+          sandbox: data.sandbox !== undefined ? data.sandbox : connection.sandbox,
+        };
+
+        const exchange = this.createCCXTInstance(
+          connection.exchangeId as ExchangeId,
+          testCredentials
+        );
+
+        await exchange.fetchBalance();
+        updateData.isVerified = true;
+        updateData.status = 'active';
+        logger.info('Updated connection verified', { connectionId: id });
+      } catch (error) {
+        logger.error('Failed to verify updated connection', {
+          connectionId: id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        updateData.isVerified = false;
+        updateData.status = 'error';
+        throw new BadRequestError('Invalid API credentials or connection failed');
+      }
+    }
+
+    // Update connection
+    const [updated] = await db
+      .update(exchangeConnections)
+      .set(updateData)
+      .where(
+        and(
+          eq(exchangeConnections.id, id),
+          eq(exchangeConnections.userId, userId),
+          eq(exchangeConnections.tenantId, tenantId)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      throw new NotFoundError('Exchange connection not found');
+    }
+
+    logger.info('Exchange connection updated', { connectionId: id });
+
+    return updated;
   }
 
   /**

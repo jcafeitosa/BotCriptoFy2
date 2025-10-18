@@ -141,7 +141,8 @@ export class RiskRetentionService {
           offset += RETENTION_CONFIG.archiveBatchSize;
         } catch (error) {
           const errorMsg = `Batch ${stats.batches} failed: ${error instanceof Error ? error.message : String(error)}`;
-          logError(errorMsg, { error });
+          const err = error instanceof Error ? error : new Error(errorMsg);
+          logError(err, { batch: stats.batches });
           stats.errors.push(errorMsg);
 
           // Continue with next batch even if one fails
@@ -164,8 +165,9 @@ export class RiskRetentionService {
 
       return stats;
     } catch (error) {
-      logError('❌ Data retention process failed', { error });
-      stats.errors.push(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logError(err, { message: '❌ Data retention process failed' });
+      stats.errors.push(`Fatal error: ${err.message}`);
       stats.endTime = new Date();
       stats.duration = stats.endTime.getTime() - startTime.getTime();
       throw error;
@@ -199,8 +201,9 @@ export class RiskRetentionService {
 
       return { bytes: compressed.length };
     } catch (error) {
-      logError('Failed to archive batch', { error });
-      throw error;
+      const err = error instanceof Error ? error : new Error('Failed to archive batch');
+      logError(err);
+      throw err;
     }
   }
 
@@ -223,9 +226,29 @@ export class RiskRetentionService {
 
   /**
    * Save compressed data to storage
-   * TODO: Implement S3 upload when configured
+   * Supports both local filesystem and S3
    */
   private async saveToStorage(filename: string, data: Buffer): Promise<void> {
+    // Always save to local filesystem first (as backup)
+    await this.saveToLocalFilesystem(filename, data);
+
+    // Upload to S3 if configured
+    if (process.env.AWS_S3_BUCKET && process.env.AWS_S3_ENABLED === 'true') {
+      try {
+        await this.uploadToS3(filename, data);
+      } catch (error) {
+        logWarn('S3 upload failed, file saved locally only', {
+          error: error instanceof Error ? error.message : String(error),
+          filename,
+        });
+      }
+    }
+  }
+
+  /**
+   * Save to local filesystem
+   */
+  private async saveToLocalFilesystem(filename: string, data: Buffer): Promise<void> {
     const archivePath = process.env.RISK_ARCHIVE_PATH || './data/archives';
 
     // Ensure directory exists
@@ -236,16 +259,83 @@ export class RiskRetentionService {
     const fullPath = `${archivePath}/${filename}`;
     await fs.writeFile(fullPath, data);
 
-    logInfo('📁 Archive saved', {
+    logInfo('📁 Archive saved to local filesystem', {
       filename,
       path: fullPath,
       size: `${(data.length / 1024).toFixed(2)} KB`,
     });
+  }
 
-    // TODO: Upload to S3 if configured
-    // if (process.env.AWS_S3_BUCKET) {
-    //   await this.uploadToS3(filename, data);
-    // }
+  /**
+   * Upload archive to S3
+   * Requires AWS SDK to be installed: bun add @aws-sdk/client-s3
+   */
+  private async uploadToS3(filename: string, data: Buffer): Promise<void> {
+    try {
+      const bucket = process.env.AWS_S3_BUCKET;
+      const region = process.env.AWS_REGION || 'us-east-1';
+      const prefix = process.env.AWS_S3_PREFIX || 'risk-archives';
+
+      if (!bucket) {
+        throw new Error('AWS_S3_BUCKET not configured');
+      }
+
+      // Check if AWS SDK is available
+      try {
+        const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+
+        const s3Client = new S3Client({
+          region,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+          },
+        });
+
+        const key = `${prefix}/${filename}`;
+
+        const command = new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: data,
+          ContentType: 'application/gzip',
+          ContentEncoding: 'gzip',
+          ServerSideEncryption: 'AES256',
+          Metadata: {
+            'service': 'risk-management',
+            'type': 'metrics-archive',
+            'compressed': 'true',
+            'timestamp': new Date().toISOString(),
+          },
+        });
+
+        await s3Client.send(command);
+
+        logInfo('☁️  Archive uploaded to S3', {
+          filename,
+          bucket,
+          key,
+          size: `${(data.length / 1024).toFixed(2)} KB`,
+          region,
+        });
+
+      } catch (importError) {
+        logWarn('AWS SDK not installed - S3 upload skipped', {
+          filename,
+          hint: 'Run: bun add @aws-sdk/client-s3',
+        });
+      }
+
+    } catch (error) {
+      logError(
+        error instanceof Error ? error : new Error('S3 upload failed'),
+        {
+          filename,
+          bucket: process.env.AWS_S3_BUCKET,
+        }
+      );
+      throw error;
+    }
   }
 
   /**
