@@ -150,7 +150,7 @@ class MetricsRegistryManager {
         registers: [this.registry],
       });
 
-      // Bot Metrics (Placeholder implementations - will be populated by collectors)
+      // Bot metrics instrumentation (updated by runtime collectors)
       const botsActive = new Gauge({ name: 'bots_active', help: 'Active bots', labelNames: ['bot_id'], registers: [this.registry] });
       const botsExecutionsTotal = new Counter({ name: 'bots_executions_total', help: 'Total bot executions', labelNames: ['bot_id'], registers: [this.registry] });
       const botsErrors = new Counter({ name: 'bots_errors', help: 'Bot errors', labelNames: ['bot_id'], registers: [this.registry] });

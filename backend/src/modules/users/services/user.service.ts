@@ -3,11 +3,12 @@
  * Business logic for user operations
  */
 
-import { db } from '@/db';
+import { getUsersDb } from '../test-helpers/db-access';
 import { users } from '../../auth/schema/auth.schema';
 import { tenants, tenantMembers } from '../../tenants/schema/tenants.schema';
 import { eq, and } from 'drizzle-orm';
 import type { UserProfile, ProfileType, UserRole } from '../types/user.types';
+import { mapTenantTypeToProfileType } from '../utils/profile-type.util';
 import logger from '@/utils/logger';
 
 /**
@@ -25,7 +26,7 @@ export async function getUserProfile(userId: string, activeTenantId?: string): P
       : eq(tenantMembers.userId, userId);
 
     // Query tenant_members with JOIN to tenants and users tables
-    const memberData = await db
+    const memberData = await getUsersDb()
       .select({
         // User info
         userId: users.id,
@@ -56,12 +57,7 @@ export async function getUserProfile(userId: string, activeTenantId?: string): P
 
       // Map tenants.type → profileType
       // 'empresa' → 'company', 'trader' → 'trader', 'influencer' → 'influencer'
-      const profileType: ProfileType =
-        data.tenantType === 'empresa'
-          ? 'company'
-          : data.tenantType === 'trader'
-            ? 'trader'
-            : 'influencer';
+      const profileType: ProfileType = mapTenantTypeToProfileType(data.tenantType);
 
       return {
         userId: data.userId,
@@ -86,7 +82,7 @@ export async function getUserProfile(userId: string, activeTenantId?: string): P
     }
 
     // If user has no tenant membership, query basic user info
-    const userData = await db
+    const userData = await getUsersDb()
       .select()
       .from(users)
       .where(eq(users.id, userId))
@@ -136,7 +132,7 @@ export async function getUserProfile(userId: string, activeTenantId?: string): P
  * Returns list of all tenants where user is a member
  */
 export async function getUserTenants(userId: string) {
-  const userTenants = await db
+  const userTenants = await getUsersDb()
     .select({
       tenantId: tenants.id,
       tenantName: tenants.name,

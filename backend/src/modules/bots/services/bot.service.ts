@@ -164,7 +164,7 @@ class BotService implements IBotService {
    */
   async getBots(userId: string, tenantId: string, filters?: BotQueryFilters): Promise<Bot[]> {
     try {
-      let query = db
+      const query = db
         .select()
         .from(bots)
         .where(and(eq(bots.userId, userId), eq(bots.tenantId, tenantId)));

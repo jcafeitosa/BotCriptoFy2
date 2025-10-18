@@ -2,7 +2,7 @@
  * Affiliate Tier Service
  */
 
-import { db } from '@/db';
+import { getAffiliateDb } from '../test-helpers/db-access';
 import { eq } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { NotFoundError } from '@/utils/errors';
@@ -14,7 +14,7 @@ export class AffiliateTierService {
    * Get all active tiers
    */
   static async getAllTiers(): Promise<AffiliateTier[]> {
-    return await db
+    return await getAffiliateDb()
       .select()
       .from(affiliateTiers)
       .where(eq(affiliateTiers.isActive, true))
@@ -25,7 +25,7 @@ export class AffiliateTierService {
    * Check and upgrade tier if eligible
    */
   static async checkTierUpgrade(affiliateId: string): Promise<TierUpgradeResult | null> {
-    const [profile] = await db
+    const [profile] = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(eq(affiliateProfiles.id, affiliateId))
@@ -55,7 +55,7 @@ export class AffiliateTierService {
     if (!eligibleTier) return null;
 
     // Upgrade tier
-    await db
+    await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         tierId: eligibleTier.id,

@@ -1141,7 +1141,7 @@ export class StrategyService implements IStrategyService {
 
       const trades: BacktestTrade[] = [];
       const equityCurve: EquityCurvePoint[] = [];
-      let maxEquity = capital;
+      const maxEquity = capital;
       let maxDrawdown = 0;
       let peakCapital = capital;
 

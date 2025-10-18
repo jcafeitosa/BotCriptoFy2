@@ -10,6 +10,7 @@ import { TradesService } from '../services/trades.service';
 import { OrderBookService } from '../services/orderbook.service';
 import { TickerService } from '../services/ticker.service';
 import logger from '@/utils/logger';
+import { marketDataWebSocketManager } from '../websocket/market-data-websocket-manager';
 
 export const marketDataRoutes = new Elysia({ prefix: '/api/v1/market-data' })
   .use(sessionGuard)
@@ -54,6 +55,67 @@ export const marketDataRoutes = new Elysia({ prefix: '/api/v1/market-data' })
         tags: ['Market Data'],
         summary: 'Get OHLCV candles',
         description: 'Get historical OHLCV (candlestick) data for a symbol',
+      },
+    }
+  )
+
+  /**
+   * WebSocket - System status
+   * GET /api/v1/market-data/ws/status
+   */
+  .get(
+    '/ws/status',
+    async () => {
+      const metrics = marketDataWebSocketManager.getSystemMetrics();
+      return { success: true, data: metrics };
+    },
+    {
+      detail: {
+        tags: ['Market Data'],
+        summary: 'WebSocket system status',
+        description: 'Return WebSocket connections, subscriptions and Redis metrics',
+      },
+    }
+  )
+
+  /**
+   * WebSocket - Connections
+   * GET /api/v1/market-data/ws/connections
+   */
+  .get(
+    '/ws/connections',
+    async () => {
+      const statuses = Array.from(
+        marketDataWebSocketManager.getAllConnectionStatuses().entries()
+      ).map(([exchange, status]) => ({ exchange, ...status }));
+      return { success: true, data: statuses };
+    },
+    {
+      detail: {
+        tags: ['Market Data'],
+        summary: 'WebSocket connections',
+        description: 'Return connection status for each exchange',
+      },
+    }
+  )
+
+  /**
+   * WebSocket - Subscriptions
+   * GET /api/v1/market-data/ws/subscriptions
+   */
+  .get(
+    '/ws/subscriptions',
+    async () => {
+      const subs = Array.from(marketDataWebSocketManager.getAllSubscriptions().entries()).map(
+        ([exchange, requests]) => ({ exchange, subscriptions: requests })
+      );
+      return { success: true, data: subs };
+    },
+    {
+      detail: {
+        tags: ['Market Data'],
+        summary: 'WebSocket subscriptions',
+        description: 'Return active subscriptions grouped by exchange',
       },
     }
   )

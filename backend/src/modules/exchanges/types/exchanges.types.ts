@@ -35,6 +35,12 @@ export interface ExchangeMarket {
   spot: boolean;
   future: boolean;
   swap: boolean;
+  precision?: {
+    amount?: number;
+    price?: number;
+    base?: number;
+    quote?: number;
+  };
   limits: {
     amount?: { min?: number; max?: number };
     price?: { min?: number; max?: number };
@@ -55,6 +61,48 @@ export interface ExchangeTicker {
   baseVolume: number;
   quoteVolume: number;
   percentage: number;
+}
+
+export interface ExchangeOrderBook {
+  symbol: string;
+  timestamp?: number;
+  datetime?: string;
+  bids: [number, number][];
+  asks: [number, number][];
+}
+
+export interface ExchangeTrade {
+  id?: string;
+  symbol: string;
+  timestamp: number;
+  datetime?: string;
+  price: number;
+  amount: number;
+  cost?: number;
+  side?: 'buy' | 'sell';
+  takerOrMaker?: 'taker' | 'maker';
+}
+
+export interface ExchangeCandle {
+  symbol: string;
+  timeframe: string;
+  timestamp: number;
+  datetime?: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ExchangeInfo {
+  id: string;
+  name?: string;
+  rateLimit?: number;
+  has: Record<string, boolean>;
+  timeframes?: Record<string, string> | null;
+  countries?: string | string[] | null;
+  urls?: Record<string, unknown>;
 }
 
 export interface CreateExchangeConnectionData {

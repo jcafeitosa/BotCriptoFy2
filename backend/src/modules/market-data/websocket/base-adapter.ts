@@ -186,19 +186,32 @@ export abstract class BaseExchangeAdapter extends EventEmitter implements IExcha
     return new Promise((resolve, reject) => {
       this.lastPingTimestamp = Date.now();
 
-      const timeout = setTimeout(() => {
+      // Ensure only one outstanding pong timeout is tracked
+      if (this.pongTimeout) {
+        clearTimeout(this.pongTimeout);
+        this.pongTimeout = undefined;
+      }
+
+      this.pongTimeout = setTimeout(() => {
+        this.pongTimeout = undefined;
         reject(new TimeoutError(this.exchangeId, 'ping', this.config.pongTimeout));
       }, this.config.pongTimeout);
 
       this.ws!.ping((err: Error | undefined) => {
         if (err) {
-          clearTimeout(timeout);
+          if (this.pongTimeout) {
+            clearTimeout(this.pongTimeout);
+            this.pongTimeout = undefined;
+          }
           reject(err);
         }
       });
 
       this.ws!.once('pong', () => {
-        clearTimeout(timeout);
+        if (this.pongTimeout) {
+          clearTimeout(this.pongTimeout);
+          this.pongTimeout = undefined;
+        }
         this.lastPongTimestamp = Date.now();
         resolve();
       });

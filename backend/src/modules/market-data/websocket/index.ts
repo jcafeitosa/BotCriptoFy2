@@ -15,10 +15,6 @@ export * from './reconnection-strategy';
 // Base adapter
 export * from './base-adapter';
 
-// Exchange adapters
-export * from './adapters/binance-adapter';
-export * from './adapters/coinbase-adapter';
-export * from './adapters/kraken-adapter';
 
 // Market Data WebSocket Manager (NEW - uses native adapters)
 export * from './market-data-websocket-manager';
@@ -26,10 +22,6 @@ export * from './market-data-websocket-manager';
 // Redis Event Bridge (for multi-instance scaling)
 export * from './redis-event-bridge';
 
-// Default exports for convenience
-export { BinanceAdapter } from './adapters/binance-adapter';
-export { CoinbaseAdapter } from './adapters/coinbase-adapter';
-export { KrakenAdapter } from './adapters/kraken-adapter';
 export { DEFAULT_RECONNECTION_CONFIGS } from './reconnection-strategy';
 export {
   MarketDataWebSocketManager,

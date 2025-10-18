@@ -3,15 +3,9 @@
  * @module market-data/websocket/adapters/binance
  */
 
-import type {
-  SubscriptionRequest,
-  OrderBook,
-  Trade,
-  Ticker,
-  Candle,
-  ConnectionConfig,
-} from '../types';
-import { BaseExchangeAdapter } from '../base-adapter';
+import type { SubscriptionRequest, OrderBook, Trade, Ticker, Candle } from '@/modules/market-data/websocket/types';
+import type { ConnectionConfig } from '@/modules/exchanges';
+import { BaseExchangeAdapter } from '@/modules/market-data/websocket/base-adapter';
 import type WebSocket from 'ws';
 
 interface BinanceMessage {

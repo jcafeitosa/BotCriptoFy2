@@ -3,7 +3,7 @@
  * Manages referrals and click tracking
  */
 
-import { db } from '@/db';
+import { getAffiliateDb } from '../test-helpers/db-access';
 import { eq, and, desc, sql, inArray, gte, lte } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { NotFoundError } from '@/utils/errors';
@@ -58,10 +58,10 @@ export class AffiliateReferralService {
       os: data.os,
     };
 
-    const [click] = await db.insert(affiliateClicks).values(newClick).returning();
+    const [click] = await getAffiliateDb().insert(affiliateClicks).values(newClick).returning();
 
     // Update profile metrics
-    await db
+    await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         totalClicks: sql`${affiliateProfiles.totalClicks} + 1`,
@@ -103,11 +103,11 @@ export class AffiliateReferralService {
       signedUpAt: data.referredUserId ? new Date() : null,
     };
 
-    const [referral] = await db.insert(affiliateReferrals).values(newReferral).returning();
+    const [referral] = await getAffiliateDb().insert(affiliateReferrals).values(newReferral).returning();
 
     // Update profile metrics
     if (data.referredUserId) {
-      await db
+      await getAffiliateDb()
         .update(affiliateProfiles)
         .set({
           totalSignups: sql`${affiliateProfiles.totalSignups} + 1`,
@@ -131,7 +131,7 @@ export class AffiliateReferralService {
   ): Promise<AffiliateReferral> {
     logger.info('Marking referral as converted', { referralId });
 
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateReferrals)
       .set({
         status: 'converted',
@@ -148,7 +148,7 @@ export class AffiliateReferralService {
     }
 
     // Update affiliate metrics
-    await db
+    await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         totalConversions: sql`${affiliateProfiles.totalConversions} + 1`,
@@ -163,7 +163,7 @@ export class AffiliateReferralService {
    * Get referral by ID
    */
   static async getReferralById(id: string): Promise<AffiliateReferral | null> {
-    const [referral] = await db
+    const [referral] = await getAffiliateDb()
       .select()
       .from(affiliateReferrals)
       .where(eq(affiliateReferrals.id, id))
@@ -176,7 +176,7 @@ export class AffiliateReferralService {
    * Get referral by user ID
    */
   static async getReferralByUserId(userId: string): Promise<AffiliateReferral | null> {
-    const [referral] = await db
+    const [referral] = await getAffiliateDb()
       .select()
       .from(affiliateReferrals)
       .where(eq(affiliateReferrals.referredUserId, userId))
@@ -223,12 +223,12 @@ export class AffiliateReferralService {
       conditions.push(eq(affiliateReferrals.utmCampaign, filters.utmCampaign));
     }
 
-    const [{ count }] = await db
+    const [{ count }] = await getAffiliateDb()
       .select({ count: sql<number>`count(*)::int` })
       .from(affiliateReferrals)
       .where(conditions.length > 0 ? and(...conditions) : undefined);
 
-    const results = await db
+    const results = await getAffiliateDb()
       .select()
       .from(affiliateReferrals)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -263,7 +263,7 @@ export class AffiliateReferralService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [stats] = await db
+    const [stats] = await getAffiliateDb()
       .select({
         totalClicks: sql<number>`count(*)::int`,
         uniqueClicks: sql<number>`count(DISTINCT ${affiliateClicks.ipAddress})::int`,
@@ -276,7 +276,7 @@ export class AffiliateReferralService {
         )
       );
 
-    const clicksBySource = await db
+    const clicksBySource = await getAffiliateDb()
       .select({
         source: affiliateClicks.utmSource,
         count: sql<number>`count(*)::int`,
@@ -292,7 +292,7 @@ export class AffiliateReferralService {
       .orderBy(desc(sql`count(*)`))
       .limit(10);
 
-    const clicksByDevice = await db
+    const clicksByDevice = await getAffiliateDb()
       .select({
         device: affiliateClicks.deviceType,
         count: sql<number>`count(*)::int`,

@@ -3,14 +3,9 @@
  * @module market-data/websocket/adapters/coinbase
  */
 
-import type {
-  SubscriptionRequest,
-  OrderBook,
-  Trade,
-  Ticker,
-  ConnectionConfig,
-} from '../types';
-import { BaseExchangeAdapter } from '../base-adapter';
+import type { SubscriptionRequest, OrderBook, Trade, Ticker } from '@/modules/market-data/websocket/types';
+import type { ConnectionConfig } from '@/modules/exchanges';
+import { BaseExchangeAdapter } from '@/modules/market-data/websocket/base-adapter';
 import type WebSocket from 'ws';
 
 /**

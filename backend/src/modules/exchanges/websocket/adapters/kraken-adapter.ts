@@ -3,15 +3,9 @@
  * @module market-data/websocket/adapters/kraken
  */
 
-import type {
-  SubscriptionRequest,
-  OrderBook,
-  Trade,
-  Ticker,
-  Candle,
-  ConnectionConfig,
-} from '../types';
-import { BaseExchangeAdapter } from '../base-adapter';
+import type { SubscriptionRequest, OrderBook, Trade, Ticker, Candle } from '@/modules/market-data/websocket/types';
+import type { ConnectionConfig } from '@/modules/exchanges';
+import { BaseExchangeAdapter } from '@/modules/market-data/websocket/base-adapter';
 import type WebSocket from 'ws';
 
 /**
@@ -98,7 +92,7 @@ export class KrakenAdapter extends BaseExchangeAdapter {
 
   private formatPair(symbol: string): string {
     // Convert BTC/USDT to XBT/USDT (Kraken uses XBT instead of BTC)
-    let pair = symbol.replace('BTC', 'XBT');
+    const pair = symbol.replace('BTC', 'XBT');
     // Remove slash: XBT/USDT -> XBTUSDT
     return pair.replace('/', '');
   }

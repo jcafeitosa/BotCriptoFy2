@@ -14,6 +14,15 @@
  */
 
 import type { App } from '../index';
+import type {
+  SignInResponse,
+  SignUpResponse,
+  SessionResponse,
+} from '../modules/auth/types/auth.types';
+import type { UserProfile } from '../modules/users/types/user.types';
+import type { TenantWithMember } from '../modules/tenants/types/tenant.types';
+import type { TradingOrder } from '../modules/orders/types/orders.types';
+import type { PortfolioAnalytics } from '../modules/banco/types/wallet.types';
 
 // Export the entire app type for advanced usage
 export type ApiRoutes = App;
@@ -134,73 +143,31 @@ export function isApiSuccess<T>(response: any): response is ApiSuccessResponse<T
 }
 
 // ===========================================
-// Future Module Types (Placeholders)
+// Module Type Aliases
 // ===========================================
 
-// Auth Types (to be implemented)
-export type LoginRequest = {
+// Auth request/response helpers
+export interface LoginRequest {
   email: string;
   password: string;
-};
+  remember?: boolean;
+}
 
-export type RegisterRequest = {
+export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
-};
+  referralCode?: string;
+}
 
-export type AuthResponse = {
-  token: string;
-  user: {
-    id: number;
-    email: string;
-    name: string;
-    role?: string;
-  };
-};
+export type AuthResponse = SignInResponse;
+export type SignUpResult = SignUpResponse;
+export type SessionStatus = SessionResponse;
 
-// User Types (to be implemented)
-export type User = {
-  id: number;
-  email: string;
-  name: string;
-  role?: string;
-  tenantId?: number;
-  createdAt: string;
-  updatedAt: string;
-};
+// User and tenant representations
+export type User = UserProfile;
+export type Tenant = TenantWithMember;
 
-// Tenant Types (to be implemented)
-export type Tenant = {
-  id: number;
-  name: string;
-  type: 'company' | 'trader' | 'influencer';
-  plan?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Trading Types (to be implemented)
-export type Order = {
-  id: number;
-  type: 'buy' | 'sell';
-  symbol: string;
-  amount: number;
-  price: number;
-  status: 'pending' | 'filled' | 'cancelled';
-  createdAt: string;
-};
-
-export type Portfolio = {
-  totalValue: number;
-  assets: {
-    symbol: string;
-    amount: number;
-    value: number;
-  }[];
-  performance: {
-    daily: number;
-    weekly: number;
-    monthly: number;
-  };
-};
+// Trading and portfolio representations
+export type Order = TradingOrder;
+export type Portfolio = PortfolioAnalytics;

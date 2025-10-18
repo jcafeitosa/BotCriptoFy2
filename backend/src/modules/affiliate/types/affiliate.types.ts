@@ -104,6 +104,9 @@ export interface UpdateAffiliateData {
   payoutEmail?: string;
   payoutMinimum?: number;
   taxId?: string;
+  // Admin-only fields
+  tierId?: string;
+  tierName?: string;
 }
 
 /**

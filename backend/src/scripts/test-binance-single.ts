@@ -3,21 +3,9 @@
  * Test single subscription via our adapter
  */
 
-import { BinanceAdapter } from '@/modules/market-data/websocket/adapters/binance-adapter';
+import { createWebSocketAdapter, getDefaultWebSocketConfig } from '@/modules/exchanges';
 
-const adapter = new BinanceAdapter({
-  url: 'wss://stream.binance.com:9443/ws',
-  timeout: 30000,
-  pingInterval: 30000,
-  pongTimeout: 10000,
-  reconnection: {
-    maxAttempts: 3,
-    initialDelay: 1000,
-    maxDelay: 30000,
-    backoffMultiplier: 2,
-    jitterFactor: 0.1,
-  },
-});
+const adapter = createWebSocketAdapter('binance', getDefaultWebSocketConfig('binance'));
 
 adapter.on('connected', (data) => {
   console.log('✓ Connected:', data);

@@ -6,6 +6,7 @@
  * For now, this is a placeholder implementation.
  */
 
+import ccxt from 'ccxt';
 import { ExchangeService } from '../../exchanges/services/exchange.service';
 import logger from '@/utils/logger';
 import type {
@@ -13,6 +14,8 @@ import type {
   ConnectionStatus,
   RealtimeDataEvent,
   IWebSocketManager,
+  OHLCVCandle,
+  Timeframe,
 } from '../types/market-data.types';
 
 /**
@@ -20,7 +23,7 @@ import type {
  * NOTE: Requires ccxt.pro for actual implementation
  */
 interface ExchangeConnection {
-  exchange: ccxt.Exchange;
+  exchange: any;
   exchangeId: string;
   connected: boolean;
   subscriptions: Map<string, SubscriptionRequest>;
@@ -60,18 +63,31 @@ export class WebSocketManager implements IWebSocketManager {
         throw new Error(`Exchange ${exchangeId} not supported`);
       }
 
-      // NOTE: WebSocket requires ccxt.pro (paid version)
-      throw new Error('WebSocket functionality requires ccxt.pro library. Please upgrade to use real-time data.');
+      const ExchangeClass = (ccxt as any)[exchangeId];
+      if (!ExchangeClass) {
+        throw new Error(`Exchange ${exchangeId} not supported`);
+      }
 
-      // Placeholder connection (would use ccxt.pro)
-      // const connection: ExchangeConnection = {
-      //   exchange: null,
-      //   exchangeId,
-      //   connected: false,
-      //   subscriptions: new Map(),
-      //   reconnectAttempts: 0,
-      // };
-      // this.connections.set(exchangeId, connection);
+      const exchangeInstance = new ExchangeClass({
+        enableRateLimit: true,
+      });
+
+      await exchangeInstance.loadMarkets();
+
+      const connection: ExchangeConnection = {
+        exchange: exchangeInstance,
+        exchangeId,
+        connected: true,
+        subscriptions: new Map(),
+        reconnectAttempts: 0,
+        pollers: new Map(),
+        lastTradeTimestamps: new Map(),
+        lastOhlcvTimestamps: new Map(),
+      };
+
+      this.connections.set(exchangeId, connection);
+
+      logger.info('Exchange connection established using REST polling', { exchangeId });
 
     } catch (error) {
       logger.error('Failed to connect to exchange WebSocket', {
@@ -100,8 +116,16 @@ export class WebSocketManager implements IWebSocketManager {
         await this.unsubscribe(request);
       }
 
-      // Close exchange connection
-      await connection.exchange.close();
+      // Clear any remaining pollers
+      for (const poller of connection.pollers.values()) {
+        clearInterval(poller);
+      }
+      connection.pollers.clear();
+
+      // Close exchange connection if supported
+      if (typeof connection.exchange.close === 'function') {
+        await connection.exchange.close();
+      }
 
       this.connections.delete(exchangeId);
 
@@ -144,7 +168,7 @@ export class WebSocketManager implements IWebSocketManager {
           this.watchTicker(connection, symbol);
           break;
         case 'trades':
-          this.watchTrades(connection, symbol);
+          this.watchTrades(connection, symbol, params?.limit);
           break;
         case 'orderbook':
           this.watchOrderBook(connection, symbol, params?.limit);
@@ -195,8 +219,13 @@ export class WebSocketManager implements IWebSocketManager {
     try {
       logger.info('Unsubscribing from market data', { exchangeId, symbol, channel });
 
-      // CCXT Pro doesn't have explicit unsubscribe for most exchanges
-      // We just stop watching and remove from subscriptions map
+      const poller = connection.pollers.get(subKey);
+      if (poller) {
+        clearInterval(poller);
+        connection.pollers.delete(subKey);
+      }
+      connection.lastTradeTimestamps.delete(subKey);
+      connection.lastOhlcvTimestamps.delete(subKey);
 
       connection.subscriptions.delete(subKey);
 
@@ -259,50 +288,276 @@ export class WebSocketManager implements IWebSocketManager {
    * Watch ticker updates
    * NOTE: Requires ccxt.pro for implementation
    */
-  private async watchTicker(_connection: ExchangeConnection, _symbol: string): Promise<void> {
-    throw new Error('WebSocket functionality requires ccxt.pro library');
+  private watchTicker(connection: ExchangeConnection, symbol: string): void {
+    const subKey = this.getSubscriptionKey({
+      exchangeId: connection.exchangeId,
+      symbol,
+      channel: 'ticker',
+    });
+    if (connection.pollers.has(subKey)) {
+      return;
+    }
 
-    // Actual implementation would look like:
-    // try {
-    //   while (connection.connected && connection.subscriptions.has(`ticker:${symbol}`)) {
-    //     const ticker = await connection.exchange.watchTicker(symbol);
-    //     // ... emit ticker data
-    //   }
-    // } catch (error) {
-    //   await this.handleConnectionError(connection, error);
-    // }
+    const poll = async () => {
+      try {
+        const ticker = await connection.exchange.fetchTicker(symbol);
+        const timestamp = ticker.timestamp ? new Date(ticker.timestamp) : new Date();
+
+        const event: RealtimeDataEvent = {
+          type: 'ticker',
+          exchangeId: connection.exchangeId,
+          symbol,
+          timestamp,
+          data: {
+            exchangeId: connection.exchangeId,
+            symbol,
+            timestamp,
+            datetime: ticker.datetime,
+            high: ticker.high,
+            low: ticker.low,
+            bid: ticker.bid,
+            bidVolume: ticker.bidVolume,
+            ask: ticker.ask,
+            askVolume: ticker.askVolume,
+            vwap: ticker.vwap,
+            open: ticker.open,
+            close: ticker.close ?? ticker.last,
+            last: ticker.last,
+            previousClose: ticker.previousClose,
+            change: ticker.change,
+            percentage: ticker.percentage,
+            average: ticker.average,
+            baseVolume: ticker.baseVolume,
+            quoteVolume: ticker.quoteVolume,
+            info: ticker.info,
+          },
+        };
+
+        this.emit(event);
+        connection.connected = true;
+        connection.error = undefined;
+      } catch (error) {
+        connection.error = error instanceof Error ? error.message : String(error);
+        logger.warn('Failed to fetch ticker update', {
+          exchangeId: connection.exchangeId,
+          symbol,
+          error: connection.error,
+        });
+      }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 5000);
+    connection.pollers.set(subKey, interval);
   }
 
-  /**
-   * Watch trades stream
-   * NOTE: Requires ccxt.pro for implementation
-   */
-  private async watchTrades(_connection: ExchangeConnection, _symbol: string): Promise<void> {
-    throw new Error('WebSocket functionality requires ccxt.pro library');
+  private watchTrades(connection: ExchangeConnection, symbol: string, limit = 50): void {
+    const subKey = this.getSubscriptionKey({
+      exchangeId: connection.exchangeId,
+      symbol,
+      channel: 'trades',
+    });
+    if (connection.pollers.has(subKey)) {
+      return;
+    }
+
+    const stateKey = subKey;
+
+    const poll = async () => {
+      try {
+        const trades = await connection.exchange.fetchTrades(symbol, undefined, limit);
+        if (!Array.isArray(trades)) {
+          return;
+        }
+
+        const lastTimestamp = connection.lastTradeTimestamps.get(stateKey) || 0;
+        const newTrades = trades.filter(
+          (trade) => typeof trade.timestamp === 'number' && trade.timestamp > lastTimestamp
+        );
+
+        if (newTrades.length === 0 && trades.length > 0 && lastTimestamp === 0) {
+          // Emit the most recent trade on first subscription
+          newTrades.push(trades[trades.length - 1]);
+        }
+
+        if (newTrades.length > 0) {
+          const latestTimestamp = newTrades[newTrades.length - 1].timestamp ?? Date.now();
+          connection.lastTradeTimestamps.set(stateKey, latestTimestamp);
+
+          for (const trade of newTrades) {
+            const tradeTimestamp = trade.timestamp ? new Date(trade.timestamp) : new Date();
+            const event: RealtimeDataEvent = {
+              type: 'trade',
+              exchangeId: connection.exchangeId,
+              symbol,
+              timestamp: tradeTimestamp,
+              data: {
+                exchangeId: connection.exchangeId,
+                symbol,
+                tradeId: trade.id || `${tradeTimestamp.getTime()}`,
+                timestamp: tradeTimestamp,
+                price: trade.price ?? 0,
+                amount: trade.amount ?? 0,
+                cost: trade.cost ?? (trade.price ?? 0) * (trade.amount ?? 0),
+                side: (trade.side || 'buy') as 'buy' | 'sell',
+                takerOrMaker: trade.takerOrMaker as 'taker' | 'maker' | undefined,
+                fee: trade.fee
+                  ? {
+                      cost: trade.fee.cost ?? 0,
+                      currency: trade.fee.currency ?? '',
+                      rate: trade.fee.rate,
+                    }
+                  : undefined,
+                info: trade.info,
+              },
+            };
+
+            this.emit(event);
+          }
+        }
+
+        connection.connected = true;
+        connection.error = undefined;
+      } catch (error) {
+        connection.error = error instanceof Error ? error.message : String(error);
+        logger.warn('Failed to fetch trades', {
+          exchangeId: connection.exchangeId,
+          symbol,
+          error: connection.error,
+        });
+      }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 5000);
+    connection.pollers.set(subKey, interval);
   }
 
-  /**
-   * Watch order book updates
-   * NOTE: Requires ccxt.pro for implementation
-   */
-  private async watchOrderBook(
-    _connection: ExchangeConnection,
-    _symbol: string,
-    _limit?: number
-  ): Promise<void> {
-    throw new Error('WebSocket functionality requires ccxt.pro library');
+  private watchOrderBook(
+    connection: ExchangeConnection,
+    symbol: string,
+    limit?: number
+  ): void {
+    const subKey = this.getSubscriptionKey({
+      exchangeId: connection.exchangeId,
+      symbol,
+      channel: 'orderbook',
+    });
+    if (connection.pollers.has(subKey)) {
+      return;
+    }
+
+    const depth = limit && limit > 0 ? limit : 20;
+
+    const poll = async () => {
+      try {
+        const orderBook = await connection.exchange.fetchOrderBook(symbol, depth);
+        const timestamp = orderBook.timestamp ? new Date(orderBook.timestamp) : new Date();
+
+        const event: RealtimeDataEvent = {
+          type: 'orderbook',
+          exchangeId: connection.exchangeId,
+          symbol,
+          timestamp,
+          data: {
+            exchangeId: connection.exchangeId,
+            symbol,
+            timestamp,
+            bids: orderBook.bids?.slice(0, depth) ?? [],
+            asks: orderBook.asks?.slice(0, depth) ?? [],
+            nonce: orderBook.nonce,
+          },
+        };
+
+        this.emit(event);
+        connection.connected = true;
+        connection.error = undefined;
+      } catch (error) {
+        connection.error = error instanceof Error ? error.message : String(error);
+        logger.warn('Failed to fetch order book', {
+          exchangeId: connection.exchangeId,
+          symbol,
+          error: connection.error,
+        });
+      }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 5000);
+    connection.pollers.set(subKey, interval);
   }
 
-  /**
-   * Watch OHLCV updates
-   * NOTE: Requires ccxt.pro for implementation
-   */
-  private async watchOHLCV(
-    _connection: ExchangeConnection,
-    _symbol: string,
-    _timeframe: string
-  ): Promise<void> {
-    throw new Error('WebSocket functionality requires ccxt.pro library');
+  private watchOHLCV(
+    connection: ExchangeConnection,
+    symbol: string,
+    timeframe: Timeframe
+  ): void {
+    const subKey = this.getSubscriptionKey({
+      exchangeId: connection.exchangeId,
+      symbol,
+      channel: 'ohlcv',
+      params: { timeframe },
+    });
+    if (connection.pollers.has(subKey)) {
+      return;
+    }
+
+    const stateKey = subKey;
+
+    const poll = async () => {
+      try {
+        const candles = await connection.exchange.fetchOHLCV(symbol, timeframe as string, undefined, 2);
+        if (!Array.isArray(candles) || candles.length === 0) {
+          return;
+        }
+
+        const latest = candles[candles.length - 1];
+        const candleTimestamp = typeof latest[0] === 'number' ? latest[0] : Date.now();
+        const lastEmitted = connection.lastOhlcvTimestamps.get(stateKey) || 0;
+
+        if (candleTimestamp <= lastEmitted) {
+          return;
+        }
+
+        connection.lastOhlcvTimestamps.set(stateKey, candleTimestamp);
+
+        const candleData: OHLCVCandle = {
+          exchangeId: connection.exchangeId,
+          symbol,
+          timeframe: timeframe as any,
+          timestamp: new Date(candleTimestamp),
+          open: Number(latest[1] ?? 0),
+          high: Number(latest[2] ?? 0),
+          low: Number(latest[3] ?? 0),
+          close: Number(latest[4] ?? 0),
+          volume: Number(latest[5] ?? 0),
+        };
+
+        const event: RealtimeDataEvent = {
+          type: 'ohlcv',
+          exchangeId: connection.exchangeId,
+          symbol,
+          timestamp: candleData.timestamp,
+          data: candleData,
+        };
+
+        this.emit(event);
+        connection.connected = true;
+        connection.error = undefined;
+      } catch (error) {
+        connection.error = error instanceof Error ? error.message : String(error);
+        logger.warn('Failed to fetch OHLCV', {
+          exchangeId: connection.exchangeId,
+          symbol,
+          timeframe,
+          error: connection.error,
+        });
+      }
+    };
+
+    void poll();
+    const interval = setInterval(poll, 10000);
+    connection.pollers.set(subKey, interval);
   }
 
   /**

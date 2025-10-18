@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm';
 import { rbacUserRoles } from '../../security/schema/security.schema';
 import { roles } from '../../security/schema/security.schema';
 import { tenantMembers } from '../../tenants/schema/tenants.schema';
+import { sessions } from '../schema/auth.schema';
 
 /**
  * Get primary role for a user
@@ -114,4 +115,15 @@ export async function userIsMemberOfTenant(
     .limit(1);
 
   return membership !== undefined;
+}
+
+/**
+ * Set active organization (tenant) for a session
+ * Centraliza a atualização da sessão (evita acoplamento em outros módulos)
+ */
+export async function setActiveOrganization(sessionId: string, tenantId: string): Promise<void> {
+  await db
+    .update(sessions)
+    .set({ activeOrganizationId: tenantId, updatedAt: new Date() })
+    .where(eq(sessions.id, sessionId));
 }

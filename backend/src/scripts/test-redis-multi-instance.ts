@@ -267,7 +267,7 @@ class RedisInstanceTester {
     let totalReceived = 0;
     let totalSelfReceived = 0;
     let totalErrors = 0;
-    let allLatencies: number[] = [];
+    const allLatencies: number[] = [];
 
     this.metrics.forEach((metrics) => {
       totalPublished += metrics.published;

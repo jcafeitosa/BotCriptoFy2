@@ -3,16 +3,16 @@
  * Business logic for tenant operations
  */
 
-import { db } from '@/db';
+import { getTenantsDb } from '../test-helpers/db-access';
 import { tenants, tenantMembers } from '../schema/tenants.schema';
-import { eq, and } from 'drizzle-orm';
-import { NotFoundError, ConflictError } from '@/utils/errors';
+import { eq, and, sql } from 'drizzle-orm';
+import { NotFoundError, ConflictError, ForbiddenError } from '@/utils/errors';
 
 /**
  * Get tenant by ID
  */
 export async function getTenantById(tenantId: string) {
-  const [tenant] = await db
+  const [tenant] = await getTenantsDb()
     .select()
     .from(tenants)
     .where(eq(tenants.id, tenantId))
@@ -29,7 +29,7 @@ export async function getTenantById(tenantId: string) {
  * Get tenant by slug
  */
 export async function getTenantBySlug(slug: string) {
-  const [tenant] = await db
+  const [tenant] = await getTenantsDb()
     .select()
     .from(tenants)
     .where(eq(tenants.slug, slug))
@@ -46,7 +46,7 @@ export async function getTenantBySlug(slug: string) {
  * Get company tenant (type = 'empresa')
  */
 export async function getCompanyTenant() {
-  const [tenant] = await db
+  const [tenant] = await getTenantsDb()
     .select()
     .from(tenants)
     .where(eq(tenants.type, 'empresa'))
@@ -63,7 +63,7 @@ export async function getCompanyTenant() {
  * Check if user is a member of tenant
  */
 export async function isTenantMember(tenantId: string, userId: string): Promise<boolean> {
-  const [member] = await db
+  const [member] = await getTenantsDb()
     .select()
     .from(tenantMembers)
     .where(
@@ -81,7 +81,7 @@ export async function isTenantMember(tenantId: string, userId: string): Promise<
  * Get user's tenant membership
  */
 export async function getTenantMember(tenantId: string, userId: string) {
-  const [member] = await db
+  const [member] = await getTenantsDb()
     .select()
     .from(tenantMembers)
     .where(
@@ -118,7 +118,7 @@ export async function addTenantMember(
   await getTenantById(tenantId);
 
   // Add member
-  const [member] = await db
+  const [member] = await getTenantsDb()
     .insert(tenantMembers)
     .values({
       id: crypto.randomUUID(),
@@ -130,6 +130,10 @@ export async function addTenantMember(
     })
     .returning();
 
+  // Publish event
+  try {
+    await publishMembershipEvent({ type: 'added', tenantId, userId, payload: { role } });
+  } catch {}
   return member;
 }
 
@@ -146,7 +150,7 @@ export async function updateTenantMemberRole(
   await getTenantMember(tenantId, userId);
 
   // Update member
-  const [updated] = await db
+  const [updated] = await getTenantsDb()
     .update(tenantMembers)
     .set({
       role,
@@ -161,6 +165,9 @@ export async function updateTenantMemberRole(
     )
     .returning();
 
+  try {
+    await publishMembershipEvent({ type: 'updated', tenantId, userId, payload: { role } });
+  } catch {}
   return updated;
 }
 
@@ -172,7 +179,7 @@ export async function removeTenantMember(tenantId: string, userId: string) {
   await getTenantMember(tenantId, userId);
 
   // Delete member
-  await db
+  await getTenantsDb()
     .delete(tenantMembers)
     .where(
       and(
@@ -180,7 +187,9 @@ export async function removeTenantMember(tenantId: string, userId: string) {
         eq(tenantMembers.userId, userId)
       )
     );
-
+  try {
+    await publishMembershipEvent({ type: 'removed', tenantId, userId });
+  } catch {}
   return { success: true };
 }
 
@@ -191,7 +200,7 @@ export async function getTenantMembers(tenantId: string) {
   // Verify tenant exists
   await getTenantById(tenantId);
 
-  const members = await db
+  const members = await getTenantsDb()
     .select()
     .from(tenantMembers)
     .where(eq(tenantMembers.tenantId, tenantId));
@@ -200,10 +209,33 @@ export async function getTenantMembers(tenantId: string) {
 }
 
 /**
+ * Get tenant members with pagination
+ */
+export async function getTenantMembersPaginated(tenantId: string, page = 1, limit = 50) {
+  await getTenantById(tenantId);
+  const offset = (page - 1) * limit;
+  const rows = await getTenantsDb()
+    .select()
+    .from(tenantMembers)
+    .where(eq(tenantMembers.tenantId, tenantId))
+    .limit(limit)
+    .offset(offset);
+  const [{ count }] = await getTenantsDb()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tenantMembers)
+    .where(eq(tenantMembers.tenantId, tenantId));
+  const totalPages = Math.ceil(count / limit);
+  return {
+    data: rows,
+    pagination: { page, limit, total: count, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
+  };
+}
+
+/**
  * Get all tenants for a user
  */
 export async function getUserTenants(userId: string) {
-  const userTenants = await db
+  const userTenants = await getTenantsDb()
     .select({
       tenant: tenants,
       membership: tenantMembers,
@@ -222,6 +254,16 @@ export async function getUserTenants(userId: string) {
 export async function promoteToCEO(userId: string) {
   // Get company tenant
   const companyTenant = await getCompanyTenant();
+
+  // Ensure there is no existing CEO in company tenant (setup only)
+  const [existingCeo] = await getTenantsDb()
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tenantMembers)
+    .where(and(eq(tenantMembers.tenantId, companyTenant.id), eq(tenantMembers.role, 'ceo')))
+    .limit(1);
+  if (existingCeo?.count && existingCeo.count > 0) {
+    throw new ForbiddenError('CEO already exists for company tenant');
+  }
 
   // Check if user is already a member
   const isAlreadyMember = await isTenantMember(companyTenant.id, userId);
@@ -245,4 +287,27 @@ export async function promoteToCEO(userId: string) {
     );
     return { tenant: companyTenant, membership: member, action: 'created' };
   }
+}
+
+/**
+ * Ensure user is a member of tenant
+ */
+export async function ensureTenantMember(tenantId: string, userId: string) {
+  const [member] = await getTenantsDb()
+    .select()
+    .from(tenantMembers)
+    .where(and(eq(tenantMembers.tenantId, tenantId), eq(tenantMembers.userId, userId)))
+    .limit(1);
+  if (!member) throw new ForbiddenError('User is not a member of this tenant');
+  return member;
+}
+
+/**
+ * Ensure user is admin or CEO in tenant
+ */
+export async function ensureTenantAdmin(tenantId: string, userId: string) {
+  const member = await ensureTenantMember(tenantId, userId);
+  const allowed = member.role === 'admin' || member.role === 'ceo';
+  if (!allowed) throw new ForbiddenError('Insufficient role for this tenant');
+  return member;
 }

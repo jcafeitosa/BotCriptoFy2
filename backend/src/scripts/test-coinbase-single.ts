@@ -3,21 +3,9 @@
  * Test Coinbase adapter directly
  */
 
-import { CoinbaseAdapter } from '@/modules/market-data/websocket/adapters/coinbase-adapter';
+import { createWebSocketAdapter, getDefaultWebSocketConfig } from '@/modules/exchanges';
 
-const adapter = new CoinbaseAdapter({
-  url: 'wss://ws-feed.exchange.coinbase.com',
-  timeout: 30000,
-  pingInterval: 30000,
-  pongTimeout: 10000,
-  reconnection: {
-    maxAttempts: 3,
-    initialDelay: 1000,
-    maxDelay: 30000,
-    backoffMultiplier: 2,
-    jitterFactor: 0.1,
-  },
-});
+const adapter = createWebSocketAdapter('coinbase', getDefaultWebSocketConfig('coinbase'));
 
 let tickerCount = 0;
 let tradeCount = 0;

@@ -3,7 +3,7 @@
  * Manages affiliate profiles and registration
  */
 
-import { db } from '@/db';
+import { getAffiliateDb } from '../test-helpers/db-access';
 import { eq, and, desc, sql, gte, lte, like, or, inArray } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { cacheManager } from '@/cache/cache-manager';
@@ -35,7 +35,7 @@ export class AffiliateProfileService {
     logger.info('Creating affiliate profile', { userId: data.userId, tenantId: data.tenantId });
 
     // Check if user already has an affiliate profile
-    const existing = await db
+    const existing = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(
@@ -57,7 +57,7 @@ export class AffiliateProfileService {
     const maxAttempts = 10;
 
     while (codeExists && attempts < maxAttempts) {
-      const check = await db
+      const check = await getAffiliateDb()
         .select({ id: affiliateProfiles.id })
         .from(affiliateProfiles)
         .where(eq(affiliateProfiles.affiliateCode, affiliateCode))
@@ -79,7 +79,7 @@ export class AffiliateProfileService {
     const referralLink = generateReferralLink(this.BASE_URL, affiliateCode);
 
     // Get default tier (Bronze)
-    const [defaultTier] = await db
+    const [defaultTier] = await getAffiliateDb()
       .select()
       .from(affiliateTiers)
       .where(eq(affiliateTiers.level, 1))
@@ -107,7 +107,7 @@ export class AffiliateProfileService {
       acceptedTermsAt: new Date(),
     };
 
-    const [profile] = await db.insert(affiliateProfiles).values(newProfile).returning();
+    const [profile] = await getAffiliateDb().insert(affiliateProfiles).values(newProfile).returning();
 
     // Invalidate cache
     await this.invalidateCache(data.tenantId);
@@ -121,6 +121,18 @@ export class AffiliateProfileService {
   }
 
   /**
+   * Get profile by ID (qualquer tenant)
+   */
+  static async getProfileByIdAnyTenant(id: string): Promise<AffiliateProfile | null> {
+    const [profile] = await getAffiliateDb()
+      .select()
+      .from(affiliateProfiles)
+      .where(eq(affiliateProfiles.id, id))
+      .limit(1);
+    return profile || null;
+  }
+
+  /**
    * Get profile by ID
    */
   static async getProfileById(
@@ -130,14 +142,11 @@ export class AffiliateProfileService {
     const cacheKey = `profile:${id}`;
 
     // Check cache
-    const cached = await cacheManager.get<AffiliateProfile>(
-      CacheNamespace.USERS,
-      cacheKey
-    );
+    const cached = await cacheManager.get<AffiliateProfile>(CacheNamespace.AFFILIATE, cacheKey);
     if (cached) return cached;
 
     // Query database
-    const [profile] = await db
+    const [profile] = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(
@@ -149,12 +158,7 @@ export class AffiliateProfileService {
       .limit(1);
 
     if (profile) {
-      await cacheManager.set(
-        CacheNamespace.USERS,
-        cacheKey,
-        profile,
-        this.CACHE_TTL
-      );
+      await cacheManager.set(CacheNamespace.AFFILIATE, cacheKey, profile, this.CACHE_TTL);
     }
 
     return profile || null;
@@ -170,14 +174,11 @@ export class AffiliateProfileService {
     const cacheKey = `profile:user:${userId}`;
 
     // Check cache
-    const cached = await cacheManager.get<AffiliateProfile>(
-      CacheNamespace.USERS,
-      cacheKey
-    );
+    const cached = await cacheManager.get<AffiliateProfile>(CacheNamespace.AFFILIATE, cacheKey);
     if (cached) return cached;
 
     // Query database
-    const [profile] = await db
+    const [profile] = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(
@@ -189,12 +190,7 @@ export class AffiliateProfileService {
       .limit(1);
 
     if (profile) {
-      await cacheManager.set(
-        CacheNamespace.USERS,
-        cacheKey,
-        profile,
-        this.CACHE_TTL
-      );
+      await cacheManager.set(CacheNamespace.AFFILIATE, cacheKey, profile, this.CACHE_TTL);
     }
 
     return profile || null;
@@ -207,26 +203,18 @@ export class AffiliateProfileService {
     const cacheKey = `profile:code:${affiliateCode}`;
 
     // Check cache
-    const cached = await cacheManager.get<AffiliateProfile>(
-      CacheNamespace.USERS,
-      cacheKey
-    );
+    const cached = await cacheManager.get<AffiliateProfile>(CacheNamespace.AFFILIATE, cacheKey);
     if (cached) return cached;
 
     // Query database
-    const [profile] = await db
+    const [profile] = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(eq(affiliateProfiles.affiliateCode, affiliateCode))
       .limit(1);
 
     if (profile) {
-      await cacheManager.set(
-        CacheNamespace.USERS,
-        cacheKey,
-        profile,
-        this.CACHE_TTL
-      );
+      await cacheManager.set(CacheNamespace.AFFILIATE, cacheKey, profile, this.CACHE_TTL);
     }
 
     return profile || null;
@@ -249,12 +237,12 @@ export class AffiliateProfileService {
     }
 
     // Update profile - convert number fields to strings for decimal columns
-    const updateData: any = { ...data };
-    if (updateData.payoutMinimum !== undefined) {
-      updateData.payoutMinimum = updateData.payoutMinimum.toString();
+    const updateData: Partial<NewAffiliateProfile> = { ...data } as Partial<NewAffiliateProfile>;
+    if ((data as UpdateAffiliateData).payoutMinimum !== undefined) {
+      updateData.payoutMinimum = String((data as UpdateAffiliateData).payoutMinimum);
     }
 
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         ...updateData,
@@ -270,9 +258,9 @@ export class AffiliateProfileService {
 
     // Invalidate cache
     await this.invalidateCache(tenantId);
-    await cacheManager.delete(CacheNamespace.USERS, `profile:${id}`);
-    await cacheManager.delete(CacheNamespace.USERS, `profile:user:${existing.userId}`);
-    await cacheManager.delete(CacheNamespace.USERS, `profile:code:${existing.affiliateCode}`);
+    await cacheManager.delete(CacheNamespace.AFFILIATE, `profile:${id}`);
+    await cacheManager.delete(CacheNamespace.AFFILIATE, `profile:user:${existing.userId}`);
+    await cacheManager.delete(CacheNamespace.AFFILIATE, `profile:code:${existing.affiliateCode}`);
 
     logger.info('Affiliate profile updated', { profileId: id });
 
@@ -289,7 +277,7 @@ export class AffiliateProfileService {
   ): Promise<AffiliateProfile> {
     logger.info('Approving affiliate', { profileId: id, approvedBy });
 
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         status: 'active',
@@ -409,13 +397,13 @@ export class AffiliateProfileService {
     }
 
     // Count total
-    const [{ count }] = await db
+    const [{ count }] = await getAffiliateDb()
       .select({ count: sql<number>`count(*)::int` })
       .from(affiliateProfiles)
       .where(and(...conditions));
 
     // Query with pagination
-    const results = await db
+    const results = await getAffiliateDb()
       .select()
       .from(affiliateProfiles)
       .where(and(...conditions))
@@ -453,15 +441,15 @@ export class AffiliateProfileService {
     }
   ): Promise<void> {
     // Convert number fields to strings for decimal columns
-    const updateData: any = {};
+    const updateData: Partial<NewAffiliateProfile> = {};
     if (metrics.totalClicks !== undefined) updateData.totalClicks = metrics.totalClicks;
     if (metrics.totalSignups !== undefined) updateData.totalSignups = metrics.totalSignups;
     if (metrics.totalConversions !== undefined) updateData.totalConversions = metrics.totalConversions;
-    if (metrics.totalEarned !== undefined) updateData.totalEarned = metrics.totalEarned.toString();
-    if (metrics.totalPaid !== undefined) updateData.totalPaid = metrics.totalPaid.toString();
-    if (metrics.pendingBalance !== undefined) updateData.pendingBalance = metrics.pendingBalance.toString();
+    if (metrics.totalEarned !== undefined) updateData.totalEarned = String(metrics.totalEarned);
+    if (metrics.totalPaid !== undefined) updateData.totalPaid = String(metrics.totalPaid);
+    if (metrics.pendingBalance !== undefined) updateData.pendingBalance = String(metrics.pendingBalance);
 
-    await db
+    await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         ...updateData,
@@ -478,13 +466,7 @@ export class AffiliateProfileService {
    * Invalidate cache
    */
   private static async invalidateCache(tenantId: string): Promise<void> {
-    await cacheManager.invalidate({
-      namespace: CacheNamespace.USERS,
-      pattern: `affiliates:${tenantId}:*`,
-    });
-    await cacheManager.invalidate({
-      namespace: CacheNamespace.USERS,
-      pattern: 'profile:*',
-    });
+    await cacheManager.invalidate({ namespace: CacheNamespace.AFFILIATE, pattern: `affiliates:${tenantId}:*` });
+    await cacheManager.invalidate({ namespace: CacheNamespace.AFFILIATE, pattern: 'profile:*' });
   }
 }

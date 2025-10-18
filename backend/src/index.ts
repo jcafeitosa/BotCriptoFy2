@@ -60,6 +60,9 @@ import { botsRoutes } from './modules/bots';
 import { indicatorsRoutes } from './modules/indicators';
 import { sentimentRoutes } from './modules/sentiment/routes/sentiment.routes';
 import { initializeNotificationWorkers } from './modules/notifications/services/notification.service';
+import { initializeMarketDataPipeline } from './modules/market-data/websocket/pipeline';
+import { initializeMembershipEventBus } from './modules/tenants/events/membership-event-bus';
+import { initializeMembershipEventsConsumer } from './modules/users/services/membership-events.consumer';
 
 /**
  * BotCriptoFy2 - Backend Server
@@ -385,6 +388,27 @@ try {
     error: error instanceof Error ? error.message : String(error),
   });
   // Continue startup even if notifications fail (non-critical)
+}
+
+// Initialize real-time market data pipeline (optional bootstrap)
+try {
+  await initializeMarketDataPipeline();
+} catch (error) {
+  logger.error('Failed to initialize market data pipeline', {
+    source: 'server',
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
+// Initialize membership events (bus + consumer)
+try {
+  await initializeMembershipEventBus();
+  initializeMembershipEventsConsumer();
+} catch (error) {
+  logger.error('Failed to initialize membership events', {
+    source: 'server',
+    error: error instanceof Error ? error.message : String(error),
+  });
 }
 
 // Initialize Tax Jurisdiction Service (load config from database)

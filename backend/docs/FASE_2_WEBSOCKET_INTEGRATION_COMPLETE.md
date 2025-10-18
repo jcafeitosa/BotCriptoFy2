@@ -177,8 +177,9 @@ private async connectWebSocket(): Promise<void> {
   // Set up price update handler
   this.setupPriceUpdateHandler();
 
-  // Subscribe to ticker for this bot's symbol
+  // Subscribe to ticker for this bot's symbol on the correct exchange
   await marketDataWebSocketManager.subscribe({
+    exchangeId,
     channel: 'ticker',
     symbol: this.bot.symbol,
   });
@@ -194,6 +195,7 @@ private async disconnectWebSocket(): Promise<void> {
 
   // Unsubscribe from ticker
   await marketDataWebSocketManager.unsubscribe({
+    exchangeId: this.bot.exchangeId as ExchangeId,
     channel: 'ticker',
     symbol: this.bot.symbol,
   });

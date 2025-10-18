@@ -12,6 +12,7 @@ import {
   AffiliateTierService,
 } from '../services';
 import logger from '@/utils/logger';
+// Use flexible context typings to match Elysia inference
 
 export const affiliateAdminRoutes = new Elysia({ prefix: '/api/v1/affiliate/admin' })
   .use(sessionGuard)
@@ -223,11 +224,11 @@ export const affiliateAdminRoutes = new Elysia({ prefix: '/api/v1/affiliate/admi
         return { success: false, error: 'Tier not found' };
       }
 
-      // Update profile (using any because UpdateAffiliateData doesn't include tier fields)
+      // Update profile with new tier
       const updated = await AffiliateProfileService.updateProfile(params.id, tenantId, {
         tierId: newTier.id,
         tierName: newTier.name,
-      } as any);
+      });
 
       return { success: true, data: updated };
     },

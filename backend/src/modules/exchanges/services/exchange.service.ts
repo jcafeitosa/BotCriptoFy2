@@ -8,8 +8,12 @@ import { db } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { exchangeConnections } from '../schema/exchanges.schema';
+import { exchangeMarkets } from '../schema/exchange-markets.schema';
 import { encrypt, decrypt } from '../utils/encryption';
 import { NotFoundError, BadRequestError } from '@/utils/errors';
+import type { ConnectionConfig } from '../types/realtime.types';
+import redis from '@/utils/redis';
+import { getDefaultWebSocketConfig } from './exchange-websocket.factory';
 import type {
   ExchangeId,
   ExchangeCredentials,
@@ -18,6 +22,11 @@ import type {
   ExchangeBalance,
   ExchangeTicker,
   ExchangePosition,
+  ExchangeMarket,
+  ExchangeOrderBook,
+  ExchangeTrade,
+  ExchangeCandle,
+  ExchangeInfo,
 } from '../types/exchanges.types';
 
 export class ExchangeService {
@@ -33,6 +42,44 @@ export class ExchangeService {
    */
   static isExchangeSupported(exchangeId: string): boolean {
     return ccxt.exchanges.includes(exchangeId);
+  }
+
+  /**
+   * Retorna ConnectionConfig WebSocket padrão para uma exchange, com possibilidade de overrides.
+   * Permite futura personalização por tenant/ambiente sem duplicar lógica em outros módulos.
+   */
+  static getWebSocketConfig(
+    exchangeId: ExchangeId,
+    overrides?: Partial<ConnectionConfig>
+  ): ConnectionConfig {
+    // Base centralizada (metadata em Exchanges)
+    const base = getDefaultWebSocketConfig(exchangeId);
+
+    // Permitir override de URL via ENV (compatível com pipeline)
+    const envUrlEx = process.env[`EXCHANGES_WS_${exchangeId.toUpperCase()}_URL`];
+    const envUrlLegacy = process.env[`MARKET_DATA_WS_${exchangeId.toUpperCase()}_URL`];
+
+    const cfg: ConnectionConfig = {
+      ...base,
+      ...(envUrlEx ? { url: envUrlEx } : envUrlLegacy ? { url: envUrlLegacy } : {}),
+      ...(overrides || {}),
+    } as ConnectionConfig;
+
+    return cfg;
+  }
+
+  /**
+   * Refresh markets: limpa cache e recarrega/persiste markets
+   */
+  static async refreshMarkets(connectionId: string, userId: string, tenantId: string) {
+    const connection = await this.getConnectionById(connectionId, userId, tenantId);
+    const cacheKey = `ex:markets:${connection.exchangeId}:${connection.sandbox ? '1' : '0'}:${tenantId}`;
+    try {
+      await redis.del(cacheKey);
+    } catch (error) {
+      logger.warn('Failed to delete markets cache', { cacheKey, error: (error as Error).message });
+    }
+    return this.getMarkets(connectionId, userId, tenantId);
   }
 
   /**
@@ -86,6 +133,7 @@ export class ExchangeService {
     const encryptedApiPassword = data.apiPassword ? encrypt(data.apiPassword) : null;
 
     // Test connection first
+    let inferredPermissions: any = undefined;
     try {
       const exchange = this.createCCXTInstance(data.exchangeId, {
         apiKey: data.apiKey,
@@ -95,6 +143,14 @@ export class ExchangeService {
       });
 
       await exchange.fetchBalance();
+      const has = exchange.has || {};
+      inferredPermissions = {
+        read: true,
+        trade: !!(data.enableTrading && (has.createOrder || has.createOrder === true)),
+        withdraw: !!(data.enableWithdrawal && (has.withdraw || has.withdraw === true)),
+        spot: !!has.spot || !!has.createOrder,
+        derivatives: !!has.swap || !!has.future,
+      };
       logger.info('Exchange connection verified', { exchangeId: data.exchangeId });
     } catch (error) {
       logger.error('Failed to verify exchange connection', {
@@ -120,6 +176,7 @@ export class ExchangeService {
         enableWithdrawal: data.enableWithdrawal || false,
         isVerified: true,
         status: 'active',
+        permissions: inferredPermissions,
       })
       .returning();
 
@@ -194,6 +251,14 @@ export class ExchangeService {
         await exchange.fetchBalance();
         updateData.isVerified = true;
         updateData.status = 'active';
+        const has = exchange.has || {};
+        updateData.permissions = {
+          read: true,
+          trade: !!(updateData.enableTrading && (has.createOrder || has.createOrder === true)),
+          withdraw: !!(updateData.enableWithdrawal && (has.withdraw || has.withdraw === true)),
+          spot: !!has.spot || !!has.createOrder,
+          derivatives: !!has.swap || !!has.future,
+        };
         logger.info('Updated connection verified', { connectionId: id });
       } catch (error) {
         logger.error('Failed to verify updated connection', {
@@ -285,6 +350,212 @@ export class ExchangeService {
     };
 
     return this.createCCXTInstance(connection.exchangeId as ExchangeId, credentials);
+  }
+
+  /**
+   * Informações gerais da exchange (metadata do CCXT)
+   */
+  static getExchangeInfo(exchangeId: ExchangeId): ExchangeInfo {
+    if (!this.isExchangeSupported(exchangeId)) {
+      throw new BadRequestError(`Exchange '${exchangeId}' not supported`);
+    }
+    const ExchangeClass = (ccxt as any)[exchangeId];
+    const instance = new ExchangeClass({ enableRateLimit: true });
+    const info: ExchangeInfo = {
+      id: instance.id,
+      name: instance.name,
+      rateLimit: instance.rateLimit,
+      has: instance.has || {},
+      timeframes: instance.timeframes || null,
+      countries: instance.countries || null,
+      urls: instance.urls || {},
+    };
+    return info;
+  }
+
+  /**
+   * Listagem de mercados normalizada
+   */
+  static async getMarkets(
+    connectionId: string,
+    userId: string,
+    tenantId: string
+  ): Promise<ExchangeMarket[]> {
+    const connection = await this.getConnectionById(connectionId, userId, tenantId);
+    const cacheKey = `ex:markets:${connection.exchangeId}:${connection.sandbox ? '1' : '0'}:${tenantId}`;
+    const ttl = parseInt(process.env.EXCHANGES_MARKETS_TTL || '1800');
+
+    // Tentativa de cache (Redis ou fallback in-memory)
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as ExchangeMarket[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    await exchange.loadMarkets();
+    const markets = Object.values(exchange.markets || {}) as any[];
+    const normalized = markets.map((m) => ({
+      symbol: m.symbol,
+      base: m.base,
+      quote: m.quote,
+      active: m.active !== false,
+      type: m.type || (m.spot ? 'spot' : m.swap ? 'swap' : 'future'),
+      spot: !!m.spot,
+      future: !!m.future,
+      swap: !!m.swap,
+      precision: m.precision || {},
+      limits: m.limits || {},
+    }));
+
+    // Persistência para auditoria/performance (delete + insert)
+    try {
+      // @ts-expect-error drizzle delete builder differently typed
+      await db.delete(exchangeMarkets).where(
+        and(
+          eq(exchangeMarkets.tenantId, tenantId as any),
+          eq(exchangeMarkets.exchangeId, connection.exchangeId),
+          eq(exchangeMarkets.sandbox, connection.sandbox)
+        )
+      );
+
+      if (normalized.length > 0) {
+        const rows = normalized.map((m) => ({
+          tenantId: tenantId as any,
+          exchangeId: connection.exchangeId,
+          sandbox: connection.sandbox,
+          symbol: m.symbol,
+          base: m.base,
+          quote: m.quote,
+          active: m.active,
+          type: m.type,
+          precision: m.precision as any,
+          limits: m.limits as any,
+        }));
+        // @ts-expect-error drizzle insert many
+        await db.insert(exchangeMarkets).values(rows);
+      }
+    } catch (error) {
+      logger.warn('Markets persistence skipped due to error', {
+        tenantId,
+        exchangeId: connection.exchangeId,
+        error: (error as Error).message,
+      });
+    }
+
+    // Cachear
+    try {
+      await redis.set(cacheKey, JSON.stringify(normalized), ttl);
+    } catch (error) {
+      logger.warn('Markets cache set failed', { cacheKey, error: (error as Error).message });
+    }
+
+    return normalized;
+  }
+
+  /**
+   * Detalhe de um mercado
+   */
+  static async getMarket(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol: string
+  ): Promise<ExchangeMarket | null> {
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    await exchange.loadMarkets();
+    const m = (exchange.markets && exchange.markets[symbol]) || null;
+    if (!m) return null;
+    return {
+      symbol: m.symbol,
+      base: m.base,
+      quote: m.quote,
+      active: m.active !== false,
+      type: m.type || (m.spot ? 'spot' : m.swap ? 'swap' : 'future'),
+      spot: !!m.spot,
+      future: !!m.future,
+      swap: !!m.swap,
+      precision: m.precision || {},
+      limits: m.limits || {},
+    };
+  }
+
+  /**
+   * Order book normalizado (bids/asks)
+   */
+  static async fetchOrderBook(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol: string,
+    limit?: number
+  ): Promise<ExchangeOrderBook> {
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    const ob = await exchange.fetchOrderBook(symbol, limit);
+    return {
+      symbol,
+      timestamp: ob.timestamp,
+      datetime: ob.datetime,
+      bids: ob.bids || [],
+      asks: ob.asks || [],
+    };
+  }
+
+  /**
+   * Trades normalizados
+   */
+  static async fetchTrades(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol: string,
+    since?: number,
+    limit?: number
+  ): Promise<ExchangeTrade[]> {
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    const trades = await exchange.fetchTrades(symbol, since, limit);
+    return (trades || []).map((t: any) => ({
+      id: t.id,
+      symbol: t.symbol,
+      timestamp: t.timestamp,
+      datetime: t.datetime,
+      price: t.price,
+      amount: t.amount,
+      cost: t.cost,
+      side: t.side,
+      takerOrMaker: t.takerOrMaker,
+    }));
+  }
+
+  /**
+   * OHLCV normalizado (lista de objetos)
+   */
+  static async fetchOHLCV(
+    connectionId: string,
+    userId: string,
+    tenantId: string,
+    symbol: string,
+    timeframe: string,
+    since?: number,
+    limit?: number
+  ): Promise<ExchangeCandle[]> {
+    const exchange = await this.getCCXTInstance(connectionId, userId, tenantId);
+    if (!exchange.has || !exchange.has.fetchOHLCV) {
+      throw new BadRequestError(`Exchange ${exchange.id} does not support OHLCV`);
+    }
+    const rows: any[] = await exchange.fetchOHLCV(symbol, timeframe, since, limit);
+    return rows.map((r: any) => ({
+      symbol,
+      timeframe,
+      timestamp: r[0],
+      open: r[1],
+      high: r[2],
+      low: r[3],
+      close: r[4],
+      volume: r[5],
+    }));
   }
 
   /**

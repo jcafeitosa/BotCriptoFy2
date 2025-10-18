@@ -2,7 +2,7 @@
  * Exchange WebSocket Metadata Service
  * Extracts WebSocket URLs and capabilities from exchanges using CCXT free
  *
- * @module market-data/services/exchange-websocket-metadata
+ * @module exchanges/services/exchange-websocket-metadata
  */
 
 import ccxt from 'ccxt';

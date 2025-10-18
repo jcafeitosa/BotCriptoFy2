@@ -2,7 +2,7 @@
  * Affiliate Analytics Service
  */
 
-import { db } from '@/db';
+import { getAffiliateDb } from '../test-helpers/db-access';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { cacheManager } from '@/cache/cache-manager';
 import { CacheNamespace } from '@/cache/types';
@@ -19,25 +19,25 @@ export class AffiliateAnalyticsService {
 
   static async getStats(affiliateId: string, period: AnalyticsPeriod = 'last_30_days'): Promise<AffiliateStats> {
     const cacheKey = `stats:${affiliateId}:${period}`;
-    const cached = await cacheManager.get<AffiliateStats>(CacheNamespace.USERS, cacheKey);
+    const cached = await cacheManager.get<AffiliateStats>(CacheNamespace.AFFILIATE, cacheKey);
     if (cached) return cached;
 
     const { startDate } = this.getPeriodDates(period);
 
     // Total clicks
-    const [{ totalClicks }] = await db
+    const [{ totalClicks }] = await getAffiliateDb()
       .select({ totalClicks: sql<number>`count(*)::int` })
       .from(affiliateClicks)
       .where(and(eq(affiliateClicks.affiliateId, affiliateId), gte(affiliateClicks.createdAt, startDate)));
 
     // Total signups
-    const [{ totalSignups }] = await db
+    const [{ totalSignups }] = await getAffiliateDb()
       .select({ totalSignups: sql<number>`count(*)::int` })
       .from(affiliateReferrals)
       .where(and(eq(affiliateReferrals.affiliateId, affiliateId), eq(affiliateReferrals.status, 'signed_up')));
 
     // Total conversions and revenue
-    const [conversionStats] = await db
+    const [conversionStats] = await getAffiliateDb()
       .select({
         totalConversions: sql<number>`count(*)::int`,
         totalEarned: sql<string>`COALESCE(SUM(${affiliateConversions.orderValue}), 0)`,
@@ -46,7 +46,7 @@ export class AffiliateAnalyticsService {
       .where(and(eq(affiliateConversions.affiliateId, affiliateId), eq(affiliateConversions.status, 'approved')));
 
     // Total paid and pending
-    const [financials] = await db
+    const [financials] = await getAffiliateDb()
       .select({
         totalPaid: sql<string>`COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)`,
         pendingBalance: sql<string>`COALESCE(SUM(CASE WHEN status IN ('pending', 'approved') THEN amount ELSE 0 END), 0)`,
@@ -74,7 +74,7 @@ export class AffiliateAnalyticsService {
       conversionsByMonth: [],
     };
 
-    await cacheManager.set(CacheNamespace.USERS, cacheKey, stats, this.CACHE_TTL);
+    await cacheManager.set(CacheNamespace.AFFILIATE, cacheKey, stats, this.CACHE_TTL);
     return stats;
   }
 

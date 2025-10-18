@@ -13,6 +13,7 @@ import {
   AffiliateAnalyticsService,
 } from '../services';
 import logger from '@/utils/logger';
+// Keeping route context flexible to align with Elysia's inferred context
 
 export const affiliateRoutes = new Elysia({ prefix: '/api/v1/affiliate' })
   .use(sessionGuard)
@@ -73,12 +74,20 @@ export const affiliateRoutes = new Elysia({ prefix: '/api/v1/affiliate' })
         phoneNumber: t.Optional(t.String()),
         company: t.Optional(t.String()),
         website: t.Optional(t.String()),
-        socialMedia: t.Optional(t.Object({})),
+        socialMedia: t.Optional(
+          t.Object({
+            instagram: t.Optional(t.String()),
+            twitter: t.Optional(t.String()),
+            youtube: t.Optional(t.String()),
+            tiktok: t.Optional(t.String()),
+            linkedin: t.Optional(t.String()),
+          })
+        ),
         audienceSize: t.Optional(t.Number()),
         niche: t.Optional(t.String()),
         bio: t.Optional(t.String()),
         payoutMethod: t.Optional(t.String()),
-        payoutEmail: t.Optional(t.String()),
+        payoutEmail: t.Optional(t.String({ pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' })),
         taxId: t.Optional(t.String()),
       }),
       detail: {
@@ -246,9 +255,20 @@ export const affiliateRoutes = new Elysia({ prefix: '/api/v1/affiliate' })
     },
     {
       body: t.Object({
-        amount: t.Number(),
-        method: t.String(),
-        bankInfo: t.Optional(t.Object({})),
+        amount: t.Number({ minimum: 0.01 }),
+        method: t.Union([
+          t.Literal('stripe'),
+          t.Literal('bank_transfer'),
+          t.Literal('pix')
+        ]),
+        bankInfo: t.Optional(
+          t.Object({
+            bankName: t.Optional(t.String()),
+            accountNumber: t.Optional(t.String()),
+            routingNumber: t.Optional(t.String()),
+            pixKey: t.Optional(t.String()),
+          })
+        ),
         notes: t.Optional(t.String()),
       }),
       detail: {
