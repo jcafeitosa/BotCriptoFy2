@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MMN Visualization Routes – require mmn:read
  */

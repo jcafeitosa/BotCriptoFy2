@@ -4,10 +4,71 @@
  */
 
 import { describe, test, expect, beforeEach, mock } from 'bun:test';
-import { riskService } from '../services/risk.service';
-import { db } from '@/db';
+import { RiskService } from '../services/risk.service';
+import type { IPositionService, IWalletService, INotificationService } from '../contracts';
 
-// Mock dependencies
+// Mock position service
+const mockPositionService: jest.Mocked<IPositionService> = {
+  getOpenPositions: jest.fn(),
+  getPositionById: jest.fn(),
+  getPositionSummary: jest.fn(),
+  getPositionValue: jest.fn(),
+  getPositionSide: jest.fn(),
+  getPositionAsset: jest.fn(),
+  getPositionQuantity: jest.fn(),
+  getPositionUnrealizedPnl: jest.fn(),
+  getPositionRealizedPnl: jest.fn(),
+  getTotalPortfolioValue: jest.fn(),
+  getTotalLongExposure: jest.fn(),
+  getTotalShortExposure: jest.fn(),
+  getLargestPosition: jest.fn(),
+  getPositionCount: jest.fn(),
+  isPositionOpen: jest.fn(),
+  getPositionsByAsset: jest.fn(),
+  getPositionsBySide: jest.fn(),
+  calculatePositionWeight: jest.fn(),
+  getPositionRiskMetrics: jest.fn(),
+};
+
+// Mock wallet service
+const mockWalletService: jest.Mocked<IWalletService> = {
+  getWalletSummary: jest.fn(),
+  getTotalPortfolioValue: jest.fn(),
+  getCashBalance: jest.fn(),
+  getAvailableCash: jest.fn(),
+  getLockedCash: jest.fn(),
+  getPortfolioValueBreakdown: jest.fn(),
+  getWalletByUserId: jest.fn(),
+  getUserWallets: jest.fn(),
+  getWalletBalanceInCurrency: jest.fn(),
+  hasSufficientBalance: jest.fn(),
+  getMarginUtilization: jest.fn(),
+  getLeverageInfo: jest.fn(),
+  getWalletPerformanceMetrics: jest.fn(),
+  getWalletRiskMetrics: jest.fn(),
+};
+
+// Mock notification service
+const mockNotificationService: jest.Mocked<INotificationService> = {
+  sendRiskAlert: jest.fn(),
+  sendCustomRiskNotification: jest.fn(),
+  sendRiskLimitViolationAlert: jest.fn(),
+  sendDrawdownAlert: jest.fn(),
+  sendLargePositionAlert: jest.fn(),
+  sendCorrelationAlert: jest.fn(),
+  sendVolatilityAlert: jest.fn(),
+  sendLiquidityAlert: jest.fn(),
+  sendPortfolioOptimizationAlert: jest.fn(),
+  sendStressTestAlert: jest.fn(),
+  sendMonteCarloVaRAlert: jest.fn(),
+  getNotificationPreferences: jest.fn(),
+  updateNotificationPreferences: jest.fn(),
+  getNotificationHistory: jest.fn(),
+  markNotificationAsRead: jest.fn(),
+  markAllNotificationsAsRead: jest.fn(),
+};
+
+// Mock database
 mock.module('@/db', () => ({
   db: {
     select: mock(() => ({

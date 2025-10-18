@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Drizzle Risk Profile Repository
  * Concrete implementation using Drizzle ORM

@@ -1518,18 +1518,13 @@ class RiskService implements IRiskService {
    */
   private async sendAlertNotifications(alert: RiskAlert): Promise<void> {
     try {
-      // Determine notification types based on severity
-      const notificationTypes = this.getNotificationTypesForSeverity(alert.severity);
-
-      // Send notifications for each type
-      const promises = notificationTypes.map(type => this.sendRiskAlertNotification(alert, type));
-      await Promise.allSettled(promises);
+      // Use injected notification service
+      await this.notificationService.sendRiskAlert(alert);
 
       logger.debug('Alert notifications sent', {
         alertId: alert.id,
         userId: alert.userId,
         severity: alert.severity,
-        types: notificationTypes.length,
       });
     } catch (error) {
       logger.error('Failed to send alert notifications', {
@@ -1843,8 +1838,8 @@ class RiskService implements IRiskService {
    */
   async runStressTest(userId: string, tenantId: string, scenarios: any[] = []): Promise<any[]> {
     try {
-      const positions = await this.getOpenPositions(userId, tenantId);
-      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      const positions = await this.positionService.getOpenPositions(userId, tenantId);
+      const portfolioValue = this.positionService.getTotalPortfolioValue(positions);
       
       // Create risk factors from positions
       const riskFactors = monteCarloRiskService.createDefaultRiskFactors(positions);
@@ -1882,8 +1877,8 @@ class RiskService implements IRiskService {
    */
   async analyzeLiquidityRisk(userId: string, tenantId: string): Promise<any> {
     try {
-      const positions = await this.getOpenPositions(userId, tenantId);
-      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      const positions = await this.positionService.getOpenPositions(userId, tenantId);
+      const portfolioValue = this.positionService.getTotalPortfolioValue(positions);
 
       let totalLiquidity = 0;
       let illiquidPositions = 0;
@@ -1924,8 +1919,8 @@ class RiskService implements IRiskService {
    */
   async optimizePortfolio(userId: string, tenantId: string, options: any = {}): Promise<any> {
     try {
-      const positions = await this.getOpenPositions(userId, tenantId);
-      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      const positions = await this.positionService.getOpenPositions(userId, tenantId);
+      const portfolioValue = this.positionService.getTotalPortfolioValue(positions);
 
       // Convert positions to asset data
       const assets = positions.map(position => ({
@@ -2902,8 +2897,8 @@ class RiskService implements IRiskService {
    */
   async calculateMonteCarloVaR(userId: string, tenantId: string, config: any = {}): Promise<any> {
     try {
-      const positions = await this.getOpenPositions(userId, tenantId);
-      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+      const positions = await this.positionService.getOpenPositions(userId, tenantId);
+      const portfolioValue = this.positionService.getTotalPortfolioValue(positions);
       
       // Create risk factors from positions
       const riskFactors = monteCarloRiskService.createDefaultRiskFactors(positions);
@@ -2924,6 +2919,8 @@ class RiskService implements IRiskService {
   }
 }
 
-// Export singleton instance
-export const riskService = new RiskService();
+// Export singleton instance with dependencies
+import { riskDependenciesFactory } from '../factories/risk-dependencies.factory';
+
+export const riskService = new RiskService(riskDependenciesFactory.createAllDependencies());
 export default riskService;

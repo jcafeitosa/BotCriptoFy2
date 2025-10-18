@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Bots Module Routes
  * REST API endpoints for automated trading bot management

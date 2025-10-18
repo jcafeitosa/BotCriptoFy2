@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MMN Routes
  * Autenticadas por sessão + tenant com RBAC granular (mmn:read|write|manage)

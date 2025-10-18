@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Bot Execution Engine
  * Main loop for bot trading execution

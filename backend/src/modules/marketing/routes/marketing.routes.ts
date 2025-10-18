@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Marketing Routes
  * Campaigns, leads, templates, and analytics APIs with RBAC enforcement

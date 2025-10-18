@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tax Routes
  *

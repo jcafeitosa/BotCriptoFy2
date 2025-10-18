@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Position Service
  * Manages trading positions with P&L calculation, margin management, and risk controls

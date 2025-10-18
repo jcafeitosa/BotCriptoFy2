@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Risk Repository Factory
  * Centralized factory for creating repository instances

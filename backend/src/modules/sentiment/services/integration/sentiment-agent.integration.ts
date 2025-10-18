@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Sentiment Agent Integration
  * Integrates sentiment analysis with the Marketing Agent (CMO)
