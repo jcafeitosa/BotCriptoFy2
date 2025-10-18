@@ -243,8 +243,6 @@ export const DottedGlowBackground: React.FC<DottedGlowBackgroundProps> = ({
   );
 };
 
-export default DottedGlowBackground;
-
 // Wrapper component for full-page backgrounds
 interface DottedGlowContainerProps {
   children: React.ReactNode;

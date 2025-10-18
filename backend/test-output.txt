@@ -1,0 +1,3467 @@
+bun test v1.3.0 (b0a6feca)
+
+src/modules/tenants/__tests__/tenant.routes.integration.test.ts:
+65 |   });
+66 | 
+67 |   it('GET /api/v1/tenants/me retorna { success, data }', async () => {
+68 |     const app = new Elysia().use(tenantRoutes);
+69 |     const res = await app.handle(new Request('http://localhost/api/v1/tenants/me'));
+70 |     expect(res.status).toBe(200);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/tenants/__tests__/tenant.routes.integration.test.ts:70:24)
+(fail) tenant.routes integration > GET /api/v1/tenants/me retorna { success, data } [4.31ms]
+78 |     const app = new Elysia().use(tenantRoutes);
+79 |     const res = await app.handle(new Request('http://localhost/api/v1/tenants/t1'));
+80 |     expect(res.status).toBe(200);
+81 |     const json = await res.json();
+82 |     expect(json.success).toBe(true);
+83 |     expect(json.data.id).toBe('t1');
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: "t1"
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/tenants/__tests__/tenant.routes.integration.test.ts:83:26)
+(fail) tenant.routes integration > GET /api/v1/tenants/t1 retorna { success, data } com membership [18.58ms]
+84 |   });
+85 | 
+86 |   it('GET /api/v1/tenants/t1/members paginação retorna { success, data, pagination }', async () => {
+87 |     const app = new Elysia().use(tenantRoutes);
+88 |     const res = await app.handle(new Request('http://localhost/api/v1/tenants/t1/members?page=1&limit=1'));
+89 |     expect(res.status).toBe(200);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: 200
+Received: 500
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/tenants/__tests__/tenant.routes.integration.test.ts:89:24)
+(fail) tenant.routes integration > GET /api/v1/tenants/t1/members paginação retorna { success, data, pagination } [6.95ms]
+
+src/modules/backtest/engine/backtest-engine.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'logError' not found in module '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/utils/logger.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+src/modules/users/__tests__/user.routes.integration.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'logError' not found in module '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/utils/logger.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+src/modules/affiliate/__tests__/affiliate.public.routes.smoke.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'logError' not found in module '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/utils/logger.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+src/modules/sentiment/__tests__/trending-topics.service.test.ts:
+56 |       const trending = await service.processMentions(mentions);
+57 | 
+58 |       expect(trending.length).toBeGreaterThan(0);
+59 | 
+60 |       const btcTag = trending.find((t) => t.topic === '#btc');
+61 |       expect(btcTag).toBeDefined();
+                          ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:61:22)
+(fail) TrendingTopicsService > processMentions > should detect trending hashtags [1.31ms]
+72 |       ];
+73 | 
+74 |       const trending = await service.processMentions(mentions);
+75 | 
+76 |       const breakoutTopic = trending.find((t) => t.topic.includes('breakout'));
+77 |       expect(breakoutTopic).toBeDefined();
+                                 ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:77:29)
+(fail) TrendingTopicsService > processMentions > should detect trending keywords [0.18ms]
+84 |       );
+85 | 
+86 |       const trending = await service.processMentions(mentions);
+87 | 
+88 |       const btcTag = trending.find((t) => t.topic === '#btc');
+89 |       expect(btcTag).toBeDefined();
+                          ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:89:22)
+(fail) TrendingTopicsService > processMentions > should calculate trending score [0.24ms]
+103 |       );
+104 | 
+105 |       const trending = await service.processMentions(mentions);
+106 | 
+107 |       const emergingTrend = trending.find((t) => t.topic === '#newcoin');
+108 |       expect(emergingTrend).toBeDefined();
+                                  ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:108:29)
+(fail) TrendingTopicsService > processMentions > should detect emerging trends [0.19ms]
+118 |       ];
+119 | 
+120 |       const trending = await service.processMentions(mentions);
+121 | 
+122 |       const btcTag = trending.find((t) => t.topic === '#btc');
+123 |       expect(btcTag).toBeDefined();
+                           ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:123:22)
+(fail) TrendingTopicsService > processMentions > should associate symbols with topics [0.13ms]
+132 |       ];
+133 | 
+134 |       const trending = await service.processMentions(mentions);
+135 | 
+136 |       const trendingTag = trending.find((t) => t.topic === '#trending');
+137 |       expect(trendingTag).toBeDefined();
+                                ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:137:27)
+(fail) TrendingTopicsService > processMentions > should calculate engagement metrics [0.04ms]
+273 |       );
+274 | 
+275 |       const trending = await service.processMentions(mentions);
+276 | 
+277 |       const bitcoinTag = trending.find((t) => t.topic === '#bitcoin');
+278 |       expect(bitcoinTag).toBeDefined();
+                               ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:278:26)
+(fail) TrendingTopicsService > trend types > should detect sustained trends [0.25ms]
+311 |       ];
+312 | 
+313 |       const trending = await service.processMentions(mentions);
+314 | 
+315 |       const peakTag = trending.find((t) => t.topic === '#peak');
+316 |       expect(peakTag).toBeDefined();
+                            ^
+error: expect(received).toBeDefined()
+
+Received: undefined
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/trending-topics.service.test.ts:316:23)
+(fail) TrendingTopicsService > trend types > should calculate peak time [0.13ms]
+
+src/modules/sentiment/__tests__/sentiment-local.service.test.ts:
+122 |     });
+123 | 
+124 |     test('should extract exchanges', () => {
+125 |       const entities = service.extractEntities('Binance and Coinbase are down');
+126 | 
+127 |       expect(entities.exchanges).toContain('Binance');
+                                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Binance"
+Received: [ "Coinbase" ]
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-local.service.test.ts:127:34)
+(fail) SentimentLocalService > extractEntities > should extract exchanges [2.00ms]
+129 |     });
+130 | 
+131 |     test('should extract technologies', () => {
+132 |       const entities = service.extractEntities('DeFi and NFT markets are growing');
+133 | 
+134 |       expect(entities.technologies).toContain('defi');
+                                          ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "defi"
+Received: [ "NFT" ]
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-local.service.test.ts:134:37)
+(fail) SentimentLocalService > extractEntities > should extract technologies [1.44ms]
+138 | 
+139 |   describe('detectLanguage', () => {
+140 |     test('should detect English', () => {
+141 |       const lang = service.detectLanguage('The Bitcoin price is rising today');
+142 | 
+143 |       expect(lang).toBe('en');
+                         ^
+error: expect(received).toBe(expected)
+
+Expected: "en"
+Received: "unknown"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-local.service.test.ts:143:20)
+(fail) SentimentLocalService > detectLanguage > should detect English [0.37ms]
+
+src/modules/sentiment/__tests__/price-correlation.service.test.ts:
+52 |         'BTC'
+53 |       );
+54 | 
+55 |       expect(result.symbol).toBe('BTC');
+56 |       expect(result.coefficient).toBeGreaterThan(0);
+57 |       expect(result.direction).toBe('positive');
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "positive"
+Received: "none"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/price-correlation.service.test.ts:57:32)
+(fail) PriceCorrelationService > calculateCorrelation > should calculate positive correlation [1.00ms]
+68 |         priceData,
+69 |         'BTC'
+70 |       );
+71 | 
+72 |       expect(result.coefficient).toBeLessThan(0);
+73 |       expect(result.direction).toBe('negative');
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "negative"
+Received: "none"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/price-correlation.service.test.ts:73:32)
+(fail) PriceCorrelationService > calculateCorrelation > should calculate negative correlation [0.21ms]
+83 |         priceData,
+84 |         'BTC'
+85 |       );
+86 | 
+87 |       expect(Math.abs(result.coefficient)).toBeLessThan(0.3);
+88 |       expect(result.direction).toBe('none');
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "none"
+Received: "positive"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/price-correlation.service.test.ts:88:32)
+(fail) PriceCorrelationService > calculateCorrelation > should detect no correlation [0.16ms]
+
+src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:
+90 | 
+91 |   describe('aggregateFromNews', () => {
+92 |     test('should aggregate sentiment from news articles', async () => {
+93 |       const result = await service.aggregateFromNews(mockNewsArticles, 'BTC');
+94 | 
+95 |       expect(result).not.toBeNull();
+                              ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:95:26)
+(fail) SentimentAggregatorService > aggregateFromNews > should aggregate sentiment from news articles [0.26ms]
+117 |         } as NewsArticle,
+118 |       ];
+119 | 
+120 |       const result = await service.aggregateFromNews(articles, 'BTC');
+121 | 
+122 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:122:26)
+(fail) SentimentAggregatorService > aggregateFromNews > should filter by symbol [0.20ms]
+124 |     });
+125 | 
+126 |     test('should calculate source breakdown', async () => {
+127 |       const result = await service.aggregateFromNews(mockNewsArticles, 'BTC');
+128 | 
+129 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:129:26)
+(fail) SentimentAggregatorService > aggregateFromNews > should calculate source breakdown [0.11ms]
+135 | 
+136 |   describe('aggregateFromSocial', () => {
+137 |     test('should aggregate sentiment from social mentions', async () => {
+138 |       const result = await service.aggregateFromSocial(mockSocialMentions, 'BTC');
+139 | 
+140 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:140:26)
+(fail) SentimentAggregatorService > aggregateFromSocial > should aggregate sentiment from social mentions [0.09ms]
+153 |       };
+154 | 
+155 |       const withoutInfluencer = await service.aggregateFromSocial([nonInfluencerMention], 'BTC');
+156 | 
+157 |       // Influencer should have higher weight
+158 |       expect(withInfluencer).not.toBeNull();
+                                       ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:158:34)
+(fail) SentimentAggregatorService > aggregateFromSocial > should apply influencer boost [0.06ms]
+166 |         mockNewsArticles,
+167 |         mockSocialMentions,
+168 |         'BTC'
+169 |       );
+170 | 
+171 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:171:26)
+(fail) SentimentAggregatorService > aggregateFromAll > should combine news and social sentiment [0.23ms]
+178 |         mockNewsArticles,
+179 |         mockSocialMentions,
+180 |         'BTC'
+181 |       );
+182 | 
+183 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:183:26)
+(fail) SentimentAggregatorService > aggregateFromAll > should calculate trend direction [0.05ms]
+190 |         mockNewsArticles,
+191 |         mockSocialMentions,
+192 |         'BTC'
+193 |       );
+194 | 
+195 |       expect(result).not.toBeNull();
+                               ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:195:26)
+(fail) SentimentAggregatorService > aggregateFromAll > should calculate change [0.05ms]
+203 |         mockNewsArticles,
+204 |         mockSocialMentions,
+205 |         'BTC'
+206 |       );
+207 | 
+208 |       expect(aggregated).not.toBeNull();
+                                   ^
+error: expect(received).not.toBeNull()
+
+Received: null
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:208:30)
+(fail) SentimentAggregatorService > calculateFearGreedIndex > should calculate Fear & Greed Index [0.07ms]
+251 |         1000, // high volume
+252 |         0.1, // low volatility
+253 |         80 // strong momentum
+254 |       );
+255 | 
+256 |       expect(fearGreed.index).toBeGreaterThan(70);
+                                    ^
+error: Expected and actual values must be numbers or bigints
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/sentiment-aggregator.service.test.ts:256:31)
+(fail) SentimentAggregatorService > calculateFearGreedIndex > should classify extreme greed correctly [0.14ms]
+
+src/modules/risk/__tests__/risk-retention.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'logDebug' not found in module '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/utils/logger.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+src/modules/risk/__tests__/risk.integration.test.ts:
+
+================================================================================
+📊 RISK MODULE INTEGRATION TESTS
+================================================================================
+Tests cover:
+  ✅ Concurrent request handling (race condition prevention)
+  ✅ Wallet service integration
+  ✅ Graceful degradation on failures
+  ✅ Large portfolio performance
+  ✅ Risk profile integration
+  ✅ VaR calculation with breakdown
+  ✅ Performance ratios (Sharpe, Sortino, Calmar)
+  ✅ Risk limit violation detection
+  ✅ Alert creation
+  ✅ Position sizing recommendations
+  ✅ Database transaction integrity
+================================================================================
+🔧 Setting up Risk integration tests...
+53 |     await db.insert(users).values({
+54 |       id: userId,
+55 |       name: 'Test User',
+56 |       email: `${userId}@test.com`,
+57 |       emailVerified: true,
+58 |     }).onConflictDoNothing();
+            ^
+TypeError: db.insert(users).values({
+      id: userId,
+      name: "Test User",
+      email: `${userId}@test.com`,
+      emailVerified: true
+    }).onConflictDoNothing is not a function. (In 'db.insert(users).values({
+      id: userId,
+      name: "Test User",
+      email: `${userId}@test.com`,
+      emailVerified: true
+    }).onConflictDoNothing()', 'db.insert(users).values({
+      id: userId,
+      name: "Test User",
+      email: `${userId}@test.com`,
+      emailVerified: true
+    }).onConflictDoNothing' is undefined)
+      at createTestUser (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.integration.test.ts:58:8)
+      at createTestUser (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.integration.test.ts:48:98)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.integration.test.ts:257:39)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.integration.test.ts:254:13)
+(fail) Risk Module Integration Tests > (unnamed) [0.39ms]
+🧹 Cleaning up test data...
+✅ Cleanup complete
+
+src/modules/risk/__tests__/risk-lock.integration.test.ts:
+231 | 
+232 |       expect(stats.totalAcquired).toBe(3);
+233 |       expect(stats.totalReleased).toBe(3);
+234 |       expect(stats.totalFailed).toBe(0);
+235 |       expect(stats.currentlyLocked).toBe(0); // All released
+236 |       expect(stats.averageHoldTime).toBeGreaterThan(0);
+                                          ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk-lock.integration.test.ts:236:37)
+(fail) RiskLockService - Integration Tests > Lock Statistics > should track lock statistics [0.43ms]
+320 |       // Wait for TTL to expire
+321 |       await new Promise((resolve) => setTimeout(resolve, 1500));
+322 | 
+323 |       // Lock should be auto-released by Redis
+324 |       isLocked = await RiskLockService.isLocked(TEST_USER_ID, TEST_TENANT_ID);
+325 |       expect(isLocked).toBe(false);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk-lock.integration.test.ts:325:24)
+(fail) RiskLockService - Integration Tests > Lock TTL and Expiration > should respect TTL and auto-release after timeout [1508.34ms]
+
+src/modules/banco/services/__tests__/export-csv.test.ts:
+19 |     ] as any[];
+20 | 
+21 |     const original = (walletService as any).getTransactions;
+22 |     (walletService as any).getTransactions = mock(() => Promise.resolve(rows));
+23 | 
+24 |     const csv = await walletService.exportTransactionsCsv({ walletId: 'w1', userId: 'u1' });
+                                         ^
+TypeError: walletService.exportTransactionsCsv is not a function. (In 'walletService.exportTransactionsCsv({ walletId: "w1", userId: "u1" })', 'walletService.exportTransactionsCsv' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/export-csv.test.ts:24:37)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/export-csv.test.ts:5:45)
+(fail) walletService.exportTransactionsCsv > exports CSV with headers and rows [0.63ms]
+
+src/modules/banco/services/__tests__/wallet.service.integration.test.ts:
+215 |       updatedAt: new Date(),
+216 |     });
+217 |   });
+218 | 
+219 |   test('locks and unlocks wallet', async () => {
+220 |     const lock = await walletService.setWalletLock('w1', 'user-1', 'tenant-1', true, 'fraud');
+                                           ^
+TypeError: walletService.setWalletLock is not a function. (In 'walletService.setWalletLock("w1", "user-1", "tenant-1", true, "fraud")', 'walletService.setWalletLock' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:220:38)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:219:36)
+(fail) WalletService setWalletLock > locks and unlocks wallet [0.33ms]
+227 |     expect(data.wallets[0].isLocked).toBe(false);
+228 |   });
+229 | 
+230 |   test('returns error when wallet not found', async () => {
+231 |     data.wallets.length = 0;
+232 |     const res = await walletService.setWalletLock('w1', 'user-1', 'tenant-1', true);
+                                          ^
+TypeError: walletService.setWalletLock is not a function. (In 'walletService.setWalletLock("w1", "user-1", "tenant-1", true)', 'walletService.setWalletLock' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:232:37)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:230:47)
+(fail) WalletService setWalletLock > returns error when wallet not found [0.04ms]
+252 |       updatedAt: new Date(),
+253 |     });
+254 |   });
+255 | 
+256 |   test('creates, lists and updates savings goals', async () => {
+257 |     const create = await walletService.createSavingsGoal({
+                                             ^
+TypeError: walletService.createSavingsGoal is not a function. (In 'walletService.createSavingsGoal({
+      userId: "user-1",
+      walletId: "w1",
+      name: "Travel",
+      targetAmount: 1,
+      asset: "BTC",
+      description: "Trip planning"
+    })', 'walletService.createSavingsGoal' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:257:40)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:256:52)
+(fail) Savings goals > creates, lists and updates savings goals [0.09ms]
+315 |       updatedAt: timestamp,
+316 |     });
+317 |   });
+318 | 
+319 |   test('create and approve withdrawal updates balances correctly', async () => {
+320 |     const create = await walletService.createWithdrawal({
+                                             ^
+TypeError: walletService.createWithdrawal is not a function. (In 'walletService.createWithdrawal({
+      walletId: "wallet-1",
+      userId: "user-1",
+      tenantId: "tenant-1",
+      asset: "BTC",
+      amount: 0.3,
+      destinationAddress: "addr-dest",
+      network: "BTC",
+      twoFactorCode: "123456"
+    })', 'walletService.createWithdrawal' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:320:40)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/services/__tests__/wallet.service.integration.test.ts:319:68)
+(fail) Withdrawal flow smoke test > create and approve withdrawal updates balances correctly [0.08ms]
+
+src/modules/market-data/websocket/__tests__/pipeline.test.ts:
+101 | 
+102 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+103 | 
+104 |     await initializeMarketDataPipeline();
+105 | 
+106 |     expect(connectMock).toHaveBeenCalledTimes(2);
+                              ^
+error: expect(received).toHaveBeenCalledTimes(expected)
+
+Expected number of calls: 2
+Received number of calls: 0
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:106:25)
+(fail) initializeMarketDataPipeline > should connect and subscribe according to env configuration [0.91ms]
+146 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+147 | 
+148 |     await initializeMarketDataPipeline();
+149 | 
+150 |     expect(warnMock).toHaveBeenCalled();
+151 |     expect(connectMock).toHaveBeenCalledWith(
+                              ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+Expected: [ "binance", ObjectContaining {
+    url: StringContaining "binance.com",
+  } ]
+But it was not called.
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:151:25)
+(fail) initializeMarketDataPipeline > should warn and fall back to defaults for invalid subscription entries [0.13ms]
+165 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+166 | 
+167 |     await initializeMarketDataPipeline();
+168 | 
+169 |     // One connect call for binance, only the missing channel (trades) should be subscribed
+170 |     expect(connectMock).toHaveBeenCalledTimes(1);
+                              ^
+error: expect(received).toHaveBeenCalledTimes(expected)
+
+Expected number of calls: 1
+Received number of calls: 0
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:170:25)
+(fail) initializeMarketDataPipeline > should skip duplicate subscriptions that already exist [0.11ms]
+181 | 
+182 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+183 | 
+184 |     await initializeMarketDataPipeline();
+185 | 
+186 |     expect(connectMock).toHaveBeenCalledWith(
+                              ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+Expected: [ "binance", ObjectContaining {
+    url: "wss://custom-binance.example/ws",
+  } ]
+But it was not called.
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:186:25)
+(fail) initializeMarketDataPipeline > should apply exchange URL override from environment [0.07ms]
+196 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+197 | 
+198 |     await initializeMarketDataPipeline();
+199 | 
+200 |     expect(warnMock).toHaveBeenCalled();
+201 |     expect(connectMock).toHaveBeenCalledWith(
+                              ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+Expected: [ "binance", ObjectContaining {
+    url: Any<String>,
+  } ]
+But it was not called.
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:201:25)
+(fail) initializeMarketDataPipeline > should warn and continue when unsupported exchange is configured [0.12ms]
+211 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+212 | 
+213 |     await initializeMarketDataPipeline();
+214 | 
+215 |     expect(warnMock).toHaveBeenCalled();
+216 |     expect(connectMock).toHaveBeenCalledWith(
+                              ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+Expected: [ "binance", ObjectContaining {
+    url: StringContaining "binance.com",
+  } ]
+But it was not called.
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:216:25)
+(fail) initializeMarketDataPipeline > should warn when subscription entry contains only invalid channels [0.09ms]
+226 | 
+227 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+228 | 
+229 |     await initializeMarketDataPipeline();
+230 | 
+231 |     expect(subscribeMock).toHaveBeenCalledWith(
+                                ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+    Expected: [
+  ObjectContaining {
+    channel: "orderbook",
+    params: {
+      depth: 50,
+    },
+  }
+]
+    Received:
+              1: [
+  {
+    exchangeId: "binance",
+    channel: "ticker",
+    symbol: "BTC/USDT",
+    params: undefined,
+  }
+]
+              2: [
+  {
+    exchangeId: "binance",
+    channel: "trades",
+    symbol: "BTC/USDT",
+    params: undefined,
+  }
+]
+              3: [
+  {
+    exchangeId: "binance",
+    channel: "ticker",
+    symbol: "ETH/USDT",
+    params: undefined,
+  }
+]
+
+    Number of calls: 3
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:231:27)
+(fail) initializeMarketDataPipeline > should apply orderbook params when subscribing to depth channel [0.11ms]
+249 | 
+250 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+251 | 
+252 |     await initializeMarketDataPipeline();
+253 | 
+254 |     expect(errorMock).toHaveBeenCalledWith(
+                            ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+@@ -2,5 +2,5 @@
+    "Failed to connect exchange WebSocket",
+-   ObjectContaining {
+-     "error": "connect failed",
+-     "exchange": "kraken",
++   {
++     "error": "Exchanges module not yet implemented. Cannot get config for binance",
++     "exchange": "binance",
+    },
+
+- Expected  - 3
++ Received  + 3
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:254:23)
+(fail) initializeMarketDataPipeline > should log error when exchange connection fails but continue execution [0.18ms]
+292 | 
+293 |     const { initializeMarketDataPipeline } = await importPipelineModule();
+294 | 
+295 |     await initializeMarketDataPipeline();
+296 | 
+297 |     expect(connectMock).toHaveBeenCalledWith(
+                              ^
+error: expect(received).toHaveBeenCalledWith(...expected)
+
+Expected: [ "binance", ObjectContaining {
+    url: StringContaining "binance.com",
+  } ]
+But it was not called.
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/__tests__/pipeline.test.ts:297:25)
+(fail) initializeMarketDataPipeline > should fall back to default subscriptions when none are configured [0.18ms]
+
+src/modules/market-data/websocket/__tests__/manager.routing.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+1 | })
+2 | {
+    ^
+SyntaxError: Export named 'MarketDataWebSocketManager' not found in module '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/market-data-websocket-manager.ts'.
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+src/modules/market-data/services/__tests__/exchange-websocket-metadata.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../../exchanges/services/exchange-websocket-metadata.service' from '/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/services/__tests__/exchange-websocket-metadata.service.test.ts'
+-------------------------------
+
+
+src/modules/financial/utils/__tests__/validators.estonia.test.ts:
+21 | describe('Estonian Tax Validators', () => {
+22 |   describe('validateEstonianPersonalCode (Isikukood)', () => {
+23 |     test('should validate correct personal codes', () => {
+24 |       // Valid Estonian personal codes (using known valid test codes)
+25 |       expect(validateEstonianPersonalCode('37605030299')).toBe(true);
+26 |       expect(validateEstonianPersonalCode('46304049651')).toBe(true);
+                                                               ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:26:59)
+(fail) Estonian Tax Validators > validateEstonianPersonalCode (Isikukood) > should validate correct personal codes [1.55ms]
+44 |     });
+45 |   });
+46 | 
+47 |   describe('validateEstonianBusinessCode (Registrikood)', () => {
+48 |     test('should validate correct business codes', () => {
+49 |       expect(validateEstonianBusinessCode('10137025')).toBe(true); // Skype Estonia
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:49:56)
+(fail) Estonian Tax Validators > validateEstonianBusinessCode (Registrikood) > should validate correct business codes [0.08ms]
+56 |       expect(validateEstonianBusinessCode('1234567')).toBe(false); // Too short
+57 |       expect(validateEstonianBusinessCode('123456789')).toBe(false); // Too long
+58 |     });
+59 | 
+60 |     test('should handle spaces and dashes', () => {
+61 |       expect(validateEstonianBusinessCode('1013-7025')).toBe(true);
+                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:61:57)
+(fail) Estonian Tax Validators > validateEstonianBusinessCode (Registrikood) > should handle spaces and dashes [0.03ms]
+64 |   });
+65 | 
+66 |   describe('validateEstonianVAT (KMKR)', () => {
+67 |     test('should validate correct VAT numbers', () => {
+68 |       expect(validateEstonianVAT('EE100931558')).toBe(true);
+69 |       expect(validateEstonianVAT('EE101571294')).toBe(true);
+                                                      ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:69:50)
+(fail) Estonian Tax Validators > validateEstonianVAT (KMKR) > should validate correct VAT numbers [0.05ms]
+163 |   });
+164 | 
+165 |   describe('validateEstonianInvoiceReference', () => {
+166 |     test('should validate correct RF references', () => {
+167 |       expect(validateEstonianInvoiceReference('RF18539007547034')).toBe(true);
+168 |       expect(validateEstonianInvoiceReference('RF8912345')).toBe(true);
+                                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:168:61)
+(fail) Estonian Tax Validators > validateEstonianInvoiceReference > should validate correct RF references [0.29ms]
+246 |   });
+247 | 
+248 |   describe('Real-World Scenarios', () => {
+249 |     test('should validate real Estonian companies', () => {
+250 |       // Skype Technologies OÜ
+251 |       expect(validateEstonianBusinessCode('10137025')).toBe(true);
+                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:251:56)
+(fail) Estonian Tax Validators > Real-World Scenarios > should validate real Estonian companies [0.23ms]
+254 |       expect(validateEstonianBusinessCode('80042537')).toBe(true);
+255 |     });
+256 | 
+257 |     test('should validate realistic VAT numbers', () => {
+258 |       expect(validateEstonianVAT('EE100931558')).toBe(true);
+259 |       expect(validateEstonianVAT('EE101571294')).toBe(true);
+                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:259:50)
+(fail) Estonian Tax Validators > Real-World Scenarios > should validate realistic VAT numbers [0.04ms]
+262 |     test('should format complete company information', () => {
+263 |       const code = '10137025';
+264 |       const vat = 'EE100931558';
+265 |       const iban = 'EE382200221020145685';
+266 | 
+267 |       expect(validateEstonianBusinessCode(code)).toBe(true);
+                                                       ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/utils/__tests__/validators.estonia.test.ts:267:50)
+(fail) Estonian Tax Validators > Real-World Scenarios > should format complete company information [0.04ms]
+
+src/modules/financial/services/__tests__/integration.service.test.ts:
+27 |         mockInvoiceId,
+28 |         mockTenantId,
+29 |         mockUserId,
+30 |       );
+31 | 
+32 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:32:30)
+(fail) IntegrationService > createLedgerEntryFromInvoice > should create ledger entry for income invoice [0.66ms]
+49 |         'expense-invoice-id',
+50 |         mockTenantId,
+51 |         mockUserId,
+52 |       );
+53 | 
+54 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:54:30)
+(fail) IntegrationService > createLedgerEntryFromInvoice > should create ledger entry for expense invoice [0.08ms]
+92 |         mockUserId,
+93 |       );
+94 | 
+95 |       expect(duplicate.success).toBe(false);
+96 |       if (!duplicate.success) {
+97 |         expect(duplicate.error).toContain('Ledger entry already exists');
+                                     ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Ledger entry already exists"
+Received: "Invoice not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:97:33)
+(fail) IntegrationService > createLedgerEntryFromInvoice > should not duplicate ledger entries [0.04ms]
+103 |         'usd-invoice-id',
+104 |         mockTenantId,
+105 |         mockUserId,
+106 |       );
+107 | 
+108 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:108:30)
+(fail) IntegrationService > createLedgerEntryFromInvoice > should handle multi-currency invoices [0.04ms]
+120 |         mockExpenseId,
+121 |         mockTenantId,
+122 |         mockUserId,
+123 |       );
+124 | 
+125 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:125:30)
+(fail) IntegrationService > createLedgerEntryFromExpense > should create ledger entry for approved expense [0.02ms]
+144 |         mockUserId,
+145 |       );
+146 | 
+147 |       expect(result.success).toBe(false);
+148 |       if (!result.success) {
+149 |         expect(result.error).toContain('Expense must be approved');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Expense must be approved"
+Received: "Expense not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:149:30)
+(fail) IntegrationService > createLedgerEntryFromExpense > should not create entry for unapproved expense [0.38ms]
+168 |         mockExpenseId,
+169 |         mockTenantId,
+170 |         mockUserId,
+171 |       );
+172 | 
+173 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:173:30)
+(fail) IntegrationService > createLedgerEntryFromExpense > should map expense category to ledger account [0.03ms]
+187 |         mockPaymentId,
+188 |         mockTenantId,
+189 |         mockUserId,
+190 |       );
+191 | 
+192 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:192:30)
+(fail) IntegrationService > processInvoicePayment > should create ledger entry for payment received [0.02ms]
+210 |         'partial-payment-id',
+211 |         mockTenantId,
+212 |         mockUserId,
+213 |       );
+214 | 
+215 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:215:30)
+(fail) IntegrationService > processInvoicePayment > should handle partial payments [0.02ms]
+228 |         mockUserId,
+229 |       );
+230 | 
+231 |       expect(result.success).toBe(false);
+232 |       if (!result.success) {
+233 |         expect(result.error).toContain('Payment not found');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Payment not found"
+Received: "Invoice not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:233:30)
+(fail) IntegrationService > processInvoicePayment > should validate payment exists [0.02ms]
+242 |         mockUserId,
+243 |       );
+244 | 
+245 |       expect(result.success).toBe(false);
+246 |       if (!result.success) {
+247 |         expect(result.error).toContain('Payment does not belong to invoice');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Payment does not belong to invoice"
+Received: "Invoice not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:247:30)
+(fail) IntegrationService > processInvoicePayment > should validate payment belongs to invoice [0.02ms]
+280 |       const result = await service.updateBudgetFromExpense(
+281 |         mockExpenseId,
+282 |         mockTenantId,
+283 |       );
+284 | 
+285 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:285:30)
+(fail) IntegrationService > updateBudgetFromExpense > should update budget when expense is approved [0.07ms]
+289 |       const result = await service.updateBudgetFromExpense(
+290 |         mockExpenseId,
+291 |         mockTenantId,
+292 |       );
+293 | 
+294 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:294:30)
+(fail) IntegrationService > updateBudgetFromExpense > should find matching budget line by category [0.03ms]
+301 |         mockTenantId,
+302 |       );
+303 | 
+304 |       expect(result.success).toBe(false);
+305 |       if (!result.success) {
+306 |         expect(result.error).toContain('Expense must be approved');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Expense must be approved"
+Received: "Expense not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:306:30)
+(fail) IntegrationService > updateBudgetFromExpense > should not update budget for unapproved expense [0.02ms]
+312 |         'expense-no-budget',
+313 |         mockTenantId,
+314 |       );
+315 | 
+316 |       // Should succeed but not update any budget (no matching category)
+317 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:317:30)
+(fail) IntegrationService > updateBudgetFromExpense > should handle expense without matching budget [0.02ms]
+321 |       const result = await service.updateBudgetFromExpense(
+322 |         'large-expense-id',
+323 |         mockTenantId,
+324 |       );
+325 | 
+326 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:326:30)
+(fail) IntegrationService > updateBudgetFromExpense > should trigger budget alerts if threshold exceeded [0.02ms]
+334 |       const invoiceEntry = await service.createLedgerEntryFromInvoice(
+335 |         mockInvoiceId,
+336 |         mockTenantId,
+337 |         mockUserId,
+338 |       );
+339 |       expect(invoiceEntry.success).toBe(true);
+                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:339:36)
+(fail) IntegrationService > Integration Workflows > should handle complete invoice-to-payment workflow [0.02ms]
+358 |       // 1. Approve expense → Update budget
+359 |       const budgetUpdate = await service.updateBudgetFromExpense(
+360 |         mockExpenseId,
+361 |         mockTenantId,
+362 |       );
+363 |       expect(budgetUpdate.success).toBe(true);
+                                         ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:363:36)
+(fail) IntegrationService > Integration Workflows > should handle complete expense-to-budget workflow [0.05ms]
+447 | 
+448 |       // One should succeed, one should fail (duplicate prevention)
+449 |       const successes = results.filter((r) => r.success);
+450 |       const failures = results.filter((r) => !r.success);
+451 | 
+452 |       expect(successes.length).toBe(1);
+                                     ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 0
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:452:32)
+(fail) IntegrationService > Error Handling > should handle concurrent integrations [0.09ms]
+475 |         mockUserId,
+476 |       );
+477 | 
+478 |       expect(result.success).toBe(false);
+479 |       if (!result.success) {
+480 |         expect(result.error).toContain('Amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Amount must be greater than 0"
+Received: "Invoice not found"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:480:30)
+(fail) IntegrationService > Edge Cases > should handle zero amount invoice [0.04ms]
+486 |         'invoice-with-tax',
+487 |         mockTenantId,
+488 |         mockUserId,
+489 |       );
+490 | 
+491 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:491:30)
+(fail) IntegrationService > Edge Cases > should handle invoice with tax amounts [0.05ms]
+499 |       const result = await service.updateBudgetFromExpense(
+500 |         'multi-category-expense',
+501 |         mockTenantId,
+502 |       );
+503 | 
+504 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:504:30)
+(fail) IntegrationService > Edge Cases > should handle expense with multiple budget lines [0.10ms]
+511 |         'payment-with-discount',
+512 |         mockTenantId,
+513 |         mockUserId,
+514 |       );
+515 | 
+516 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:516:30)
+(fail) IntegrationService > Edge Cases > should handle payment with discount [0.06ms]
+538 |         mockInvoiceId,
+539 |         mockTenantId,
+540 |         mockUserId,
+541 |       );
+542 | 
+543 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:543:30)
+(fail) IntegrationService > Edge Cases > should preserve metadata across integrations [0.03ms]
+615 |         'expense-unknown-category',
+616 |         mockTenantId,
+617 |         mockUserId,
+618 |       );
+619 | 
+620 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/integration.service.test.ts:620:30)
+(fail) IntegrationService > Account Mapping > should use default accounts when mapping not found [0.09ms]
+
+src/modules/financial/services/__tests__/budget.service.test.ts:
+52 | 
+53 |   describe('create', () => {
+54 |     test('should create budget with lines', async () => {
+55 |       const result = await service.create(mockBudgetData, mockBudgetLines);
+56 | 
+57 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:57:30)
+(fail) BudgetService > create > should create budget with lines [0.48ms]
+71 | 
+72 |       const result = await service.create(invalidData, mockBudgetLines);
+73 | 
+74 |       expect(result.success).toBe(false);
+75 |       if (!result.success) {
+76 |         expect(result.error).toContain('Budget total must match sum of lines');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Budget total must match sum of lines"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:76:30)
+(fail) BudgetService > create > should validate budget total matches lines [0.07ms]
+86 | 
+87 |       const result = await service.create(invalidData, mockBudgetLines);
+88 | 
+89 |       expect(result.success).toBe(false);
+90 |       if (!result.success) {
+91 |         expect(result.error).toContain('End date must be after start date');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "End date must be after start date"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:91:30)
+(fail) BudgetService > create > should validate start date before end date [0.09ms]
+ 95 |     test('should require at least one budget line', async () => {
+ 96 |       const result = await service.create(mockBudgetData, []);
+ 97 | 
+ 98 |       expect(result.success).toBe(false);
+ 99 |       if (!result.success) {
+100 |         expect(result.error).toContain('At least one budget line required');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "At least one budget line required"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:100:30)
+(fail) BudgetService > create > should require at least one budget line [0.05ms]
+105 |   describe('getById', () => {
+106 |     test('should get budget with lines', async () => {
+107 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+108 | 
+109 |       if (!created.success) {
+110 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:110:15)
+(fail) BudgetService > getById > should get budget with lines [0.03ms]
+121 |     });
+122 |   });
+123 | 
+124 |   describe('list', () => {
+125 |     test('should list budgets', async () => {
+126 |       const result = await service.list(mockTenantId);
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId)', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:126:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:125:33)
+(fail) BudgetService > list > should list budgets [0.05ms]
+130 |         expect(Array.isArray(result.data)).toBe(true);
+131 |       }
+132 |     });
+133 | 
+134 |     test('should filter by fiscal period', async () => {
+135 |       const result = await service.list(mockTenantId, {
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, {
+        fiscalPeriod: "2025-Q1"
+      })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:135:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:134:44)
+(fail) BudgetService > list > should filter by fiscal period [0.03ms]
+143 |         });
+144 |       }
+145 |     });
+146 | 
+147 |     test('should filter by status', async () => {
+148 |       const result = await service.list(mockTenantId, { status: 'approved' });
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, { status: "approved" })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:148:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:147:37)
+(fail) BudgetService > list > should filter by status [0.07ms]
+159 |   describe('update', () => {
+160 |     test('should update draft budget', async () => {
+161 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+162 | 
+163 |       if (!created.success) {
+164 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:164:15)
+(fail) BudgetService > update > should update draft budget [0.06ms]
+173 |         expect(result.data.budgetName).toBe('Updated Budget Name');
+174 |       }
+175 |     });
+176 | 
+177 |     test('should not update approved budget', async () => {
+178 |       const result = await service.update('approved-budget-id', mockTenantId, {
+                                         ^
+TypeError: service.update is not a function. (In 'service.update("approved-budget-id", mockTenantId, {
+        budgetName: "New name"
+      })', 'service.update' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:178:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:177:47)
+(fail) BudgetService > update > should not update approved budget [0.04ms]
+189 |   describe('delete', () => {
+190 |     test('should delete draft budget', async () => {
+191 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+192 | 
+193 |       if (!created.success) {
+194 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:194:15)
+(fail) BudgetService > delete > should delete draft budget [0.04ms]
+198 | 
+199 |       expect(result.success).toBe(true);
+200 |     });
+201 | 
+202 |     test('should not delete approved budget', async () => {
+203 |       const result = await service.delete('approved-budget-id', mockTenantId);
+                                         ^
+TypeError: service.delete is not a function. (In 'service.delete("approved-budget-id", mockTenantId)', 'service.delete' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:203:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:202:47)
+(fail) BudgetService > delete > should not delete approved budget [0.07ms]
+212 |   describe('updateLineActual', () => {
+213 |     test('should update actual amount and calculate variance', async () => {
+214 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+215 | 
+216 |       if (!created.success) {
+217 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:217:15)
+(fail) BudgetService > updateLineActual > should update actual amount and calculate variance [0.07ms]
+235 | 
+236 |     test('should create alert when over warning threshold', async () => {
+237 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+238 | 
+239 |       if (!created.success) {
+240 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:240:15)
+(fail) BudgetService > updateLineActual > should create alert when over warning threshold [0.08ms]
+256 | 
+257 |     test('should create alert when over critical threshold', async () => {
+258 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+259 | 
+260 |       if (!created.success) {
+261 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:261:15)
+(fail) BudgetService > updateLineActual > should create alert when over critical threshold [0.04ms]
+280 |   describe('syncWithExpenses', () => {
+281 |     test('should sync budget with approved expenses', async () => {
+282 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+283 | 
+284 |       if (!created.success) {
+285 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:285:15)
+(fail) BudgetService > syncWithExpenses > should sync budget with approved expenses [0.04ms]
+295 | 
+296 |     test('should only sync approved expenses', async () => {
+297 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+298 | 
+299 |       if (!created.success) {
+300 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:300:15)
+(fail) BudgetService > syncWithExpenses > should only sync approved expenses [0.02ms]
+318 |   describe('getSummary', () => {
+319 |     test('should get budget summary', async () => {
+320 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+321 | 
+322 |       if (!created.success) {
+323 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:323:15)
+(fail) BudgetService > getSummary > should get budget summary [0.02ms]
+337 | 
+338 |     test('should calculate utilization percentage correctly', async () => {
+339 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+340 | 
+341 |       if (!created.success) {
+342 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:342:15)
+(fail) BudgetService > getSummary > should calculate utilization percentage correctly [0.02ms]
+357 | 
+358 |   describe('getAlerts', () => {
+359 |     test('should get budget alerts', async () => {
+360 |       const result = await service.getAlerts(mockTenantId, 'budget-001');
+361 | 
+362 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:362:30)
+(fail) BudgetService > getAlerts > should get budget alerts [0.11ms]
+368 |     test('should filter unresolved alerts', async () => {
+369 |       const result = await service.getAlerts(mockTenantId, 'budget-001', {
+370 |         resolved: false,
+371 |       });
+372 | 
+373 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:373:30)
+(fail) BudgetService > getAlerts > should filter unresolved alerts [0.02ms]
+381 |     test('should filter by severity', async () => {
+382 |       const result = await service.getAlerts(mockTenantId, 'budget-001', {
+383 |         severity: 'critical',
+384 |       });
+385 | 
+386 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:386:30)
+(fail) BudgetService > getAlerts > should filter by severity [0.03ms]
+399 |         mockTenantId,
+400 |         mockUserId,
+401 |         'Budget adjusted',
+402 |       );
+403 | 
+404 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:404:30)
+(fail) BudgetService > resolveAlert > should resolve budget alert [0.02ms]
+418 |         'Note',
+419 |       );
+420 | 
+421 |       expect(result.success).toBe(false);
+422 |       if (!result.success) {
+423 |         expect(result.error).toContain('Alert already resolved');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Alert already resolved"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:423:30)
+(fail) BudgetService > resolveAlert > should not resolve already resolved alert [0.02ms]
+428 |   describe('Business Logic', () => {
+429 |     test('should track budget vs actual correctly over time', async () => {
+430 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+431 | 
+432 |       if (!created.success) {
+433 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:433:15)
+(fail) BudgetService > Business Logic > should track budget vs actual correctly over time [0.08ms]
+454 | 
+455 |     test('should handle multiple categories correctly', async () => {
+456 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+457 | 
+458 |       if (!created.success) {
+459 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:459:15)
+(fail) BudgetService > Business Logic > should handle multiple categories correctly [0.02ms]
+497 | 
+498 |       const result = await service.create(mockBudgetData, linesWithZero);
+499 | 
+500 |       expect(result.success).toBe(false);
+501 |       if (!result.success) {
+502 |         expect(result.error).toContain('Budget line amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Budget line amount must be greater than 0"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:502:30)
+(fail) BudgetService > Edge Cases > should handle zero budget line [0.03ms]
+505 | 
+506 |     test('should handle negative variance correctly', async () => {
+507 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+508 | 
+509 |       if (!created.success) {
+510 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:510:15)
+(fail) BudgetService > Edge Cases > should handle negative variance correctly [0.04ms]
+525 | 
+526 |     test('should handle concurrent updates to same line', async () => {
+527 |       const created = await service.create(mockBudgetData, mockBudgetLines);
+528 | 
+529 |       if (!created.success) {
+530 |         throw new Error('Failed to create budget');
+                    ^
+error: Failed to create budget
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/budget.service.test.ts:530:15)
+(fail) BudgetService > Edge Cases > should handle concurrent updates to same line [0.09ms]
+
+src/modules/financial/services/__tests__/ledger.service.test.ts:
+63 | 
+64 |   describe('createEntry', () => {
+65 |     test('should create balanced ledger entry', async () => {
+66 |       const result = await service.createEntry(mockEntryData, mockLines);
+67 | 
+68 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:68:30)
+(fail) LedgerService > createEntry > should create balanced ledger entry [0.29ms]
+91 | 
+92 |       const result = await service.createEntry(mockEntryData, unbalancedLines);
+93 | 
+94 |       expect(result.success).toBe(false);
+95 |       if (!result.success) {
+96 |         expect(result.error).toContain('Debits must equal credits');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Debits must equal credits"
+Received: "Debits (1000) must equal credits (500)"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:96:30)
+(fail) LedgerService > createEntry > should reject unbalanced entry [0.03ms]
+109 | 
+110 |       const result = await service.createEntry(mockEntryData, singleLine);
+111 | 
+112 |       expect(result.success).toBe(false);
+113 |       if (!result.success) {
+114 |         expect(result.error).toContain('At least 2 lines required');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "At least 2 lines required"
+Received: "Debits (1000) must equal credits (0)"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:114:30)
+(fail) LedgerService > createEntry > should require at least 2 lines [0.03ms]
+133 | 
+134 |       const result = await service.createEntry(mockEntryData, invalidLines);
+135 | 
+136 |       expect(result.success).toBe(false);
+137 |       if (!result.success) {
+138 |         expect(result.error).toContain('Account not found');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Account not found"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:138:30)
+(fail) LedgerService > createEntry > should validate all accounts exist [0.02ms]
+155 |         },
+156 |       ];
+157 | 
+158 |       const result = await service.createEntry(mockEntryData, linesWithRounding);
+159 | 
+160 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:160:30)
+(fail) LedgerService > createEntry > should allow rounding differences within tolerance [0.02ms]
+164 |   describe('getById', () => {
+165 |     test('should get entry by id with lines', async () => {
+166 |       const created = await service.createEntry(mockEntryData, mockLines);
+167 | 
+168 |       if (!created.success) {
+169 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:169:15)
+(fail) LedgerService > getById > should get entry by id with lines [0.02ms]
+178 |         expect(result.data.lines.length).toBe(2);
+179 |       }
+180 |     });
+181 | 
+182 |     test('should return error for non-existent entry', async () => {
+183 |       const result = await service.getById('non-existent', mockTenantId);
+                                         ^
+TypeError: service.getById is not a function. (In 'service.getById("non-existent", mockTenantId)', 'service.getById' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:183:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:182:56)
+(fail) LedgerService > getById > should return error for non-existent entry [0.02ms]
+189 |     });
+190 |   });
+191 | 
+192 |   describe('list', () => {
+193 |     test('should list entries with filters', async () => {
+194 |       const result = await service.list(mockTenantId);
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId)', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:194:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:193:46)
+(fail) LedgerService > list > should list entries with filters [0.02ms]
+198 |         expect(Array.isArray(result.data)).toBe(true);
+199 |       }
+200 |     });
+201 | 
+202 |     test('should filter by fiscal period', async () => {
+203 |       const result = await service.list(mockTenantId, {
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, {
+        fiscalPeriod: "2025-01"
+      })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:203:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:202:44)
+(fail) LedgerService > list > should filter by fiscal period [0.02ms]
+211 |         });
+212 |       }
+213 |     });
+214 | 
+215 |     test('should filter by status', async () => {
+216 |       const result = await service.list(mockTenantId, { status: 'posted' });
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, { status: "posted" })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:216:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:215:37)
+(fail) LedgerService > list > should filter by status [0.04ms]
+225 | 
+226 |     test('should filter by date range', async () => {
+227 |       const startDate = new Date('2025-01-01');
+228 |       const endDate = new Date('2025-01-31');
+229 | 
+230 |       const result = await service.list(mockTenantId, { startDate, endDate });
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, { startDate, endDate })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:230:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:226:41)
+(fail) LedgerService > list > should filter by date range [0.04ms]
+242 |   describe('update', () => {
+243 |     test('should update draft entry', async () => {
+244 |       const created = await service.createEntry(mockEntryData, mockLines);
+245 | 
+246 |       if (!created.success) {
+247 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:247:15)
+(fail) LedgerService > update > should update draft entry [0.03ms]
+256 |         expect(result.data.description).toBe('Updated description');
+257 |       }
+258 |     });
+259 | 
+260 |     test('should not update posted entry', async () => {
+261 |       const result = await service.update('posted-entry-id', mockTenantId, {
+                                         ^
+TypeError: service.update is not a function. (In 'service.update("posted-entry-id", mockTenantId, {
+        description: "New description"
+      })', 'service.update' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:261:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:260:44)
+(fail) LedgerService > update > should not update posted entry [0.03ms]
+272 |   describe('delete', () => {
+273 |     test('should delete draft entry', async () => {
+274 |       const created = await service.createEntry(mockEntryData, mockLines);
+275 | 
+276 |       if (!created.success) {
+277 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:277:15)
+(fail) LedgerService > delete > should delete draft entry [0.03ms]
+281 | 
+282 |       expect(result.success).toBe(true);
+283 |     });
+284 | 
+285 |     test('should not delete posted entry', async () => {
+286 |       const result = await service.delete('posted-entry-id', mockTenantId);
+                                         ^
+TypeError: service.delete is not a function. (In 'service.delete("posted-entry-id", mockTenantId)', 'service.delete' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:286:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:285:44)
+(fail) LedgerService > delete > should not delete posted entry [0.03ms]
+295 |   describe('postEntry', () => {
+296 |     test('should post draft entry', async () => {
+297 |       const created = await service.createEntry(mockEntryData, mockLines);
+298 | 
+299 |       if (!created.success) {
+300 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:300:15)
+(fail) LedgerService > postEntry > should post draft entry [0.05ms]
+321 |         mockUserId,
+322 |       );
+323 | 
+324 |       expect(result.success).toBe(false);
+325 |       if (!result.success) {
+326 |         expect(result.error).toContain('Entry already posted');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Entry already posted"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:326:30)
+(fail) LedgerService > postEntry > should not post already posted entry [0.08ms]
+335 |         mockUserId,
+336 |       );
+337 | 
+338 |       expect(result.success).toBe(false);
+339 |       if (!result.success) {
+340 |         expect(result.error).toContain('Entry is not balanced');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Entry is not balanced"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:340:30)
+(fail) LedgerService > postEntry > should validate balance before posting [0.04ms]
+345 |   describe('reverseEntry', () => {
+346 |     test('should reverse posted entry', async () => {
+347 |       const created = await service.createEntry(mockEntryData, mockLines);
+348 | 
+349 |       if (!created.success) {
+350 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:350:15)
+(fail) LedgerService > reverseEntry > should reverse posted entry [0.08ms]
+384 |         mockUserId,
+385 |       );
+386 | 
+387 |       expect(result.success).toBe(false);
+388 |       if (!result.success) {
+389 |         expect(result.error).toContain('Can only reverse posted entries');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Can only reverse posted entries"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:389:30)
+(fail) LedgerService > reverseEntry > should not reverse draft entry [0.15ms]
+398 |         mockUserId,
+399 |       );
+400 | 
+401 |       expect(result.success).toBe(false);
+402 |       if (!result.success) {
+403 |         expect(result.error).toContain('Reversal reason is required');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Reversal reason is required"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:403:30)
+(fail) LedgerService > reverseEntry > should require reversal reason [0.03ms]
+407 | 
+408 |   describe('getTrialBalance', () => {
+409 |     test('should calculate trial balance', async () => {
+410 |       const result = await service.getTrialBalance(mockTenantId, '2025-01');
+411 | 
+412 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:412:30)
+(fail) LedgerService > getTrialBalance > should calculate trial balance [0.16ms]
+439 |     test('should filter by account type', async () => {
+440 |       const result = await service.getTrialBalance(mockTenantId, '2025-01', {
+441 |         accountType: 'asset',
+442 |       });
+443 | 
+444 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:444:30)
+(fail) LedgerService > getTrialBalance > should filter by account type [0.06ms]
+456 |         mockTenantId,
+457 |         'account-cash',
+458 |         '2025-01',
+459 |       );
+460 | 
+461 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:461:30)
+(fail) LedgerService > getAccountBalance > should get balance for specific account [0.08ms]
+473 |         mockTenantId,
+474 |         'account-no-transactions',
+475 |         '2025-01',
+476 |       );
+477 | 
+478 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:478:30)
+(fail) LedgerService > getAccountBalance > should return zero balance for account with no transactions [0.02ms]
+568 |         },
+569 |       ];
+570 | 
+571 |       const result = await service.createEntry(mockEntryData, complexLines);
+572 | 
+573 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:573:30)
+(fail) LedgerService > Business Logic - Double Entry > should handle complex multi-line entries
+604 |         },
+605 |       ];
+606 | 
+607 |       const result = await service.createEntry(mockEntryData, precisionLines);
+608 | 
+609 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:609:30)
+(fail) LedgerService > Edge Cases > should handle decimal precision correctly [0.03ms]
+627 | 
+628 |       const result = await service.createEntry(mockEntryData, zeroLines);
+629 | 
+630 |       expect(result.success).toBe(false);
+631 |       if (!result.success) {
+632 |         expect(result.error).toContain('Line amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Line amount must be greater than 0"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:632:30)
+(fail) LedgerService > Edge Cases > should prevent posting entry with zero amount lines [0.02ms]
+650 |       ];
+651 | 
+652 |       const result = await service.createEntry(mockEntryData, sameAccountLines);
+653 | 
+654 |       // This is technically valid (e.g., reclassification within same account)
+655 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:655:30)
+(fail) LedgerService > Edge Cases > should handle same account on both sides [0.03ms]
+657 | 
+658 |     test('should handle reversal of reversal', async () => {
+659 |       const created = await service.createEntry(mockEntryData, mockLines);
+660 | 
+661 |       if (!created.success) {
+662 |         throw new Error('Failed to create entry');
+                    ^
+error: Failed to create entry
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/ledger.service.test.ts:662:15)
+(fail) LedgerService > Edge Cases > should handle reversal of reversal [0.06ms]
+
+src/modules/financial/services/__tests__/tax.service.test.ts:
+39 |         'ICMS',
+40 |         '100000.00',
+41 |         'SP', // São Paulo
+42 |       );
+43 | 
+44 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:44:30)
+(fail) TaxService > calculateTax > should calculate ICMS correctly [0.71ms]
+56 |         '50000.00',
+57 |         undefined,
+58 |         'SP-SAO_PAULO',
+59 |       );
+60 | 
+61 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:61:30)
+(fail) TaxService > calculateTax > should calculate ISS correctly [0.08ms]
+72 |         mockTenantId,
+73 |         'PIS',
+74 |         '100000.00',
+75 |       );
+76 | 
+77 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:77:30)
+(fail) TaxService > calculateTax > should calculate PIS correctly [0.04ms]
+87 |         mockTenantId,
+88 |         'COFINS',
+89 |         '100000.00',
+90 |       );
+91 | 
+92 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:92:30)
+(fail) TaxService > calculateTax > should calculate COFINS correctly [0.04ms]
+102 |         mockTenantId,
+103 |         'IRPJ',
+104 |         '100000.00',
+105 |       );
+106 | 
+107 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:107:30)
+(fail) TaxService > calculateTax > should calculate IRPJ correctly [0.03ms]
+117 |         mockTenantId,
+118 |         'CSLL',
+119 |         '100000.00',
+120 |       );
+121 | 
+122 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:122:30)
+(fail) TaxService > calculateTax > should calculate CSLL correctly [0.03ms]
+134 |           service.calculateTax(mockTenantId, 'ICMS', '100000.00', state),
+135 |         ),
+136 |       );
+137 | 
+138 |       results.forEach((result) => {
+139 |         expect(result.success).toBe(true);
+                                     ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:139:32)
+      at forEach (1:11)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:138:15)
+(fail) TaxService > calculateTax > should handle different state ICMS rates [0.06ms]
+151 |         '-1000.00',
+152 |       );
+153 | 
+154 |       expect(result.success).toBe(false);
+155 |       if (!result.success) {
+156 |         expect(result.error).toContain('Taxable amount must be positive');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Taxable amount must be positive"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:156:30)
+(fail) TaxService > calculateTax > should validate taxable amount is positive
+164 |         '100000.00',
+165 |       );
+166 | 
+167 |       expect(result.success).toBe(false);
+168 |       if (!result.success) {
+169 |         expect(result.error).toContain('State code required for ICMS');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "State code required for ICMS"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:169:30)
+(fail) TaxService > calculateTax > should require state code for ICMS [0.23ms]
+177 |         '100000.00',
+178 |       );
+179 | 
+180 |       expect(result.success).toBe(false);
+181 |       if (!result.success) {
+182 |         expect(result.error).toContain('City code required for ISS');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "City code required for ISS"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:182:30)
+(fail) TaxService > calculateTax > should require city code for ISS [0.07ms]
+186 | 
+187 |   describe('createFiling', () => {
+188 |     test('should create tax filing', async () => {
+189 |       const result = await service.createFiling(mockFilingData);
+190 | 
+191 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:191:30)
+(fail) TaxService > createFiling > should create tax filing [0.15ms]
+205 | 
+206 |       const result = await service.createFiling(invalidData);
+207 | 
+208 |       expect(result.success).toBe(false);
+209 |       if (!result.success) {
+210 |         expect(result.error).toContain('Tax amount does not match calculation');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Tax amount does not match calculation"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:210:30)
+(fail) TaxService > createFiling > should validate tax amount matches calculation [0.05ms]
+219 | 
+220 |       const result = await service.createFiling(invalidData);
+221 | 
+222 |       expect(result.success).toBe(false);
+223 |       if (!result.success) {
+224 |         expect(result.error).toContain('Due date must be in the future');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Due date must be in the future"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:224:30)
+(fail) TaxService > createFiling > should validate due date is in future [0.06ms]
+229 |   describe('getById', () => {
+230 |     test('should get filing by id', async () => {
+231 |       const created = await service.createFiling(mockFilingData);
+232 | 
+233 |       if (!created.success) {
+234 |         throw new Error('Failed to create filing');
+                    ^
+error: Failed to create filing
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:234:15)
+(fail) TaxService > getById > should get filing by id [0.14ms]
+243 |     });
+244 |   });
+245 | 
+246 |   describe('list', () => {
+247 |     test('should list filings', async () => {
+248 |       const result = await service.list(mockTenantId);
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId)', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:248:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:247:33)
+(fail) TaxService > list > should list filings [0.02ms]
+252 |         expect(Array.isArray(result.data)).toBe(true);
+253 |       }
+254 |     });
+255 | 
+256 |     test('should filter by tax type', async () => {
+257 |       const result = await service.list(mockTenantId, { taxType: 'ICMS' });
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, { taxType: "ICMS" })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:257:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:256:39)
+(fail) TaxService > list > should filter by tax type [0.11ms]
+263 |         });
+264 |       }
+265 |     });
+266 | 
+267 |     test('should filter by fiscal period', async () => {
+268 |       const result = await service.list(mockTenantId, {
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, {
+        fiscalPeriod: "2025-01"
+      })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:268:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:267:44)
+(fail) TaxService > list > should filter by fiscal period [0.05ms]
+276 |         });
+277 |       }
+278 |     });
+279 | 
+280 |     test('should filter by status', async () => {
+281 |       const result = await service.list(mockTenantId, { status: 'filed' });
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, { status: "filed" })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:281:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:280:37)
+(fail) TaxService > list > should filter by status [0.04ms]
+292 |   describe('file', () => {
+293 |     test('should file pending tax return', async () => {
+294 |       const created = await service.createFiling(mockFilingData);
+295 | 
+296 |       if (!created.success) {
+297 |         throw new Error('Failed to create filing');
+                    ^
+error: Failed to create filing
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:297:15)
+(fail) TaxService > file > should file pending tax return [0.05ms]
+312 |         expect(result.data.filedAt).toBeInstanceOf(Date);
+313 |       }
+314 |     });
+315 | 
+316 |     test('should not file already filed return', async () => {
+317 |       const result = await service.file(
+                                         ^
+TypeError: service.file is not a function. (In 'service.file("filed-filing-id", mockTenantId, "FILING-001", "CONF-001")', 'service.file' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:317:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:316:50)
+(fail) TaxService > file > should not file already filed return [0.07ms]
+329 | 
+330 |     test('should validate filing number', async () => {
+331 |       const created = await service.createFiling(mockFilingData);
+332 | 
+333 |       if (!created.success) {
+334 |         throw new Error('Failed to create filing');
+                    ^
+error: Failed to create filing
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:334:15)
+(fail) TaxService > file > should validate filing number [0.10ms]
+345 | 
+346 |   describe('getUpcomingFilings', () => {
+347 |     test('should get upcoming filings within 30 days', async () => {
+348 |       const result = await service.getUpcomingFilings(mockTenantId);
+349 | 
+350 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:350:30)
+(fail) TaxService > getUpcomingFilings > should get upcoming filings within 30 days [0.05ms]
+363 |     });
+364 | 
+365 |     test('should get upcoming filings within custom days', async () => {
+366 |       const result = await service.getUpcomingFilings(mockTenantId, 7);
+367 | 
+368 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:368:30)
+(fail) TaxService > getUpcomingFilings > should get upcoming filings within custom days [0.23ms]
+379 | 
+380 |   describe('getTaxSummary', () => {
+381 |     test('should get tax summary for fiscal period', async () => {
+382 |       const result = await service.getTaxSummary(mockTenantId, '2025-01');
+383 | 
+384 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:384:30)
+(fail) TaxService > getTaxSummary > should get tax summary for fiscal period [0.29ms]
+424 |       const pis = await service.calculateTax(mockTenantId, 'PIS', taxableAmount);
+425 |       const cofins = await service.calculateTax(mockTenantId, 'COFINS', taxableAmount);
+426 |       const irpj = await service.calculateTax(mockTenantId, 'IRPJ', taxableAmount);
+427 |       const csll = await service.calculateTax(mockTenantId, 'CSLL', taxableAmount);
+428 | 
+429 |       expect(pis.success).toBe(true);
+                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:429:27)
+(fail) TaxService > Business Logic - Brazilian Tax System > should calculate all federal taxes for a transaction
+449 |         mockTenantId,
+450 |         'SIMPLES',
+451 |         '100000.00',
+452 |       );
+453 | 
+454 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:454:30)
+(fail) TaxService > Business Logic - Brazilian Tax System > should handle Simples Nacional regime [0.03ms]
+458 |         expect(parseFloat(result.data.rate)).toBeLessThanOrEqual(33);
+459 |       }
+460 |     });
+461 | 
+462 |     test('should track SPED obligations', async () => {
+463 |       const result = await service.list(mockTenantId, {
+                                         ^
+TypeError: service.list is not a function. (In 'service.list(mockTenantId, {
+        taxType: "SPED",
+        fiscalPeriod: "2025-01"
+      })', 'service.list' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:463:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:462:43)
+(fail) TaxService > Business Logic - Brazilian Tax System > should track SPED obligations [0.02ms]
+483 |         'SP',
+484 |       );
+485 | 
+486 |       expect(result.success).toBe(false);
+487 |       if (!result.success) {
+488 |         expect(result.error).toContain('Taxable amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Taxable amount must be greater than 0"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:488:30)
+(fail) TaxService > Edge Cases > should handle zero taxable amount [0.02ms]
+495 |         'ICMS',
+496 |         '999999999999.99',
+497 |         'SP',
+498 |       );
+499 | 
+500 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:500:30)
+(fail) TaxService > Edge Cases > should handle very large amounts [0.02ms]
+511 |         'INVALID',
+512 |       );
+513 | 
+514 |       expect(result.success).toBe(false);
+515 |       if (!result.success) {
+516 |         expect(result.error).toContain('Invalid state code');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invalid state code"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:516:30)
+(fail) TaxService > Edge Cases > should handle invalid state code [0.02ms]
+522 | 
+523 |       const duplicate = await service.createFiling(mockFilingData);
+524 | 
+525 |       expect(duplicate.success).toBe(false);
+526 |       if (!duplicate.success) {
+527 |         expect(duplicate.error).toContain('Filing already exists for this period');
+                                      ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Filing already exists for this period"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:527:33)
+(fail) TaxService > Edge Cases > should handle multiple filings in same period [0.02ms]
+534 |         'ICMS',
+535 |         '123.45',
+536 |         'SP',
+537 |       );
+538 | 
+539 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/tax.service.test.ts:539:30)
+(fail) TaxService > Edge Cases > should calculate taxes with decimal precision [0.04ms]
+
+src/modules/financial/services/__tests__/invoice.service.test.ts:
+66 | 
+67 |   describe('create', () => {
+68 |     test('should create invoice successfully', async () => {
+69 |       const result = await service.create(mockInvoiceData);
+70 | 
+71 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:71:30)
+(fail) InvoiceService > create > should create invoice successfully [0.31ms]
+84 | 
+85 |       const result = await service.create(invalidData as NewInvoice);
+86 | 
+87 |       expect(result.success).toBe(false);
+88 |       if (!result.success) {
+89 |         expect(result.error).toContain('Invoice number is required');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invoice number is required"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:89:30)
+(fail) InvoiceService > create > should validate required fields [0.07ms]
+ 98 | 
+ 99 |       const result = await service.create(invalidData);
+100 | 
+101 |       expect(result.success).toBe(false);
+102 |       if (!result.success) {
+103 |         expect(result.error).toContain('Invalid invoice type');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invalid invoice type"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:103:30)
+(fail) InvoiceService > create > should validate invoice type [0.18ms]
+113 | 
+114 |       const result = await service.create(invalidData);
+115 | 
+116 |       expect(result.success).toBe(false);
+117 |       if (!result.success) {
+118 |         expect(result.error).toContain('Due date must be after issue date');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Due date must be after issue date"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:118:30)
+(fail) InvoiceService > create > should validate due date after issue date [0.05ms]
+127 | 
+128 |       const result = await service.create(invalidData);
+129 | 
+130 |       expect(result.success).toBe(false);
+131 |       if (!result.success) {
+132 |         expect(result.error).toContain('Amount must be positive');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Amount must be positive"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:132:30)
+(fail) InvoiceService > create > should validate amounts are positive [0.07ms]
+136 | 
+137 |   describe('getById', () => {
+138 |     test('should get invoice by id', async () => {
+139 |       const result = await service.getById(mockInvoice.id, mockTenantId);
+140 | 
+141 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:141:30)
+(fail) InvoiceService > getById > should get invoice by id [0.06ms]
+148 |     test('should return error for non-existent invoice', async () => {
+149 |       const result = await service.getById('non-existent', mockTenantId);
+150 | 
+151 |       expect(result.success).toBe(false);
+152 |       if (!result.success) {
+153 |         expect(result.error).toContain('Invoice not found');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invoice not found"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:153:30)
+(fail) InvoiceService > getById > should return error for non-existent invoice [0.09ms]
+157 |     test('should prevent access to other tenant invoice', async () => {
+158 |       const result = await service.getById(mockInvoice.id, 'other-tenant');
+159 | 
+160 |       expect(result.success).toBe(false);
+161 |       if (!result.success) {
+162 |         expect(result.error).toContain('Invoice not found');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invoice not found"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:162:30)
+(fail) InvoiceService > getById > should prevent access to other tenant invoice [0.25ms]
+166 | 
+167 |   describe('list', () => {
+168 |     test('should list invoices with default pagination', async () => {
+169 |       const result = await service.list(mockTenantId);
+170 | 
+171 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:171:30)
+(fail) InvoiceService > list > should list invoices with default pagination [0.81ms]
+178 |     test('should filter by invoice type', async () => {
+179 |       const result = await service.list(mockTenantId, {
+180 |         invoiceType: 'receivable',
+181 |       });
+182 | 
+183 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:183:30)
+(fail) InvoiceService > list > should filter by invoice type [0.08ms]
+189 |     });
+190 | 
+191 |     test('should filter by status', async () => {
+192 |       const result = await service.list(mockTenantId, { status: 'paid' });
+193 | 
+194 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:194:30)
+(fail) InvoiceService > list > should filter by status [0.10ms]
+202 |     test('should filter by customer', async () => {
+203 |       const result = await service.list(mockTenantId, {
+204 |         customerId: 'customer-789',
+205 |       });
+206 | 
+207 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:207:30)
+(fail) InvoiceService > list > should filter by customer [0.05ms]
+216 |       const startDate = new Date('2025-01-01');
+217 |       const endDate = new Date('2025-12-31');
+218 | 
+219 |       const result = await service.list(mockTenantId, { startDate, endDate });
+220 | 
+221 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:221:30)
+(fail) InvoiceService > list > should filter by date range [0.08ms]
+232 |       const result = await service.list(mockTenantId, {
+233 |         limit: 10,
+234 |         offset: 0,
+235 |       });
+236 | 
+237 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:237:30)
+(fail) InvoiceService > list > should paginate results [0.08ms]
+252 |         mockInvoice.id,
+253 |         mockTenantId,
+254 |         updateData,
+255 |       );
+256 | 
+257 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:257:30)
+(fail) InvoiceService > update > should update invoice successfully [0.19ms]
+273 |         updateData,
+274 |       );
+275 | 
+276 |       expect(result.success).toBe(false);
+277 |       if (!result.success) {
+278 |         expect(result.error).toContain('Cannot update immutable fields');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot update immutable fields"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:278:30)
+(fail) InvoiceService > update > should not allow updating immutable fields [0.07ms]
+288 |         updateData,
+289 |       );
+290 | 
+291 |       expect(result.success).toBe(false);
+292 |       if (!result.success) {
+293 |         expect(result.error).toContain('Cannot update posted invoice');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot update posted invoice"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:293:30)
+(fail) InvoiceService > update > should not allow updating posted invoice [0.07ms]
+297 | 
+298 |   describe('delete', () => {
+299 |     test('should delete draft invoice', async () => {
+300 |       const result = await service.delete('draft-invoice-id', mockTenantId);
+301 | 
+302 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:302:30)
+(fail) InvoiceService > delete > should delete draft invoice [0.22ms]
+305 |     test('should not delete posted invoice', async () => {
+306 |       const result = await service.delete('posted-invoice-id', mockTenantId);
+307 | 
+308 |       expect(result.success).toBe(false);
+309 |       if (!result.success) {
+310 |         expect(result.error).toContain('Cannot delete posted invoice');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot delete posted invoice"
+Received: "db.delete is not a function. (In 'db.delete(invoices)', 'db.delete' is undefined)"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:310:30)
+(fail) InvoiceService > delete > should not delete posted invoice [0.09ms]
+314 |     test('should not delete paid invoice', async () => {
+315 |       const result = await service.delete('paid-invoice-id', mockTenantId);
+316 | 
+317 |       expect(result.success).toBe(false);
+318 |       if (!result.success) {
+319 |         expect(result.error).toContain('Cannot delete paid invoice');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot delete paid invoice"
+Received: "db.delete is not a function. (In 'db.delete(invoices)', 'db.delete' is undefined)"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:319:30)
+(fail) InvoiceService > delete > should not delete paid invoice [0.08ms]
+325 |     test('should add payment successfully', async () => {
+326 |       const result = await service.addPayment(
+327 |         mockInvoice.id,
+328 |         mockTenantId,
+329 |         mockPaymentData,
+330 |       );
+            ^
+ReferenceError: mockPaymentData is not defined
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:330:7)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:325:45)
+(fail) InvoiceService > addPayment > should add payment successfully [0.09ms]
+337 |       }
+338 |     });
+339 | 
+340 |     test('should validate payment amount', async () => {
+341 |       const invalidPayment = {
+342 |         ...mockPaymentData,
+                 ^
+ReferenceError: mockPaymentData is not defined
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:342:12)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:340:44)
+(fail) InvoiceService > addPayment > should validate payment amount [0.14ms]
+355 |       }
+356 |     });
+357 | 
+358 |     test('should not allow overpayment', async () => {
+359 |       const overpayment = {
+360 |         ...mockPaymentData,
+                 ^
+ReferenceError: mockPaymentData is not defined
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:360:12)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:358:42)
+(fail) InvoiceService > addPayment > should not allow overpayment [0.10ms]
+373 |       }
+374 |     });
+375 | 
+376 |     test('should update invoice status to partial on partial payment', async () => {
+377 |       const partialPayment = {
+378 |         ...mockPaymentData,
+                 ^
+ReferenceError: mockPaymentData is not defined
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:378:12)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:376:72)
+(fail) InvoiceService > addPayment > should update invoice status to partial on partial payment [0.07ms]
+398 |       }
+399 |     });
+400 | 
+401 |     test('should update invoice status to paid on full payment', async () => {
+402 |       const fullPayment = {
+403 |         ...mockPaymentData,
+                 ^
+ReferenceError: mockPaymentData is not defined
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:403:12)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:401:66)
+(fail) InvoiceService > addPayment > should update invoice status to paid on full payment [0.06ms]
+426 | 
+427 |   describe('getPayments', () => {
+428 |     test('should get payments for invoice', async () => {
+429 |       const result = await service.getPayments(mockInvoice.id, mockTenantId);
+430 | 
+431 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:431:30)
+(fail) InvoiceService > getPayments > should get payments for invoice [0.33ms]
+442 |       const result = await service.getPayments(
+443 |         'invoice-no-payments',
+444 |         mockTenantId,
+445 |       );
+446 | 
+447 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:447:30)
+(fail) InvoiceService > getPayments > should return empty array for invoice without payments [0.07ms]
+457 |         mockInvoice.id,
+458 |         mockTenantId,
+459 |         'posted',
+460 |       );
+461 | 
+462 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:462:30)
+(fail) InvoiceService > updateStatus > should update status to posted [0.16ms]
+470 |         mockInvoice.id,
+471 |         mockTenantId,
+472 |         'void',
+473 |       );
+474 | 
+475 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:475:30)
+(fail) InvoiceService > updateStatus > should update status to void [0.02ms]
+485 |         'draft',
+486 |       );
+487 | 
+488 |       expect(result.success).toBe(false);
+489 |       if (!result.success) {
+490 |         expect(result.error).toContain('Invalid status transition');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invalid status transition"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:490:30)
+(fail) InvoiceService > updateStatus > should not allow invalid status transitions [0.05ms]
+498 |         'invalid-status' as any,
+499 |       );
+500 | 
+501 |       expect(result.success).toBe(false);
+502 |       if (!result.success) {
+503 |         expect(result.error).toContain('Invalid status');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Invalid status"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:503:30)
+(fail) InvoiceService > updateStatus > should validate status value [0.11ms]
+507 | 
+508 |   describe('getOverdue', () => {
+509 |     test('should get overdue invoices', async () => {
+510 |       const result = await service.getOverdue(mockTenantId);
+511 | 
+512 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:512:30)
+(fail) InvoiceService > getOverdue > should get overdue invoices [0.36ms]
+522 |     });
+523 | 
+524 |     test('should return empty array when no overdue invoices', async () => {
+525 |       const result = await service.getOverdue('tenant-no-overdue');
+526 | 
+527 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:527:30)
+(fail) InvoiceService > getOverdue > should return empty array when no overdue invoices [0.11ms]
+537 |         ...mockInvoiceData,
+538 |         totalAmount: '1000.00',
+539 |       });
+540 | 
+541 |       if (!invoice.success) {
+542 |         throw new Error('Failed to create invoice');
+                    ^
+error: Failed to create invoice
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:542:15)
+(fail) InvoiceService > Business Logic > should calculate balance correctly after payment [0.11ms]
+560 |         ...mockInvoiceData,
+561 |         totalAmount: '1000.00',
+562 |       });
+563 | 
+564 |       if (!invoice.success) {
+565 |         throw new Error('Failed to create invoice');
+                    ^
+error: Failed to create invoice
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:565:15)
+(fail) InvoiceService > Business Logic > should handle multiple payments [0.05ms]
+592 |         totalAmount: '0.00',
+593 |       });
+594 | 
+595 |       expect(result.success).toBe(false);
+596 |       if (!result.success) {
+597 |         expect(result.error).toContain('Total amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Total amount must be greater than 0"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:597:30)
+(fail) InvoiceService > Edge Cases > should handle zero amount invoice [0.03ms]
+602 |       const result = await service.create({
+603 |         ...mockInvoiceData,
+604 |         totalAmount: '999999999999.99',
+605 |       });
+606 | 
+607 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:607:30)
+(fail) InvoiceService > Edge Cases > should handle very large amounts [0.05ms]
+615 |         ...mockInvoiceData,
+616 |         totalAmount: '1000.00',
+617 |       });
+618 | 
+619 |       if (!invoice.success) {
+620 |         throw new Error('Failed to create invoice');
+                    ^
+error: Failed to create invoice
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/invoice.service.test.ts:620:15)
+(fail) InvoiceService > Edge Cases > should handle concurrent payments [0.04ms]
+
+src/modules/financial/services/__tests__/expense.service.test.ts:
+49 | 
+50 |   describe('create', () => {
+51 |     test('should create expense successfully', async () => {
+52 |       const result = await service.create(mockExpenseData);
+53 | 
+54 |       expect(result.success).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:54:30)
+(fail) ExpenseService > create > should create expense successfully [0.48ms]
+66 | 
+67 |       const result = await service.create(invalidData as NewExpense);
+68 | 
+69 |       expect(result.success).toBe(false);
+70 |       if (!result.success) {
+71 |         expect(result.error).toContain('Expense number is required');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Expense number is required"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:71:30)
+(fail) ExpenseService > create > should validate required fields [0.04ms]
+80 | 
+81 |       const result = await service.create(invalidData);
+82 | 
+83 |       expect(result.success).toBe(false);
+84 |       if (!result.success) {
+85 |         expect(result.error).toContain('Amount must be positive');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Amount must be positive"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:85:30)
+(fail) ExpenseService > create > should validate amount is positive [0.02ms]
+94 | 
+95 |       const result = await service.create(invalidData);
+96 | 
+97 |       expect(result.success).toBe(false);
+98 |       if (!result.success) {
+99 |         expect(result.error).toContain('Category not found');
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Category not found"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:99:30)
+(fail) ExpenseService > create > should validate category exists [0.02ms]
+103 | 
+104 |   describe('getById', () => {
+105 |     test('should get expense by id', async () => {
+106 |       const result = await service.getById(mockExpense.id, mockTenantId);
+107 | 
+108 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:108:30)
+(fail) ExpenseService > getById > should get expense by id [0.01ms]
+115 |     test('should return error for non-existent expense', async () => {
+116 |       const result = await service.getById('non-existent', mockTenantId);
+117 | 
+118 |       expect(result.success).toBe(false);
+119 |       if (!result.success) {
+120 |         expect(result.error).toContain('Expense not found');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Expense not found"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:120:30)
+(fail) ExpenseService > getById > should return error for non-existent expense [0.02ms]
+124 | 
+125 |   describe('list', () => {
+126 |     test('should list expenses with default pagination', async () => {
+127 |       const result = await service.list(mockTenantId);
+128 | 
+129 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:129:30)
+(fail) ExpenseService > list > should list expenses with default pagination [0.41ms]
+135 |     test('should filter by category', async () => {
+136 |       const result = await service.list(mockTenantId, {
+137 |         categoryId: 'category-office',
+138 |       });
+139 | 
+140 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:140:30)
+(fail) ExpenseService > list > should filter by category [0.04ms]
+146 |     });
+147 | 
+148 |     test('should filter by status', async () => {
+149 |       const result = await service.list(mockTenantId, { status: 'approved' });
+150 | 
+151 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:151:30)
+(fail) ExpenseService > list > should filter by status [0.07ms]
+160 |       const startDate = new Date('2025-01-01');
+161 |       const endDate = new Date('2025-12-31');
+162 | 
+163 |       const result = await service.list(mockTenantId, { startDate, endDate });
+164 | 
+165 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:165:30)
+(fail) ExpenseService > list > should filter by date range [0.08ms]
+183 |         mockExpense.id,
+184 |         mockTenantId,
+185 |         updateData,
+186 |       );
+187 | 
+188 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:188:30)
+(fail) ExpenseService > update > should update draft expense [0.19ms]
+197 |         notes: 'New notes',
+198 |       });
+199 | 
+200 |       expect(result.success).toBe(false);
+201 |       if (!result.success) {
+202 |         expect(result.error).toContain('Cannot update approved expense');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot update approved expense"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:202:30)
+(fail) ExpenseService > update > should not update approved expense [0.19ms]
+206 | 
+207 |   describe('delete', () => {
+208 |     test('should delete draft expense', async () => {
+209 |       const result = await service.delete('draft-expense-id', mockTenantId);
+210 | 
+211 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:211:30)
+(fail) ExpenseService > delete > should delete draft expense [0.63ms]
+214 |     test('should not delete approved expense', async () => {
+215 |       const result = await service.delete('approved-expense-id', mockTenantId);
+216 | 
+217 |       expect(result.success).toBe(false);
+218 |       if (!result.success) {
+219 |         expect(result.error).toContain('Cannot delete approved expense');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot delete approved expense"
+Received: "db.delete is not a function. (In 'db.delete(expenses)', 'db.delete' is undefined)"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:219:30)
+(fail) ExpenseService > delete > should not delete approved expense [0.06ms]
+227 |         mockExpense.id,
+228 |         mockTenantId,
+229 |         mockApproverId,
+230 |       );
+231 | 
+232 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:232:30)
+(fail) ExpenseService > approve > should approve pending expense [0.21ms]
+244 |         mockApproverId,
+245 |       );
+246 | 
+247 |       expect(result.success).toBe(false);
+248 |       if (!result.success) {
+249 |         expect(result.error).toContain('Expense already approved');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Expense already approved"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:249:30)
+(fail) ExpenseService > approve > should not approve already approved expense [0.07ms]
+257 |         mockApproverId,
+258 |       );
+259 | 
+260 |       expect(result.success).toBe(false);
+261 |       if (!result.success) {
+262 |         expect(result.error).toContain('Cannot approve rejected expense');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot approve rejected expense"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:262:30)
+(fail) ExpenseService > approve > should not approve rejected expense [0.07ms]
+270 |         'non-approver',
+271 |       );
+272 | 
+273 |       expect(result.success).toBe(false);
+274 |       if (!result.success) {
+275 |         expect(result.error).toContain('User does not have approval permission');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "User does not have approval permission"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:275:30)
+(fail) ExpenseService > approve > should validate approver permissions [0.10ms]
+284 |         mockTenantId,
+285 |         mockApproverId,
+286 |         'Missing receipt',
+287 |       );
+288 | 
+289 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:289:30)
+(fail) ExpenseService > reject > should reject pending expense with reason [0.51ms]
+303 |         '',
+304 |       );
+305 | 
+306 |       expect(result.success).toBe(false);
+307 |       if (!result.success) {
+308 |         expect(result.error).toContain('Rejection reason is required');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Rejection reason is required"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:308:30)
+(fail) ExpenseService > reject > should require rejection reason [0.07ms]
+317 |         'Reason',
+318 |       );
+319 | 
+320 |       expect(result.success).toBe(false);
+321 |       if (!result.success) {
+322 |         expect(result.error).toContain('Cannot reject approved expense');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Cannot reject approved expense"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:322:30)
+(fail) ExpenseService > reject > should not reject already approved expense
+326 | 
+327 |   describe('getPendingApprovals', () => {
+328 |     test('should get pending approval expenses', async () => {
+329 |       const result = await service.getPendingApprovals(mockTenantId);
+330 | 
+331 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:331:30)
+(fail) ExpenseService > getPendingApprovals > should get pending approval expenses [0.19ms]
+339 |     });
+340 | 
+341 |     test('should return empty array when no pending approvals', async () => {
+342 |       const result = await service.getPendingApprovals('tenant-no-pending');
+343 | 
+344 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:344:30)
+(fail) ExpenseService > getPendingApprovals > should return empty array when no pending approvals [0.03ms]
+353 |       const result = await service.getByCategory(
+354 |         mockTenantId,
+355 |         'category-office',
+356 |       );
+357 | 
+358 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:358:30)
+(fail) ExpenseService > getByCategory > should get expenses by category [0.08ms]
+369 |         mockTenantId,
+370 |         'category-office',
+371 |         '2025-01',
+372 |       );
+373 | 
+374 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:374:30)
+(fail) ExpenseService > getByCategory > should filter by fiscal period [0.02ms]
+383 |     });
+384 |   });
+385 | 
+386 |   describe('getCategorySummary', () => {
+387 |     test('should get category summary', async () => {
+388 |       const result = await service.getCategorySummary(mockTenantId, '2025-01');
+                                         ^
+TypeError: service.getCategorySummary is not a function. (In 'service.getCategorySummary(mockTenantId, "2025-01")', 'service.getCategorySummary' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:388:36)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:387:41)
+(fail) ExpenseService > getCategorySummary > should get category summary [0.02ms]
+408 |         ...mockExpenseData,
+409 |         status: 'pending_approval',
+410 |       });
+411 | 
+412 |       if (!expense.success) {
+413 |         throw new Error('Failed to create expense');
+                    ^
+error: Failed to create expense
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:413:15)
+(fail) ExpenseService > Business Logic > should track approval workflow correctly [0.02ms]
+444 |         ...mockExpenseData,
+445 |         amount: '150.00',
+446 |         categoryId: 'category-2',
+447 |       });
+448 | 
+449 |       const summary = await service.getCategorySummary(
+                                          ^
+TypeError: service.getCategorySummary is not a function. (In 'service.getCategorySummary(mockTenantId, "2025-01")', 'service.getCategorySummary' is undefined)
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:449:37)
+(fail) ExpenseService > Business Logic > should calculate category totals correctly [0.02ms]
+470 |         amount: '0.00',
+471 |       });
+472 | 
+473 |       expect(result.success).toBe(false);
+474 |       if (!result.success) {
+475 |         expect(result.error).toContain('Amount must be greater than 0');
+                                   ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Amount must be greater than 0"
+Received: "Unknown table"
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:475:30)
+(fail) ExpenseService > Edge Cases > should handle zero amount expense [0.02ms]
+481 |       const result = await service.create({
+482 |         ...mockExpenseData,
+483 |         description: longDescription,
+484 |       });
+485 | 
+486 |       expect(result.success).toBe(true);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:486:30)
+(fail) ExpenseService > Edge Cases > should handle very long description [0.02ms]
+494 |         ...mockExpenseData,
+495 |         status: 'pending_approval',
+496 |       });
+497 | 
+498 |       if (!expense.success) {
+499 |         throw new Error('Failed to create expense');
+                    ^
+error: Failed to create expense
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:499:15)
+(fail) ExpenseService > Edge Cases > should handle multiple approvers [0.06ms]
+526 |         ...mockExpenseData,
+527 |         status: 'pending_approval',
+528 |       });
+529 | 
+530 |       if (!expense.success) {
+531 |         throw new Error('Failed to create expense');
+                    ^
+error: Failed to create expense
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/financial/services/__tests__/expense.service.test.ts:531:15)
+(fail) ExpenseService > Edge Cases > should handle rejection after approval attempt [0.02ms]
+
+src/modules/auth/services/__tests__/two-factor.service.test.ts:
+23 | 
+24 |   test('isTwoFactorEnabled returns false when no record', async () => {
+25 |     enabled = false;
+26 |     const { isTwoFactorEnabled } = await import('../two-factor.service');
+27 |     const res = await isTwoFactorEnabled('user-1');
+28 |     expect(res).toBe(false);
+                     ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/auth/services/__tests__/two-factor.service.test.ts:28:17)
+(fail) Auth two-factor service > isTwoFactorEnabled returns false when no record [0.78ms]
+---------------------------------------------------------------------------|---------|---------|-------------------
+File                                                                       | % Funcs | % Lines | Uncovered Line #s
+---------------------------------------------------------------------------|---------|---------|-------------------
+All files                                                                  |   60.94 |   82.92 |
+ src/cache/cache-manager.ts                                                |   58.62 |   42.86 | 98-117,219-309,316-327,334-436,487-523,570-582
+ src/cache/types.ts                                                        |  100.00 |  100.00 | 
+ src/db/connection.ts                                                      |    0.00 |   91.67 | 75,79-80,87-88
+ src/db/index.ts                                                           |  100.00 |  100.00 | 
+ src/modules/affiliate/utils/commission-calculator.ts                      |   11.11 |   24.24 | 44-45,50-51,56,64,69,93-120,133-164,171-185,192-199,206-228,235-251,258-271,278-283
+ src/modules/affiliate/utils/payout-selection.ts                           |   50.00 |   81.63 | 65-73
+ src/modules/affiliate/utils/referral-code.ts                              |   50.00 |   25.88 | 41-66,89,91-92,100-117,125-130,137-146
+ src/modules/audit/schema/audit.schema.ts                                  |   33.33 |  100.00 | 
+ src/modules/audit/utils/sanitize.util.ts                                  |  100.00 |   93.94 | 13
+ src/modules/auth/middleware/session.middleware.ts                         |   33.33 |   23.71 | 26-27,34-36,47-58,69-94,104-116,127-144
+ src/modules/auth/schema/auth.schema.ts                                    |    0.00 |  100.00 | 
+ src/modules/auth/services/auth.config.ts                                  |    0.00 |   65.60 | 57,60,152-192
+ src/modules/auth/services/email.service.ts                                |    0.00 |   10.26 | 4,8-24,28-44
+ src/modules/banco/schema/index.ts                                         |  100.00 |  100.00 | 
+ src/modules/banco/schema/wallet.schema.ts                                 |   40.74 |  100.00 | 
+ src/modules/bots/engine/bot-engine.registry.ts                            |   85.71 |   98.15 | 
+ src/modules/bots/engine/bot-execution.engine.ts                           |   93.85 |   97.25 | 1352-1355,1360-1367,1371-1377,1381-1387
+ src/modules/bots/engine/execution-engine.types.ts                         |  100.00 |  100.00 | 
+ src/modules/ceo/schema/ceo.schema.ts                                      |    0.00 |  100.00 | 
+ src/modules/ceo/utils/metrics.util.ts                                     |  100.00 |  100.00 | 
+ src/modules/configurations/schema/configurations.schema.ts                |    0.00 |  100.00 | 
+ src/modules/departments/schema/departments.schema.ts                      |   42.86 |  100.00 | 
+ src/modules/documents/schema/documents.schema.ts                          |   18.75 |  100.00 | 
+ src/modules/documents/schema/index.ts                                     |  100.00 |  100.00 | 
+ src/modules/documents/utils/storage.ts                                    |   33.33 |   35.42 | 30-123,135-140,148-171
+ src/modules/documents/utils/validators.ts                                 |   87.50 |   97.56 | 183,194,203,301,305
+ src/modules/financial/schema/budgets.schema.ts                            |   38.46 |  100.00 | 
+ src/modules/financial/schema/expenses.schema.ts                           |   75.00 |  100.00 | 
+ src/modules/financial/schema/index.ts                                     |  100.00 |  100.00 | 
+ src/modules/financial/schema/invoices.schema.ts                           |   60.00 |  100.00 | 
+ src/modules/financial/schema/ledger.schema.ts                             |   57.14 |  100.00 | 
+ src/modules/financial/schema/payments.schema.ts                           |   37.50 |  100.00 | 
+ src/modules/financial/schema/tax-jurisdiction.schema.ts                   |   66.67 |  100.00 | 
+ src/modules/financial/schema/tax.schema.ts                                |   66.67 |  100.00 | 
+ src/modules/financial/services/budget.service.ts                          |   50.00 |   21.93 | 48-53,72-247,303-308,310,319-428
+ src/modules/financial/services/expense.service.ts                         |   86.96 |   70.00 | 45-46,48-53,83-84,86-88,90-92,113-118,143,147,151,155,159,218-223,225,249-254,256,290-295,297-300,336-341,343-347,378-420
+ src/modules/financial/services/integration.service.ts                     |   44.44 |   15.44 | 35,37,40,44-47,50-53,56-63,65-68,70-76,79-82,84-85,87-93,95-103,105-111,113-120,123-140,142-144,147-153,155,157-161,163-175,196,198,201-206,209-211,217-221,223-232,254,256,259-264,267-270,273-280,283,285,288,290,292-298,301-302,304,306-315,317-324,327-344,346-348,351-358,360,362-366,368-380,403,405-413,415-422,425-428,431-438,440-441,443-449,452-453,455,457-463,465-472,475-492,494-496,498-505,507,509-513,515-527
+ src/modules/financial/services/invoice.service.ts                         |   84.21 |   59.52 | 73-78,103,107,111,115,119,123,182-187,189,213-218,220,229-297,323-356,380-385
+ src/modules/financial/services/ledger.service.ts                          |   60.87 |   34.90 | 58-62,107-112,115,117,126-172,195-200,203-206,209-229,232-240,242,245,248-251,253-256,265-346,407-423,435-475
+ src/modules/financial/services/tax.service.ts                             |   44.44 |   27.59 | 64-69,71-74,76-82,90-262,288-333,364-413
+ src/modules/financial/utils/calculations.estonia.ts                       |  100.00 |   99.45 | 
+ src/modules/financial/utils/calculations.ts                               |  100.00 |   99.13 | 
+ src/modules/financial/utils/validators.estonia.ts                         |  100.00 |   94.67 | 61-68
+ src/modules/financial/utils/validators.ts                                 |  100.00 |  100.00 | 
+ src/modules/indicators/services/indicator-factory.service.ts              |   63.16 |   39.86 | 108,110,179-212,269-485,503
+ src/modules/indicators/utils/calculator-v2.ts                             |   16.13 |   36.01 | 51,58,84,88,96,127-130,137-140,147-150,158-161,168-171,178-181,188-192,199-202,209-212,220,227-232,256-260,267-271,278-281,289-291,299-301,323-328,336-346,353-356,363-366,373-379,386-389,396-398,406-410,433-438,445-448,455-458,469-472,480-485,492-497,504-509,516-522,529-534,541-545,553-557,565-569,581-586,593-597,604-607,634-644,651-656,663-672,679-689,696-706,717-720,727-729,736-741,748-751,758-760,767-769,776-790,797-801,808-810,817-820,827-829,836-844,851-853,860-869,876-878,889-894,901-904,911-915,922-926,933-937,948-953,960-964,971-974,985-987,994-996,1003-1005,1012-1014,1025-1031,1038-1042,1049-1052,1059-1064,1071-1074,1081-1084,1091-1093,1100-1102,1113-1115,1122-1124,1131-1138,1145-1147,1154-1158,1165-1167,1174-1176,1183-1185,1192-1194,1201-1203,1214-1216,1223-1225,1232-1234,1241,1248-1250,1257,1264,1271,1282-1286,1307-1318,1325-1326,1333-1354,1361-1376
+ src/modules/indicators/utils/custom-indicators.ts                         |  100.00 |   98.96 | 361-363
+ src/modules/market-data/websocket/errors.ts                               |  100.00 |  100.00 | 
+ src/modules/market-data/websocket/market-data-websocket-manager.ts        |   48.48 |   40.15 | 66-167,206-251,358-362,369-384,425-444,477-479,487-567,574-583,590-601,609-622,717,720,723
+ src/modules/market-data/websocket/pipeline.ts                             |   85.71 |   80.00 | 93-96,98,100,102-107,109-113,122,132-133,135-138,143-145,149-150,177-179,191-192
+ src/modules/market-data/websocket/reconnection-strategy.ts                |   75.00 |   93.33 | 57,64-67
+ src/modules/market-data/websocket/redis-event-bridge.ts                   |   93.75 |   98.33 | 153-155
+ src/modules/marketing/schema/analytics.schema.ts                          |   50.00 |  100.00 | 
+ src/modules/marketing/schema/campaign-sends.schema.ts                     |   50.00 |  100.00 | 
+ src/modules/marketing/schema/campaigns.schema.ts                          |   33.33 |  100.00 | 
+ src/modules/marketing/schema/index.ts                                     |  100.00 |  100.00 | 
+ src/modules/marketing/schema/lead-activities.schema.ts                    |   33.33 |  100.00 | 
+ src/modules/marketing/schema/leads.schema.ts                              |   50.00 |  100.00 | 
+ src/modules/marketing/schema/templates.schema.ts                          |   40.00 |  100.00 | 
+ src/modules/marketing/services/scoring.service.ts                         |   86.67 |   93.75 | 115-119
+ src/modules/marketing/utils/email-validator.ts                            |   78.57 |   80.41 | 122-125,152-166
+ src/modules/marketing/utils/template-renderer.ts                          |   78.95 |   73.89 | 99,201-212,234-248,255-267
+ src/modules/notifications/providers/base-provider.ts                      |   75.00 |   66.67 | 90-96
+ src/modules/notifications/providers/email-provider.ts                     |   92.86 |   85.85 | 230-259
+ src/modules/notifications/providers/in-app-provider.ts                    |   50.00 |   23.33 | 26-71
+ src/modules/notifications/providers/index.ts                              |   37.50 |   86.84 | 36,43,50,57-58
+ src/modules/notifications/providers/push-provider.ts                      |   84.62 |   82.55 | 229-268
+ src/modules/notifications/providers/telegram-provider.ts                  |   91.67 |   84.56 | 171-193
+ src/modules/notifications/schema/notifications.schema.ts                  |   14.29 |  100.00 | 
+ src/modules/p2p-marketplace/schema/p2p.schema.ts                          |   24.24 |  100.00 | 
+ src/modules/positions/schema/positions.schema.ts                          |    0.00 |   85.83 | 86-93,123-125,159-163,202-203
+ src/modules/rate-limiting/middleware/rate-limit.middleware.ts             |  100.00 |  100.00 | 
+ src/modules/rate-limiting/services/rate-limit.service.ts                  |  100.00 |  100.00 | 
+ src/modules/rate-limiting/types/rate-limit.types.ts                       |  100.00 |  100.00 | 
+ src/modules/risk/schema/risk.schema.ts                                    |    0.00 |   89.12 | 62-63,106-109,188-191,238-243
+ src/modules/risk/services/risk-lock.service.ts                            |   95.45 |  100.00 | 
+ src/modules/sales/schema/activities.schema.ts                             |   28.57 |  100.00 | 
+ src/modules/sales/schema/contacts.schema.ts                               |   28.57 |  100.00 | 
+ src/modules/sales/schema/deals.schema.ts                                  |   25.00 |  100.00 | 
+ src/modules/sales/schema/index.ts                                         |  100.00 |  100.00 | 
+ src/modules/sales/schema/notes.schema.ts                                  |   28.57 |  100.00 | 
+ src/modules/sales/schema/pipeline-stages.schema.ts                        |   50.00 |  100.00 | 
+ src/modules/sales/schema/sales-forecasts.schema.ts                        |   50.00 |  100.00 | 
+ src/modules/sales/schema/sales-targets.schema.ts                          |   40.00 |  100.00 | 
+ src/modules/sales/utils/forecasting-algorithm.ts                          |   94.12 |   62.41 | 157-206
+ src/modules/sales/utils/pipeline-calculator.ts                            |   81.82 |   41.96 | 45-72,134,152-165,176-203,214-225
+ src/modules/security/schema/security.schema.ts                            |   33.33 |  100.00 | 
+ src/modules/security/services/role.service.ts                             |    0.00 |   13.79 | 13-19,26-43
+ src/modules/sentiment/schema/sentiment.schema.ts                          |  100.00 |  100.00 | 
+ src/modules/sentiment/services/aggregator/sentiment-aggregator.service.ts |   66.67 |   30.76 | 35-45,181-189,219-228,286-403,508-549,556-567,574-602,609-613,628-802
+ src/modules/sentiment/services/analysis/sentiment-local.service.ts        |   96.15 |   96.14 | 342-350
+ src/modules/sentiment/services/analyzer/price-correlation.service.ts      |   95.00 |   98.60 | 530-532
+ src/modules/sentiment/services/analyzer/trending-topics.service.ts        |   91.43 |   90.11 | 449-473
+ src/modules/social-trading/schema/social.schema.ts                        |   15.38 |  100.00 | 
+ src/modules/strategies/engine/strategy-runner.ts                          |   94.12 |   97.69 | 446-452
+ src/modules/strategies/engine/strategy-runner.types.ts                    |  100.00 |  100.00 | 
+ src/modules/subscriptions/schema/subscription-plans.schema.ts             |    0.00 |  100.00 | 
+ src/modules/support/schema/automations.schema.ts                          |   50.00 |  100.00 | 
+ src/modules/support/schema/canned-responses.schema.ts                     |   40.00 |  100.00 | 
+ src/modules/support/schema/index.ts                                       |  100.00 |  100.00 | 
+ src/modules/support/schema/knowledge-base.schema.ts                       |   40.00 |  100.00 | 
+ src/modules/support/schema/sla-policies.schema.ts                         |   50.00 |  100.00 | 
+ src/modules/support/schema/ticket-messages.schema.ts                      |   50.00 |  100.00 | 
+ src/modules/support/schema/tickets.schema.ts                              |   25.00 |  100.00 | 
+ src/modules/support/utils/business-hours.ts                               |   85.71 |   97.18 | 63
+ src/modules/support/utils/sla-calculator.ts                               |   88.89 |   55.56 | 100-143
+ src/modules/support/utils/ticket-numbering.ts                             |   75.00 |   44.19 | 21-44
+ src/modules/tenants/routes/tenant.routes.ts                               |   61.54 |   79.45 | 34-38,100-107,133-135,155-164,179-182
+ src/modules/tenants/schema/tenants.schema.ts                              |   50.00 |  100.00 | 
+ src/modules/tenants/services/membership.service.ts                        |    0.00 |   20.00 | 10-16,20-25,29-35
+ src/modules/tenants/services/tenant-cache.service.ts                      |   50.00 |   53.57 | 18-30
+ src/modules/tenants/services/tenant.service.ts                            |   78.26 |   55.56 | 22,31-41,56,96,105-136,177-192,199-207,214-230,280,282-287
+ src/modules/tenants/test-helpers/db-access.ts                             |  100.00 |  100.00 | 
+ src/modules/tenants/types/tenant.types.ts                                 |  100.00 |  100.00 | 
+ src/modules/users/schema/user-profile.schema.ts                           |    0.00 |  100.00 | 
+ src/modules/users/services/user.service.ts                                |  100.00 |   88.79 | 77-78,92,95-104
+ src/modules/users/test-helpers/db-access.ts                               |  100.00 |  100.00 | 
+ src/modules/users/utils/profile-type.util.ts                              |  100.00 |  100.00 | 
+ src/utils/logger.ts                                                       |   10.00 |   39.72 | 53-79,83,87-94,161-217,223-225,228,234-245,247,328-359,367-376,383-393,400,407,414,421,428-435,442-452,459-471,478-493,500
+ src/utils/redis.ts                                                        |   79.17 |   34.18 | 25-79,96-100,102-107,119-126,138-145,157,161-168,180-188,198-215,229-230,232-242,254-259,268-278,300-301,322-327
+---------------------------------------------------------------------------|---------|---------|-------------------
+
+ 1038 pass
+ 245 fail
+ 6 errors
+ 3326 expect() calls
+Ran 1283 tests across 64 files. [19.57s]

@@ -7,7 +7,8 @@
  */
 
 import ccxt from 'ccxt';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
+// Module not yet implemented
+// import { ExchangeService } from '../../exchanges/services/exchange.service';
 import logger from '@/utils/logger';
 import type {
   SubscriptionRequest,

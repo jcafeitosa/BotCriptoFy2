@@ -1,0 +1,1288 @@
+[
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/agents/services/agent-workflows.service.ts",
+    "messages": [
+      {
+        "line": 7,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'AgentService' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 17,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'WorkflowContext' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/agents/services/agent.service.ts",
+    "messages": [
+      {
+        "line": 16,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'agentMetrics' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 29,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'AgentSystemPrompts' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 180,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'agent' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 205,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'agent' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 281,
+        "column": 14,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'userMessage' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/agents/services/mastra-agent.service.ts",
+    "messages": [
+      {
+        "line": 31,
+        "column": 28,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'agentId' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/auth/services/__tests__/two-factor.service.test.ts",
+    "messages": [
+      {
+        "line": 8,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'n' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/backtest/engine/backtest-engine.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 46,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'mock' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 8,
+        "column": 31,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'BacktestState' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/backtest/engine/backtest-engine.ts",
+    "messages": [
+      {
+        "line": 20,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'EquityCurvePoint' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 22,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'DEFAULT_BACKTEST_CONFIG' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/banco/routes/wallet.routes.ts",
+    "messages": [
+      {
+        "line": 585,
+        "column": 14,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'params' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/bots/services/bot.service.ts",
+    "messages": [
+      {
+        "line": 8,
+        "column": 25,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'asc' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 8,
+        "column": 45,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'inArray' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 33,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'BotStatus' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 168,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'query' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 793,
+        "column": 61,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'tenantId' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/ceo/services/ceo.service.ts",
+    "messages": [
+      {
+        "line": 11,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'users' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 17,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'chartOfAccounts' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 17,
+        "column": 27,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'accountBalances' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 536,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'periodLength' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/exchanges/services/__tests__/exchange.service.test.ts",
+    "messages": [
+      {
+        "line": 188,
+        "column": 9,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'db' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/exchanges/websocket/adapters/kraken-adapter.ts",
+    "messages": [
+      {
+        "line": 203,
+        "column": 65,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'timestamp' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 208,
+        "column": 65,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'timestamp' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/routes/indicators.routes.ts",
+    "messages": [
+      {
+        "line": 21,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'Timeframe' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/services/indicator-factory.service.ts",
+    "messages": [
+      {
+        "line": 11,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'IndicatorType' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 48,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'INDICATOR_CATEGORY_MAP' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/services/indicators.service.ts",
+    "messages": [
+      {
+        "line": 9,
+        "column": 24,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 69,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'INDICATOR_CATEGORY_MAP' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 499,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'successfulCalculations' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 608,
+        "column": 5,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'configuration' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/types/crypto-indicators.types.ts",
+    "messages": [
+      {
+        "line": 8,
+        "column": 36,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'IndicatorType' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/utils/__tests__/calculator-v2.test.ts",
+    "messages": [
+      {
+        "line": 222,
+        "column": 28,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'index' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 516,
+        "column": 58,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'i' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/utils/__tests__/custom-indicators.test.ts",
+    "messages": [
+      {
+        "line": 171,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'diff1' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 172,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'diff2' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/utils/calculator-v2.ts",
+    "messages": [
+      {
+        "line": 220,
+        "column": 56,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'fastLimit' is assigned a value but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 220,
+        "column": 81,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'slowLimit' is assigned a value but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 1241,
+        "column": 54,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'period' is assigned a value but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 1264,
+        "column": 62,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'series2' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 1284,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'conversionPeriod' is assigned a value but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 1285,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'basePeriod' is assigned a value but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/indicators/utils/custom-indicators.ts",
+    "messages": [
+      {
+        "line": 16,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'getOpenPrices' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 305,
+        "column": 9,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'open' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/market-data-websocket-manager.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 57,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'mock' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 9,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'ConnectionConfig' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 49,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'request' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 53,
+        "column": 21,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'request' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 92,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'wait' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 102,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'mockAdapter' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/market-data-websocket-manager.ts",
+    "messages": [
+      {
+        "line": 13,
+        "column": 106,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'ExchangeEventName' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 13,
+        "column": 125,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'ExchangeEventListener' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/pipeline.ts",
+    "messages": [
+      {
+        "line": 14,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'DEFAULT_RECONNECTION' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/market-data/websocket/redis-event-bridge.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 57,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'mock' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/notifications/__tests__/email-provider.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 46,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'mock' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 169,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'provider' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/notifications/__tests__/notification-integration.test.ts",
+    "messages": [
+      {
+        "line": 95,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'expectedSubject' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 96,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'expectedBody' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 104,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'template' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 132,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'notification' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 342,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'statuses' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 487,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'activeJobs' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/notifications/__tests__/notification-queue.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 34,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'beforeEach' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 6,
+        "column": 46,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'afterEach' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 7,
+        "column": 32,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'NotificationQueue' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/notifications/__tests__/push-provider.test.ts",
+    "messages": [
+      {
+        "line": 306,
+        "column": 9,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'provider' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/notifications/__tests__/telegram-provider.test.ts",
+    "messages": [
+      {
+        "line": 198,
+        "column": 9,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'provider' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/footprint-chart.service.ts",
+    "messages": [
+      {
+        "line": 17,
+        "column": 29,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 135,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'priceRange' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/large-order-detection.service.ts",
+    "messages": [
+      {
+        "line": 22,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'desc' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 22,
+        "column": 30,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 22,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 426,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'asks' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/liquidity-heatmap.service.ts",
+    "messages": [
+      {
+        "line": 15,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/microstructure.service.ts",
+    "messages": [
+      {
+        "line": 21,
+        "column": 30,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 21,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 27,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'OrderBookSnapshotService' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 30,
+        "column": 15,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'OrderBookSnapshot' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/order-book-aggregator.service.ts",
+    "messages": [
+      {
+        "line": 22,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'db' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 23,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'eq' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 23,
+        "column": 14,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'and' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 23,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'inArray' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 24,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'orderBookSnapshots' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 635,
+        "column": 53,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'analytics' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/order-book-analytics.service.ts",
+    "messages": [
+      {
+        "line": 326,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'minPrice' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 327,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'maxPrice' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/order-book-imbalance.service.ts",
+    "messages": [
+      {
+        "line": 339,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'neutralRange' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/price-impact.service.ts",
+    "messages": [
+      {
+        "line": 28,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'OrderBookAnalyticsService' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 31,
+        "column": 34,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'OrderBookLevel' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/pulse-indicator.service.ts",
+    "messages": [
+      {
+        "line": 15,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'db' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 591,
+        "column": 32,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'i' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/services/superdom.service.ts",
+    "messages": [
+      {
+        "line": 25,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'DOMDisplayData' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/order-book/types/order-book.types.ts",
+    "messages": [
+      {
+        "line": 11,
+        "column": 15,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'z' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/endpoints-test.ts",
+    "messages": [
+      {
+        "line": 69,
+        "column": 14,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk-retention.test.ts",
+    "messages": [
+      {
+        "line": 6,
+        "column": 34,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'beforeAll' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.integration.test.ts",
+    "messages": [
+      {
+        "line": 17,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'walletService' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 18,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 161,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 173,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 185,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 197,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 209,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 221,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 228,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 235,
+        "column": 18,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      },
+      {
+        "line": 252,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'testWalletId' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 315,
+        "column": 30,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'index' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/__tests__/risk.service.test.ts",
+    "messages": [
+      {
+        "line": 7,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'riskService' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 42,
+        "column": 29,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'walletId' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 65,
+        "column": 28,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'walletId' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 65,
+        "column": 46,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'asset' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 666,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'portfolioValue' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 762,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'meanY' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/risk/services/risk-retention.service.ts",
+    "messages": [
+      {
+        "line": 14,
+        "column": 19,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'and' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 14,
+        "column": 24,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'eq' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 17,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'pipeline' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 18,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'Readable' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 185,
+        "column": 5,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'cutoffDate' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 322,
+        "column": 16,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'importError' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/endpoints-test.ts",
+    "messages": [
+      {
+        "line": 59,
+        "column": 14,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'e' is defined but never used. Allowed unused caught errors must match /^_|error/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/__tests__/integration-test.ts",
+    "messages": [
+      {
+        "line": 227,
+        "column": 29,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'articles' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/routes/sentiment.routes.ts",
+    "messages": [
+      {
+        "line": 10,
+        "column": 24,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 10,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 10,
+        "column": 40,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'inArray' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 12,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'newsArticles' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 13,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'socialMentions' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 16,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sentimentAlerts' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 22,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'priceCorrelationService' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/schema/sentiment.schema.ts",
+    "messages": [
+      {
+        "line": 16,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'bigint' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/aggregator/sentiment-aggregator.service.ts",
+    "messages": [
+      {
+        "line": 16,
+        "column": 24,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 16,
+        "column": 29,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'desc' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 16,
+        "column": 40,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'inArray' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 21,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sentimentHistory' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 24,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'SentimentAnalysisResult' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 331,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sourceBreakdown' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 334,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'volume' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/analysis/sentiment-local.service.ts",
+    "messages": [
+      {
+        "line": 121,
+        "column": 31,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'options' is defined but never used. Allowed unused args must match /^_/u."
+      },
+      {
+        "line": 299,
+        "column": 42,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'result' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/analyzer/price-correlation.service.ts",
+    "messages": [
+      {
+        "line": 437,
+        "column": 11,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'df' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/analyzer/trending-topics.service.ts",
+    "messages": [
+      {
+        "line": 169,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'peakTime' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/integration/sentiment-agent.integration.ts",
+    "messages": [
+      {
+        "line": 10,
+        "column": 24,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'lte' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 10,
+        "column": 35,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sql' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 18,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'sentimentAggregator' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 20,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'priceCorrelationService' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/sources/reddit.service.ts",
+    "messages": [
+      {
+        "line": 12,
+        "column": 6,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'Comment' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 13,
+        "column": 30,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'RedditStreamConfig' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/sources/twitter.service.ts",
+    "messages": [
+      {
+        "line": 8,
+        "column": 52,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'TweetSearchRecentV2Paginator' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 9,
+        "column": 31,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'TwitterStreamConfig' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/sentiment/services/streaming/websocket-streaming.service.ts",
+    "messages": [
+      {
+        "line": 15,
+        "column": 36,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'SentimentAnalysisResult' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/strategies/engine/strategy-runner.test.ts",
+    "messages": [
+      {
+        "line": 195,
+        "column": 7,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'marketData' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/strategies/engine/strategy-runner.ts",
+    "messages": [
+      {
+        "line": 395,
+        "column": 5,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'currentPrice' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/strategies/services/strategy.service.ts",
+    "messages": [
+      {
+        "line": 1144,
+        "column": 13,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'maxEquity' is assigned a value but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/tenants/routes/tenant.routes.ts",
+    "messages": [
+      {
+        "line": 11,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'getTenantById' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 13,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'getTenantMembers' is defined but never used. Allowed unused vars must match /^_/u."
+      },
+      {
+        "line": 17,
+        "column": 3,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'getCompanyTenant' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/users/__tests__/user.routes.integration.test.ts",
+    "messages": [
+      {
+        "line": 35,
+        "column": 59,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'userId' is defined but never used. Allowed unused args must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/modules/users/routes/user.routes.ts",
+    "messages": [
+      {
+        "line": 8,
+        "column": 10,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'getUserProfile' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/scripts/test-exchange-websockets.ts",
+    "messages": [
+      {
+        "line": 22,
+        "column": 8,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'logger' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  },
+  {
+    "filePath": "/Users/myminimac/Desenvolvimento/BotCriptoFy2/backend/src/types/feedparser.d.ts",
+    "messages": [
+      {
+        "line": 7,
+        "column": 12,
+        "ruleId": "@typescript-eslint/no-unused-vars",
+        "message": "'Readable' is defined but never used. Allowed unused vars must match /^_/u."
+      }
+    ]
+  }
+]

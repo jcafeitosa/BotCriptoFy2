@@ -20,19 +20,11 @@
 // Configuration
 export { auth, authHandler, authApi } from './services/auth.config';
 
-// Services
-export {
-  getUserPrimaryRole,
-  getUserRoles,
-  getUserPrimaryTenantId,
-  getUserTenantIds,
-  userHasRole,
-  userIsMemberOfTenant,
-} from './services/session.service';
+// Services (auth-specific)
+export { };
 
 // Routes
 export { authRoutes, authCustomRoutes } from './routes/auth.routes';
-export { adminAuthRoutes } from './routes/admin.routes';
 export { devAuthRoutes } from './routes/dev.routes';
 
 // Middleware & Guards

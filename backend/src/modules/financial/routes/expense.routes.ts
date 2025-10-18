@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { expenseService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 import type { ExpenseCategory, ExpensePaymentMethod } from '../schema/expenses.schema';
 
@@ -19,6 +20,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .post(
     '/',
+    { beforeHandle: [requirePermission('financial', 'write')] },
     async ({ body, user, tenantId }) => {
       logger.info('Creating expense', { user: user?.id });
 
@@ -91,6 +93,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .get(
     '/:id',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ params, tenantId }) => {
       const result = await expenseService.getById(params.id, tenantId);
 
@@ -120,6 +123,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .get(
     '/',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ query, tenantId }) => {
       const filters = {
         tenantId: tenantId,
@@ -167,6 +171,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .patch(
     '/:id',
+    { beforeHandle: [requirePermission('financial', 'write')] },
     async ({ params, body, user, tenantId }) => {
       // Convert paymentDate string to Date if provided
       const updateData = {
@@ -212,6 +217,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .delete(
     '/:id',
+    { beforeHandle: [requirePermission('financial', 'manage')] },
     async ({ params, tenantId }) => {
       const result = await expenseService.delete(params.id, tenantId);
 

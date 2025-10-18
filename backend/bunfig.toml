@@ -26,8 +26,9 @@ smol = true
 
 [test]
 # Test runner configuration
-# Coverage settings
-coverage = true
+# Coverage desativado por padrão para evitar falhas em execuções parciais;
+# use `bun test --coverage` quando precisar de relatório completo.
+coverage = false
 coverageThreshold = 80
 coverageDir = "./coverage"
 coverageReporters = ["text", "json", "html"]

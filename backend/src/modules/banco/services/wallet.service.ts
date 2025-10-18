@@ -10,11 +10,13 @@ import {
   walletAssets,
   walletTransactions,
   withdrawalRequests,
+  savingsGoals,
   // type Wallet,
   // type WalletAsset,
   type WalletTransaction,
   type WithdrawalRequest,
 } from '../schema/wallet.schema';
+import { isTwoFactorEnabled } from '@/modules/auth/services/two-factor.service';
 import { eq, and, /* sql, */ desc, gte, lte } from 'drizzle-orm';
 import { priceService } from './price.service';
 import { logAuditEvent } from '@/modules/audit/services/audit-logger.service';
@@ -29,6 +31,8 @@ import type {
   ServiceResponse,
   TransactionFilter,
   WithdrawalApprovalRequest,
+  CreateSavingsGoalRequest,
+  SavingsGoalProgress,
 } from '../types/wallet.types';
 import logger from '@/utils/logger';
 
@@ -36,6 +40,28 @@ import logger from '@/utils/logger';
  * Wallet Service
  */
 export class WalletService {
+  /**
+   * List wallets for a user within a tenant
+   */
+  async listUserWallets(userId: string, tenantId: string) {
+    const rows = await db
+      .select()
+      .from(wallets)
+      .where(and(eq(wallets.userId, userId), eq(wallets.tenantId, tenantId)))
+      .orderBy(wallets.createdAt);
+    return rows;
+  }
+
+  /**
+   * List withdrawal requests for a user
+   */
+  async listUserWithdrawals(userId: string) {
+    const rows = await db
+      .select()
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.userId, userId));
+    return rows;
+  }
   /**
    * Create a new wallet
    */
@@ -193,6 +219,14 @@ export class WalletService {
     request: CreateWithdrawalRequest
   ): Promise<ServiceResponse<WithdrawalRequest>> {
     try {
+      // Security: require 2FA enabled and code provided (verification handled by Auth module)
+      const twoFaEnabled = await isTwoFactorEnabled(request.userId);
+      if (!twoFaEnabled) {
+        throw new Error('Two-factor authentication required to request withdrawals');
+      }
+      if (!request.twoFactorCode || String(request.twoFactorCode).trim().length < 4) {
+        throw new Error('Invalid or missing two-factor code');
+      }
       // Verify wallet and check balance
       const balance = await this.getAssetBalance(request.walletId, request.asset);
 
@@ -417,12 +451,12 @@ export class WalletService {
         })
         .where(eq(withdrawalRequests.id, withdrawal.id));
 
-      // Deduct from balance (unlock and subtract)
+      // Deduct from balance (decrease locked and total)
       await this.updateWalletAssetBalance(
         withdrawal.walletId,
         withdrawal.asset,
         parseFloat(withdrawal.amount),
-        'subtract'
+        'deductLocked'
       );
 
       logger.info(`Withdrawal executed: ${withdrawal.id}`, {
@@ -459,6 +493,14 @@ export class WalletService {
 
       if (!toWallet) {
         throw new Error('Destination wallet not found');
+      }
+
+      // Enforce same user and tenant transfers only
+      if (toWallet.userId !== request.userId) {
+        throw new Error('Destination wallet does not belong to the user');
+      }
+      if (toWallet.tenantId !== fromWallet.tenantId || toWallet.tenantId !== request.tenantId) {
+        throw new Error('Destination wallet not in the same tenant');
       }
 
       // Check balance
@@ -595,13 +637,53 @@ export class WalletService {
   }
 
   /**
+   * Lock or unlock a wallet (admin/manage)
+   */
+  async setWalletLock(
+    walletId: string,
+    userId: string,
+    tenantId: string,
+    lock: boolean,
+    reason?: string
+  ): Promise<ServiceResponse<{ id: string; isLocked: boolean }>> {
+    try {
+      // Verify ownership
+      const [row] = await db.select().from(wallets).where(and(eq(wallets.id, walletId), eq(wallets.userId, userId), eq(wallets.tenantId, tenantId))).limit(1);
+      if (!row) return { success: false, error: 'Wallet not found or access denied' };
+
+      const [updated] = await db
+        .update(wallets)
+        .set({ isLocked: lock, lockReason: lock ? (reason || 'locked_by_admin') : null, updatedAt: new Date() })
+        .where(eq(wallets.id, walletId))
+        .returning();
+
+      await logAuditEvent({
+        eventType: lock ? 'security.account_locked' : 'security.account_unlocked',
+        severity: lock ? 'high' : 'medium',
+        status: 'success',
+        userId,
+        tenantId,
+        resource: 'wallets',
+        resourceId: walletId,
+        action: lock ? 'lock' : 'unlock',
+        metadata: { reason },
+      });
+
+      return { success: true, data: { id: updated.id, isLocked: updated.isLocked } };
+    } catch (error) {
+      logger.error('Error setting wallet lock:', { error, walletId, lock });
+      return { success: false, error: 'Failed to update wallet lock state' };
+    }
+  }
+
+  /**
    * Update wallet asset balance
    */
   private async updateWalletAssetBalance(
     walletId: string,
     asset: string,
     amount: number,
-    operation: 'add' | 'subtract' | 'lock' | 'unlock'
+    operation: 'add' | 'subtract' | 'lock' | 'unlock' | 'deductLocked'
   ): Promise<void> {
     try {
       const [existing] = await db
@@ -621,23 +703,42 @@ export class WalletService {
         let newAvailable = currentAvailable;
 
         switch (operation) {
-          case 'add':
+          case 'add': {
             newBalance = currentBalance + amount;
             newAvailable = currentAvailable + amount;
             break;
-          case 'subtract':
+          }
+          case 'subtract': {
+            // Subtract from available and total only (used for transfers)
+            if (currentAvailable < amount) throw new Error('Insufficient available balance');
             newBalance = currentBalance - amount;
             newAvailable = currentAvailable - amount;
-            newLocked = currentLocked - amount; // Also unlock
             break;
-          case 'lock':
+          }
+          case 'deductLocked': {
+            // Deduct from locked and total (used for withdrawals)
+            if (currentLocked < amount) throw new Error('Insufficient locked balance');
+            newBalance = currentBalance - amount;
+            newLocked = currentLocked - amount;
+            break;
+          }
+          case 'lock': {
+            if (currentAvailable < amount) throw new Error('Insufficient available balance to lock');
             newLocked = currentLocked + amount;
             newAvailable = currentAvailable - amount;
             break;
-          case 'unlock':
+          }
+          case 'unlock': {
+            if (currentLocked < amount) throw new Error('Insufficient locked balance to unlock');
             newLocked = currentLocked - amount;
             newAvailable = currentAvailable + amount;
             break;
+          }
+        }
+
+        // Guard against negative values
+        if (newBalance < 0 || newAvailable < 0 || newLocked < 0) {
+          throw new Error('Balance update would result in negative values');
         }
 
         // Get current price
@@ -660,10 +761,11 @@ export class WalletService {
           })
           .where(eq(walletAssets.id, existing.id));
       } else {
-        // Create new asset
+        // Create or fail for non-add operations
+        if (operation !== 'add') throw new Error('Asset not found in wallet');
         const price = await priceService.getPrice(asset as any);
-        const balance = operation === 'add' ? amount : 0;
-        const available = operation === 'add' ? amount : 0;
+        const balance = amount;
+        const available = amount;
 
         await db.insert(walletAssets).values({
           walletId,
@@ -737,6 +839,116 @@ export class WalletService {
     } catch (error) {
       logger.error('Error getting transactions:', { error, filter });
       return [];
+    }
+  }
+
+  /**
+   * Export transactions as CSV (simple, RFC4180-ish)
+   */
+  async exportTransactionsCsv(filter: TransactionFilter): Promise<string> {
+    const rows = await this.getTransactions(filter);
+    const headers = [
+      'id','walletId','userId','tenantId','type','asset','amount','fee','status','fromWalletId','toWalletId','fromAddress','toAddress','txHash','blockchainNetwork','description','createdAt','processedAt','confirmedAt'
+    ];
+    const escape = (v: any) => {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const lines = [headers.join(',')];
+    for (const r of rows) {
+      lines.push([
+        r.id, r.walletId, r.userId, r.tenantId, r.type, r.asset, r.amount, r.fee, r.status, r.fromWalletId, r.toWalletId, r.fromAddress, r.toAddress, r.txHash, r.blockchainNetwork, r.description, r.createdAt, r.processedAt, r.confirmedAt
+      ].map(escape).join(','));
+    }
+    return lines.join('\n');
+  }
+
+  // =============================
+  // Savings Goals
+  // =============================
+
+  async createSavingsGoal(req: CreateSavingsGoalRequest): Promise<ServiceResponse<{ id: string }>> {
+    try {
+      // verify wallet ownership
+      const [w] = await db.select().from(wallets).where(and(eq(wallets.id, req.walletId), eq(wallets.userId, req.userId))).limit(1);
+      if (!w) return { success: false, error: 'Wallet not found or access denied' };
+
+      const [goal] = await db.insert(savingsGoals).values({
+        userId: req.userId,
+        walletId: req.walletId,
+        name: req.name,
+        description: req.description,
+        targetAmount: req.targetAmount.toString(),
+        currentAmount: '0',
+        asset: req.asset,
+        targetDate: req.targetDate || null,
+        metadata: req.metadata as any,
+        progressPercent: '0',
+        isCompleted: false,
+        isActive: true,
+      }).returning();
+
+      await logAuditEvent({
+        eventType: 'financial.goal_created',
+        severity: 'low',
+        status: 'success',
+        userId: req.userId,
+        tenantId: w.tenantId,
+        resource: 'savings_goals',
+        resourceId: goal.id,
+        action: 'create',
+        metadata: { walletId: req.walletId, asset: req.asset }
+      });
+
+      return { success: true, data: { id: goal.id } };
+    } catch (error) {
+      logger.error('Error creating savings goal:', { error, req });
+      return { success: false, error: 'Failed to create savings goal' };
+    }
+  }
+
+  async listSavingsGoals(userId: string, walletId: string) {
+    const rows = await db.select().from(savingsGoals).where(and(eq(savingsGoals.userId, userId), eq(savingsGoals.walletId, walletId), eq(savingsGoals.isActive, true)));
+    return rows;
+  }
+
+  async addSavingsProgress(goalId: string, userId: string, amount: number): Promise<ServiceResponse<SavingsGoalProgress>> {
+    try {
+      const [goal] = await db.select().from(savingsGoals).where(eq(savingsGoals.id, goalId)).limit(1);
+      if (!goal || goal.userId !== userId) return { success: false, error: 'Goal not found or access denied' };
+
+      const current = parseFloat(goal.currentAmount);
+      const target = parseFloat(goal.targetAmount);
+      const newCurrent = current + amount;
+      const progressPercent = target > 0 ? ((newCurrent / target) * 100).toFixed(2) : '0';
+      const isCompleted = newCurrent >= target;
+
+      const [updated] = await db.update(savingsGoals).set({
+        currentAmount: newCurrent.toString(),
+        progressPercent,
+        isCompleted,
+        completedDate: isCompleted ? new Date() : goal.completedDate,
+        updatedAt: new Date(),
+      }).where(eq(savingsGoals.id, goalId)).returning();
+
+      const response: SavingsGoalProgress = {
+        goal: updated as any,
+        currentAmount: updated.currentAmount,
+        targetAmount: updated.targetAmount,
+        progressPercent: updated.progressPercent!,
+        remainingAmount: (Math.max(0, target - parseFloat(updated.currentAmount))).toString(),
+        daysRemaining: updated.targetDate ? Math.ceil((new Date(updated.targetDate).getTime() - Date.now()) / (1000*60*60*24)) : undefined,
+        onTrack: true,
+        badges: [],
+        nextMilestone: target > 0 ? { percent: Math.min(100, Math.ceil((parseFloat(updated.progressPercent || '0') + 10))), amount: '', remainingAmount: '' } : undefined,
+      };
+
+      return { success: true, data: response };
+    } catch (error) {
+      logger.error('Error adding savings progress:', { error, goalId, amount });
+      return { success: false, error: 'Failed to update goal' };
     }
   }
 }

@@ -97,16 +97,7 @@ export class TaxJurisdictionService {
   async setJurisdiction(
     jurisdiction: TaxJurisdiction,
     userId: string,
-    userRole: string,
   ): Promise<{ success: boolean; data?: TaxJurisdictionConfig; error?: string }> {
-    // Validate CEO role
-    if (userRole !== 'CEO' && userRole !== 'SUPER_ADMIN') {
-      return {
-        success: false,
-        error: 'Only CEO or Super Admin can set tax jurisdiction',
-      };
-    }
-
     // Validate jurisdiction exists
     if (!TAX_JURISDICTIONS[jurisdiction]) {
       return {
@@ -145,7 +136,7 @@ export class TaxJurisdictionService {
             isActive: true,
             configuredAt: new Date(),
             configuredBy: userId,
-            configuredByRole: userRole,
+            configuredByRole: 'financial_manage',
             previousJurisdiction: previousJurisdiction || null,
             notes: previousJurisdiction
               ? `Migrated from ${previousJurisdiction}`
@@ -160,7 +151,7 @@ export class TaxJurisdictionService {
           fromJurisdiction: previousJurisdiction,
           toJurisdiction: jurisdiction,
           changedBy: userId,
-          changedByRole: userRole,
+          changedByRole: 'financial_manage',
           changeReason: previousJurisdiction
             ? `Migration from ${previousJurisdiction} to ${jurisdiction}`
             : 'Initial tax jurisdiction configuration',

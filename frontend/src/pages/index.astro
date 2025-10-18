@@ -7,7 +7,8 @@
 
 import Layout from '../layouts/Layout.astro';
 import { HighlightText } from '../components/ui/HighlightBracket';
-import TradingChart from '../components/charts/TradingChart';
+import { TradingChart } from '../components/charts/TradingChart';
+import { BackgroundTradingChart } from '../components/background/BackgroundTradingChart';
 ---
 
 <Layout title="BotCriptoFy - Invista com Inteligência Artificial">
@@ -23,11 +24,12 @@ import TradingChart from '../components/charts/TradingChart';
             </span>
           </div>
 
-          <div class="hidden lg:flex items-center space-x-8">
+          <div class="hidden lg:flex items-center space-x-6">
             <a href="#demo" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Demo</a>
             <a href="#beneficios" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Benefícios</a>
             <a href="#simulador" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Simulador</a>
             <a href="#depoimentos" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Depoimentos</a>
+            <a href="#compliance" class="text-gray-300 hover:text-gray-100 transition-colors text-sm font-medium scroll-link">Compliance</a>
           </div>
 
           <div class="flex items-center space-x-2 sm:space-x-4">
@@ -53,6 +55,7 @@ import TradingChart from '../components/charts/TradingChart';
             <a href="#beneficios" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Benefícios</a>
             <a href="#simulador" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Simulador</a>
             <a href="#depoimentos" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Depoimentos</a>
+            <a href="#compliance" class="text-gray-400 hover:text-white transition-colors text-base font-medium scroll-link">Compliance</a>
           </div>
         </div>
       </div>
@@ -118,35 +121,24 @@ import TradingChart from '../components/charts/TradingChart';
             </button>
           </div>
 
-          <!-- Indicadores de Confiança -->
-          <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 pt-8 sm:pt-12 border-t border-white/10">
-            <div class="flex items-center gap-2 text-gray-300">
-              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-xs sm:text-sm font-medium">Licenciado na Estônia</span>
-            </div>
-            <div class="flex items-center gap-2 text-gray-300">
-              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-xs sm:text-sm font-medium">Auditado independentemente</span>
-            </div>
-            <div class="flex items-center gap-2 text-gray-300">
-              <svg class="w-4 sm:w-5 h-4 sm:h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-              <span class="text-xs sm:text-sm font-medium">103+ exchanges integradas</span>
-            </div>
-          </div>
 
         </div>
       </div>
 
-      <!-- Efeito de brilho no fundo -->
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/20 rounded-full blur-[120px]"></div>
-        <div class="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]"></div>
+      <!-- Background com TradingView Chart (Desktop) + Blur Effects (Mobile fallback) -->
+      <div class="absolute inset-0 -z-10 overflow-hidden">
+        <!-- TradingView Lightweight Charts - Real-time BTC (apenas desktop ≥768px) -->
+        <BackgroundTradingChart
+          opacity={0.3}
+          height={600}
+          client:load
+        />
+
+        <!-- Blur effects (fallback em mobile <768px) -->
+        <div class="lg:hidden">
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] h-[300px] sm:h-[600px] bg-cyan-500/20 rounded-full blur-[120px]"></div>
+          <div class="absolute top-1/3 right-1/4 w-full max-w-[400px] h-[200px] sm:h-[400px] bg-purple-500/10 rounded-full blur-[100px]"></div>
+        </div>
       </div>
     </section>
 
@@ -335,7 +327,7 @@ import TradingChart from '../components/charts/TradingChart';
             <!-- Perfil de Risco -->
             <div class="mb-12">
               <label class="block text-white text-lg font-semibold mb-4">Perfil de risco</label>
-              <div class="grid grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button class="risk-btn px-6 py-4 rounded-lg bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500 text-gray-400 hover:text-white transition-all" data-risk="low">
                   <div class="font-bold text-lg mb-1">Conservador</div>
                   <div class="text-xs">3-5% ao mês</div>
@@ -604,7 +596,7 @@ import TradingChart from '../components/charts/TradingChart';
     </section>
 
     <!-- 🧭 6. ARQUITETURA DE CONFIANÇA E COMPLIANCE -->
-    <section class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5 bg-gradient-to-b from-transparent to-gray-900/50 scroll-mt-20">
+    <section id="compliance" class="relative z-10 py-16 sm:py-24 md:py-32 border-t border-white/5 bg-gradient-to-b from-transparent to-gray-900/50">
       <div class="container mx-auto px-4 sm:px-6">
         <div class="max-w-7xl mx-auto fade-in-section">
 
@@ -786,8 +778,37 @@ import TradingChart from '../components/charts/TradingChart';
       </div>
 
       <!-- Efeito de brilho no fundo -->
-      <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px]"></div>
+      <div class="absolute inset-0 -z-10 overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[400px] sm:h-[800px] bg-purple-500/10 rounded-full blur-[150px]"></div>
+      </div>
+    </section>
+
+    <!-- 🏅 INDICADORES DE CONFIANÇA -->
+    <section class="relative z-10 py-12 sm:py-16 bg-gradient-to-b from-black to-gray-900/50">
+      <div class="container mx-auto px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto">
+          <!-- Indicadores de Confiança -->
+          <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-8 md:gap-12">
+            <div class="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group">
+              <svg class="w-5 sm:w-6 h-5 sm:h-6 text-green-500 group-hover:scale-110 transition-transform flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-sm sm:text-base font-medium">Licenciado na Estônia</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group">
+              <svg class="w-5 sm:w-6 h-5 sm:h-6 text-green-500 group-hover:scale-110 transition-transform flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-sm sm:text-base font-medium">Auditado independentemente</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group">
+              <svg class="w-5 sm:w-6 h-5 sm:h-6 text-green-500 group-hover:scale-110 transition-transform flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span class="text-sm sm:text-base font-medium">103+ exchanges integradas</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1005,13 +1026,18 @@ import TradingChart from '../components/charts/TradingChart';
   }
 
   /* Prevent horizontal scroll */
-  * {
-    max-width: 100%;
+  body {
+    overflow-x: hidden;
   }
 
-  img, video {
+  img, video, svg {
     max-width: 100%;
     height: auto;
+  }
+
+  /* Ensure containers don't overflow */
+  .container {
+    max-width: 100%;
   }
 </style>
 
@@ -1035,27 +1061,37 @@ import TradingChart from '../components/charts/TradingChart';
   });
 
   // ============================================
-  // 0.5. SMOOTH SCROLL FOR NAVIGATION
+  // 0.5. SMOOTH SCROLL FOR NAVIGATION (com offset dinâmico da navbar)
   // ============================================
   document.querySelectorAll('.scroll-link').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
       e.preventDefault();
       const targetId = this.getAttribute('href');
       const targetElement = document.querySelector(targetId);
-      
+
       if (targetElement) {
-        // Calcular posição para centralizar a seção na tela
-        const windowHeight = window.innerHeight;
-        const elementHeight = targetElement.offsetHeight;
-        const elementTop = targetElement.offsetTop;
-        
-        // Centralizar: elemento no meio da tela
-        const scrollPosition = elementTop - (windowHeight / 2) + (elementHeight / 2);
-        
+        // Calcular altura real da navbar
+        const navbar = document.querySelector('nav');
+        const navbarHeight = navbar ? navbar.offsetHeight : 0;
+
+        // Adicionar 20px de margem extra para espaçamento visual
+        const offset = navbarHeight + 20;
+
+        // Calcular posição com offset
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+        // Scroll suave até a posição calculada
         window.scrollTo({
-          top: Math.max(0, scrollPosition), // Não permitir scroll negativo
+          top: offsetPosition,
           behavior: 'smooth'
         });
+
+        // Fechar menu mobile se estiver aberto
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+          mobileMenu.classList.add('hidden');
+        }
       }
     });
   });

@@ -1,0 +1,544 @@
+/**
+ * Trending Topics Analyzer
+ * Detects trending hashtags, keywords, and topics from social media
+ *
+ * Features:
+ * - Real-time trend detection
+ * - Velocity-based ranking (growth rate)
+ * - Engagement-weighted scoring
+ * - Symbol association
+ * - Emerging vs declining trend classification
+ *
+ * @module sentiment/services/analyzer/trending-topics
+ */
+
+import type { TrendingTopic } from '../../types/social.types';
+import type { SocialMention } from '../../types/social.types';
+
+/**
+ * Trending Configuration
+ */
+export interface TrendingConfig {
+  /**
+   * Time window for trend analysis (milliseconds)
+   * Default: 1 hour
+   */
+  timeWindow: number;
+
+  /**
+   * Minimum mentions required to be considered trending
+   * Default: 10
+   */
+  minMentions: number;
+
+  /**
+   * Velocity threshold (mentions per hour)
+   * Topics must grow faster than this to be "emerging"
+   * Default: 5
+   */
+  velocityThreshold: number;
+
+  /**
+   * Engagement weight multiplier
+   * Default: 0.4 (40% influence)
+   */
+  engagementWeight: number;
+
+  /**
+   * Recency decay factor
+   * Default: 0.7
+   */
+  recencyDecay: number;
+
+  /**
+   * Max trending topics to return
+   * Default: 50
+   */
+  maxTopics: number;
+}
+
+/**
+ * Topic Data Point
+ */
+interface TopicDataPoint {
+  topic: string; // Hashtag or keyword
+  timestamp: Date;
+  engagement: number;
+  symbols: string[];
+  source: string;
+}
+
+/**
+ * Topic Statistics
+ */
+interface TopicStats {
+  topic: string;
+  mentions: number;
+  firstSeen: Date;
+  lastSeen: Date;
+  totalEngagement: number;
+  avgEngagement: number;
+  velocity: number; // Mentions per hour
+  symbols: Set<string>;
+  sources: Set<string>;
+  dataPoints: TopicDataPoint[];
+}
+
+/**
+ * Trending Topics Service
+ */
+export class TrendingTopicsService {
+  private config: TrendingConfig;
+  private topicHistory: Map<string, TopicStats> = new Map();
+  private lastCleanup: Date = new Date();
+
+  constructor(config?: Partial<TrendingConfig>) {
+    this.config = {
+      timeWindow: config?.timeWindow || 3600000, // 1 hour
+      minMentions: config?.minMentions || 10,
+      velocityThreshold: config?.velocityThreshold || 5,
+      engagementWeight: config?.engagementWeight || 0.4,
+      recencyDecay: config?.recencyDecay || 0.7,
+      maxTopics: config?.maxTopics || 50,
+    };
+
+    // Clean up old data every 10 minutes
+    setInterval(() => this.cleanupOldData(), 600000);
+  }
+
+  /**
+   * Process social mentions to extract trending topics
+   */
+  async processMentions(mentions: SocialMention[]): Promise<TrendingTopic[]> {
+    // Extract topics from mentions
+    mentions.forEach((mention) => {
+      // Process hashtags
+      if (mention.hashtags && mention.hashtags.length > 0) {
+        mention.hashtags.forEach((hashtag) => {
+          this.addDataPoint({
+            topic: hashtag.toLowerCase(),
+            timestamp: mention.createdAt,
+            engagement: this.calculateMentionEngagement(mention),
+            symbols: mention.symbols,
+            source: mention.platform,
+          });
+        });
+      }
+
+      // Extract keywords from text (top N-grams)
+      const keywords = this.extractKeywords(mention.text);
+      keywords.forEach((keyword) => {
+        this.addDataPoint({
+          topic: keyword.toLowerCase(),
+          timestamp: mention.createdAt,
+          engagement: this.calculateMentionEngagement(mention),
+          symbols: mention.symbols,
+          source: mention.platform,
+        });
+      });
+    });
+
+    // Calculate trending scores and return top topics
+    return this.getTrendingTopics();
+  }
+
+  /**
+   * Get current trending topics
+   */
+  getTrendingTopics(): TrendingTopic[] {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - this.config.timeWindow);
+
+    const trendingList: TrendingTopic[] = [];
+
+    this.topicHistory.forEach((stats, topic) => {
+      // Filter data points within time window
+      const recentPoints = stats.dataPoints.filter((p) => p.timestamp >= cutoff);
+
+      if (recentPoints.length < this.config.minMentions) {
+        return; // Skip topics with insufficient mentions
+      }
+
+      // Calculate trending score
+      const score = this.calculateTrendingScore(stats, recentPoints, now);
+
+      // Determine trend type
+      const trendType = this.determineTrendType(stats, recentPoints);
+
+      // Calculate peak time
+      const peakTime = this.calculatePeakTime(recentPoints);
+
+      // Find related symbols
+      // Find related symbols
+      const relatedSymbols = Array.from(stats.symbols);
+
+      // Calculate total engagement
+      const totalEngagement = recentPoints.reduce((sum, p) => sum + p.engagement, 0);
+      const avgEngagement = recentPoints.length > 0 ? totalEngagement / recentPoints.length : 0;
+
+      const trending: TrendingTopic & { velocity?: number; engagement?: { total: number; average: number }; peakTime?: Date } = {
+        id: crypto.randomUUID(),
+        keyword: stats.topic,
+        type: topic.startsWith('#') ? 'hashtag' : 'keyword',
+        symbols: relatedSymbols,
+        mentionCount: recentPoints.length,
+        mentionGrowth: stats.velocity * 100,
+        score,
+        averageSentiment: 0, // Will be calculated separately
+        sentimentTrend: 'stable',
+        trendType,
+        platforms: Array.from(stats.sources).map(source => ({
+          platform: source as any,
+          count: recentPoints.filter(p => p.source === source).length,
+        })),
+        period: '1h',
+        timestamp: now,
+        topPosts: [],
+        // Additional fields for backward compatibility with tests
+        velocity: stats.velocity,
+        engagement: {
+          total: totalEngagement,
+          average: avgEngagement,
+        },
+        peakTime,
+      };
+
+      trendingList.push(trending);
+    });
+
+    // Sort by score descending
+    trendingList.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    // Return top N
+    return trendingList.slice(0, this.config.maxTopics);
+  }
+
+  /**
+   * Get trending topics for specific symbol
+   */
+  getTrendingForSymbol(symbol: string): TrendingTopic[] {
+    const all = this.getTrendingTopics();
+    return all.filter((t) => t.symbols && t.symbols.includes(symbol));
+  }
+
+  /**
+   * Add data point for topic
+   */
+  private addDataPoint(dataPoint: TopicDataPoint): void {
+    const { topic } = dataPoint;
+
+    if (!this.topicHistory.has(topic)) {
+      this.topicHistory.set(topic, {
+        topic,
+        mentions: 0,
+        firstSeen: dataPoint.timestamp,
+        lastSeen: dataPoint.timestamp,
+        totalEngagement: 0,
+        avgEngagement: 0,
+        velocity: 0,
+        symbols: new Set(),
+        sources: new Set(),
+        dataPoints: [],
+      });
+    }
+
+    const stats = this.topicHistory.get(topic)!;
+    stats.dataPoints.push(dataPoint);
+    stats.mentions++;
+    stats.lastSeen = dataPoint.timestamp;
+    stats.totalEngagement += dataPoint.engagement;
+    stats.avgEngagement = stats.totalEngagement / stats.mentions;
+
+    // Add symbols and sources
+    dataPoint.symbols.forEach((s) => stats.symbols.add(s));
+    stats.sources.add(dataPoint.source);
+
+    // Recalculate velocity
+    const timespanHours =
+      (stats.lastSeen.getTime() - stats.firstSeen.getTime()) / 3600000;
+    stats.velocity = timespanHours > 0 ? stats.mentions / timespanHours : stats.mentions;
+  }
+
+  /**
+   * Calculate trending score
+   */
+  private calculateTrendingScore(
+    stats: TopicStats,
+    recentPoints: TopicDataPoint[],
+    now: Date
+  ): number {
+    if (recentPoints.length === 0) return 0;
+
+    // Components of trending score:
+    // 1. Volume (number of mentions)
+    // 2. Velocity (growth rate)
+    // 3. Engagement (likes, retweets, etc.)
+    // 4. Recency (more recent = higher score)
+
+    // Normalize volume (log scale)
+    const volumeScore = Math.log10(recentPoints.length + 1) * 20;
+
+    // Velocity score (mentions per hour)
+    const velocityScore = Math.min(100, stats.velocity * 2);
+
+    // Engagement score
+    const avgEngagement = recentPoints.reduce((sum, p) => sum + p.engagement, 0) / recentPoints.length;
+    const engagementScore = Math.log10(avgEngagement + 1) * 15;
+
+    // Recency score (exponential decay)
+    let recencyScore = 0;
+    recentPoints.forEach((point) => {
+      const ageHours = (now.getTime() - point.timestamp.getTime()) / 3600000;
+      const decay = Math.exp(-this.config.recencyDecay * ageHours);
+      recencyScore += decay;
+    });
+    recencyScore = (recencyScore / recentPoints.length) * 30;
+
+    // Combine scores
+    const totalScore =
+      volumeScore * 0.3 +
+      velocityScore * 0.35 +
+      engagementScore * this.config.engagementWeight +
+      recencyScore * (1 - this.config.engagementWeight - 0.3);
+
+    return parseFloat(totalScore.toFixed(2));
+  }
+
+  /**
+   * Determine trend type
+   */
+  private determineTrendType(
+    stats: TopicStats,
+    recentPoints: TopicDataPoint[]
+  ): TrendingTopic['trendType'] {
+    if (recentPoints.length < 4) return 'emerging';
+
+    // Split into two halves to detect growth/decline
+    const mid = Math.floor(recentPoints.length / 2);
+    const firstHalf = recentPoints.slice(0, mid);
+    const secondHalf = recentPoints.slice(mid);
+
+    const firstHalfRate = firstHalf.length / mid;
+    const secondHalfRate = secondHalf.length / (recentPoints.length - mid);
+
+    const growthRate = (secondHalfRate - firstHalfRate) / firstHalfRate;
+
+    // Check if emerging (new topic with high velocity)
+    const ageHours = (stats.lastSeen.getTime() - stats.firstSeen.getTime()) / 3600000;
+    if (ageHours < 2 && stats.velocity > this.config.velocityThreshold) {
+      return 'emerging';
+    }
+
+    // Check if peak (high velocity but slowing down)
+    if (stats.velocity > this.config.velocityThreshold && growthRate < 0) {
+      return 'peak';
+    }
+
+    // Check if declining
+    if (growthRate < -0.3) {
+      return 'declining';
+    }
+
+    // Sustained trend
+    return 'sustained';
+  }
+
+  /**
+   * Calculate peak time (time of highest activity)
+   */
+  private calculatePeakTime(dataPoints: TopicDataPoint[]): Date {
+    if (dataPoints.length === 0) return new Date();
+
+    // Group by hour buckets
+    const buckets: Map<number, { count: number; engagement: number }> = new Map();
+
+    dataPoints.forEach((point) => {
+      const hourBucket = Math.floor(point.timestamp.getTime() / 3600000) * 3600000;
+
+      if (!buckets.has(hourBucket)) {
+        buckets.set(hourBucket, { count: 0, engagement: 0 });
+      }
+
+      const bucket = buckets.get(hourBucket)!;
+      bucket.count++;
+      bucket.engagement += point.engagement;
+    });
+
+    // Find bucket with highest activity
+    let maxActivity = 0;
+    let peakBucket = 0;
+
+    buckets.forEach((bucket, time) => {
+      const activity = bucket.count + bucket.engagement / 10;
+      if (activity > maxActivity) {
+        maxActivity = activity;
+        peakBucket = time;
+      }
+    });
+
+    return new Date(peakBucket);
+  }
+
+  /**
+   * Extract keywords from text (simple N-gram extraction)
+   */
+  private extractKeywords(text: string): string[] {
+    // Remove URLs, mentions, hashtags
+    const cleaned = text
+      .replace(/https?:\/\/[^\s]+/g, '')
+      .replace(/@[\w]+/g, '')
+      .replace(/#[\w]+/g, '')
+      .toLowerCase();
+
+    // Split into words
+    const words = cleaned.match(/\b[a-z]{3,}\b/g) || [];
+
+    // Filter stop words and crypto-specific terms
+    const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'has', 'had', 'was', 'been', 'have', 'this', 'that', 'with', 'from', 'will', 'what', 'when', 'where']);
+
+    const cryptoTerms = new Set(['bitcoin', 'ethereum', 'crypto', 'blockchain', 'btc', 'eth', 'altcoin', 'defi', 'nft', 'trading', 'market', 'price']);
+
+    const keywords: string[] = [];
+
+    // Unigrams (single words)
+    words.forEach((word) => {
+      if (cryptoTerms.has(word) && !stopWords.has(word)) {
+        keywords.push(word);
+      }
+    });
+
+    // Bigrams (two-word phrases)
+    for (let i = 0; i < words.length - 1; i++) {
+      if (!stopWords.has(words[i]) && !stopWords.has(words[i + 1])) {
+        const bigram = `${words[i]} ${words[i + 1]}`;
+        if (this.isCryptoRelated(bigram)) {
+          keywords.push(bigram);
+        }
+      }
+    }
+
+    // Return unique keywords (max 5 per mention)
+    return Array.from(new Set(keywords)).slice(0, 5);
+  }
+
+  /**
+   * Check if phrase is crypto-related
+   */
+  private isCryptoRelated(phrase: string): boolean {
+    const cryptoKeywords = [
+      'bull', 'bear', 'pump', 'dump', 'moon', 'lambo', 'hodl',
+      'whale', 'market', 'price', 'rally', 'crash', 'surge',
+      'breakout', 'support', 'resistance', 'pattern', 'chart'
+    ];
+
+    return cryptoKeywords.some((kw) => phrase.includes(kw));
+  }
+
+  /**
+   * Calculate engagement for mention
+   */
+  private calculateMentionEngagement(mention: SocialMention): number {
+    let engagement = 0;
+
+    engagement += mention.likes || 0;
+    engagement += (mention.replies || 0) * 2;
+    engagement += (mention.views || 0) / 100;
+
+    if ('retweets' in mention) {
+      engagement += (mention.retweets || 0) * 3;
+    }
+
+    if ('upvotes' in mention) {
+      engagement += mention.upvotes || 0;
+    }
+
+    return engagement;
+  }
+
+  /**
+   * Clean up old data outside time window
+   */
+  private cleanupOldData(): void {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - this.config.timeWindow * 2); // Keep 2x time window
+
+    this.topicHistory.forEach((stats, topic) => {
+      // Remove old data points
+      stats.dataPoints = stats.dataPoints.filter((p) => p.timestamp >= cutoff);
+
+      // Remove topic if no recent data
+      if (stats.dataPoints.length === 0) {
+        this.topicHistory.delete(topic);
+      } else {
+        // Recalculate stats
+        stats.mentions = stats.dataPoints.length;
+        stats.firstSeen = stats.dataPoints[0].timestamp;
+        stats.lastSeen = stats.dataPoints[stats.dataPoints.length - 1].timestamp;
+        stats.totalEngagement = stats.dataPoints.reduce((sum, p) => sum + p.engagement, 0);
+        stats.avgEngagement = stats.totalEngagement / stats.mentions;
+
+        const timespanHours =
+          (stats.lastSeen.getTime() - stats.firstSeen.getTime()) / 3600000;
+        stats.velocity = timespanHours > 0 ? stats.mentions / timespanHours : stats.mentions;
+      }
+    });
+
+    this.lastCleanup = now;
+  }
+
+  /**
+   * Get statistics
+   */
+  getStats(): {
+    totalTopics: number;
+    trendingTopics: number;
+    lastCleanup: Date;
+  } {
+    return {
+      totalTopics: this.topicHistory.size,
+      trendingTopics: this.getTrendingTopics().length,
+      lastCleanup: this.lastCleanup,
+    };
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<TrendingConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get configuration
+   */
+  getConfig(): TrendingConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Reset all data
+   */
+  reset(): void {
+    this.topicHistory.clear();
+    this.lastCleanup = new Date();
+  }
+}
+
+/**
+ * Create Trending Topics Service
+ */
+export function createTrendingTopicsService(config?: Partial<TrendingConfig>): TrendingTopicsService {
+  return new TrendingTopicsService(config);
+}
+
+/**
+ * Singleton instance
+ */
+export const trendingTopicsService = new TrendingTopicsService({
+  timeWindow: parseInt(process.env.TRENDING_TIME_WINDOW || '3600000', 10),
+  minMentions: parseInt(process.env.TRENDING_MIN_MENTIONS || '10', 10),
+  velocityThreshold: parseFloat(process.env.TRENDING_VELOCITY_THRESHOLD || '5'),
+  engagementWeight: parseFloat(process.env.TRENDING_ENGAGEMENT_WEIGHT || '0.4'),
+  recencyDecay: parseFloat(process.env.TRENDING_RECENCY_DECAY || '0.7'),
+  maxTopics: parseInt(process.env.TRENDING_MAX_TOPICS || '50', 10),
+});

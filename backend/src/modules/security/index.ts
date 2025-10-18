@@ -8,6 +8,7 @@ export { securityRoutes } from './routes/security.routes';
 
 // Services
 export * from './services/permission.service';
+export * from './services/role.service';
 
 // Middleware
 export * from './middleware/rbac.middleware';

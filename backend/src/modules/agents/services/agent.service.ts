@@ -8,13 +8,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import { NotFoundError, BadRequestError } from '@/utils/errors';
 import { ollamaService } from './ollama.service';
-import {
-  agents,
-  agentConversations,
-  agentActions,
-  agentCommunications,
-  agentMetrics,
-} from '../schema/agents.schema';
+import { agents, agentConversations, agentActions, agentCommunications } from '../schema/agents.schema';
 import type {
   AgentType,
   AgentStatus,
@@ -26,7 +20,6 @@ import type {
   AgentActionResponse,
   AgentCommunicationRequest,
   AgentHealthCheck,
-  AgentSystemPrompts,
   MessageRole,
 } from '../types/agents.types';
 
@@ -177,7 +170,7 @@ export class AgentService {
    * Assign agent to department
    */
   static async assignToDepartment(agentId: string, tenantId: string, departmentId: string, managerId?: string) {
-    const agent = await this.getAgentById(agentId, tenantId);
+    await this.getAgentById(agentId, tenantId);
 
     const [updated] = await db
       .update(agents)
@@ -202,7 +195,7 @@ export class AgentService {
    * Remove agent from department
    */
   static async removeFromDepartment(agentId: string, tenantId: string) {
-    const agent = await this.getAgentById(agentId, tenantId);
+    await this.getAgentById(agentId, tenantId);
 
     const [updated] = await db
       .update(agents)
@@ -278,15 +271,14 @@ export class AgentService {
       });
 
       // Save conversation
-      const [userMessage] = await db
+      await db
         .insert(agentConversations)
         .values({
           agentId,
           tenantId,
           role: 'user',
           content: request.prompt,
-        })
-        .returning();
+        });
 
       const [assistantMessage] = await db
         .insert(agentConversations)

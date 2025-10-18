@@ -1,6 +1,6 @@
 /**
  * MMN Routes
- * API endpoints for MMN tree, volumes, commissions, and payouts
+ * Autenticadas por sessão + tenant com RBAC granular (mmn:read|write|manage)
  */
 
 import { Elysia, t } from 'elysia';
@@ -14,251 +14,191 @@ import {
 } from '../services';
 import logger from '@/utils/logger';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
+import type { TreePosition } from '../types/mmn.types';
+
+const parseOptionalInt = (value?: string): number | undefined => {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
 
 export const mmnRoutes = new Elysia({ prefix: '/api/v1/mmn' })
   .use(sessionGuard)
   .use(requireTenant)
 
-  /**
-   * Get tree structure
-   * GET /api/v1/mmn/tree
-   */
+  // =======================================================
+  // Tree & genealogy (read)
+  // =======================================================
+
   .get(
     '/tree',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting MMN tree', { userId: user.id });
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId, set }) => {
+      try {
+        const depth = parseOptionalInt(query.depth) ?? 3;
+        const tree = await TreeService.getTree(user.id, tenantId, depth);
 
-      const depth = query.depth ? parseInt(query.depth) : 3;
-      const tree = await TreeService.getTree(user.id, tenantId, depth);
+        if (!tree) {
+          set.status = 404;
+          return { success: false, error: 'User not found in MMN tree' };
+        }
 
-      return { tree };
+        return { success: true, data: { tree } };
+      } catch (error) {
+        logger.error('Error fetching MMN tree', { error });
+        set.status = 500;
+        return { success: false, error: 'Failed to load tree' };
+      }
     },
     {
-      query: t.Object({
-        depth: t.Optional(t.String()),
-      }),
+      query: t.Object({ depth: t.Optional(t.String()) }),
       detail: {
         tags: ['MMN'],
         summary: 'Get tree structure',
-        description: 'Get binary tree structure with specified depth',
+        description: 'Returns binary tree structure up to a given depth',
       },
     }
   )
 
-  /**
-   * Get position in tree
-   * GET /api/v1/mmn/position
-   */
   .get(
     '/position',
-    async ({ user, tenantId }: any) => {
-      logger.info('Getting MMN position', { userId: user.id });
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ user, tenantId, set }) => {
+      try {
+        const node = await TreeService.getNodeByUserId(user.id, tenantId);
+        if (!node) {
+          set.status = 404;
+          return { success: false, error: 'User not found in MMN tree' };
+        }
 
-      const node = await TreeService.getNodeByUserId(user.id, tenantId);
-
-      if (!node) {
-        return { error: 'Not in MMN tree' };
+        const stats = await TreeService.getTreeStats(user.id, tenantId);
+        return { success: true, data: { node, stats } };
+      } catch (error) {
+        logger.error('Error fetching MMN position', { error });
+        set.status = 500;
+        return { success: false, error: 'Failed to load position' };
       }
-
-      const stats = await TreeService.getTreeStats(user.id, tenantId);
-
-      return { node, stats };
-    },
-    {
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get position in tree',
-        description: 'Get current position and statistics in binary tree',
-      },
     }
   )
 
-  /**
-   * Join MMN
-   * POST /api/v1/mmn/join
-   */
   .post(
     '/join',
-    async ({ body, user, tenantId }: any) => {
-      logger.info('Joining MMN', {
-        userId: user.id,
-        sponsorId: body.sponsorId,
-      });
+    { beforeHandle: [requirePermission('mmn', 'write')] },
+    async ({ body, user, tenantId, set }) => {
+      try {
+        const result = await TreeService.createNode({
+          userId: user.id,
+          tenantId,
+          sponsorId: body.sponsorId,
+          preferredPosition: body.preferredPosition as TreePosition | undefined,
+        });
 
-      const { node, placement } = await TreeService.createNode({
-        userId: user.id,
-        tenantId,
-        sponsorId: body.sponsorId,
-        preferredPosition: body.preferredPosition,
-      });
-
-      return { node, placement };
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error('Error joining MMN', { error, userId: user.id });
+        set.status = 400;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to join MMN',
+        };
+      }
     },
     {
       body: t.Object({
         sponsorId: t.String(),
         preferredPosition: t.Optional(t.Union([t.Literal('left'), t.Literal('right')])),
       }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Join MMN',
-        description: 'Join MMN tree under a sponsor with automatic placement',
-      },
     }
   )
 
-  /**
-   * Get genealogy
-   * GET /api/v1/mmn/genealogy
-   */
   .get(
     '/genealogy',
-    async ({ user, tenantId }: any) => {
-      logger.info('Getting genealogy', { userId: user.id });
-
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ user, tenantId }) => {
       const stats = await GenealogyService.getGenealogyStats(user.id, tenantId);
-
-      return { stats };
-    },
-    {
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get genealogy',
-        description: 'Get complete genealogy statistics',
-      },
+      return { success: true, data: stats };
     }
   )
 
-  /**
-   * Get downline
-   * GET /api/v1/mmn/downline
-   */
   .get(
     '/downline',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting downline', { userId: user.id, leg: query.leg });
-
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId }) => {
       const downline = await GenealogyService.getDownline(
         user.id,
         tenantId,
-        query.levels ? parseInt(query.levels) : undefined,
-        query.leg as any
+        parseOptionalInt(query.levels),
+        query.leg as TreePosition | undefined,
       );
-
-      return { downline, count: downline.length };
+      return { success: true, data: { members: downline, count: downline.length } };
     },
     {
       query: t.Object({
         leg: t.Optional(t.Union([t.Literal('left'), t.Literal('right')])),
         levels: t.Optional(t.String()),
       }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get downline',
-        description: 'Get downline members with optional leg and level filters',
-      },
     }
   )
 
-  /**
-   * Get upline
-   * GET /api/v1/mmn/upline
-   */
   .get(
     '/upline',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting upline', { userId: user.id });
-
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId }) => {
       const upline = await GenealogyService.getUpline(
         user.id,
         tenantId,
-        query.levels ? parseInt(query.levels) : undefined
+        parseOptionalInt(query.levels),
       );
-
-      return { upline, count: upline.length };
+      return { success: true, data: { members: upline, count: upline.length } };
     },
-    {
-      query: t.Object({
-        levels: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get upline',
-        description: 'Get upline ancestors with optional level filter',
-      },
-    }
+    { query: t.Object({ levels: t.Optional(t.String()) }) }
   )
 
-  /**
-   * Get volumes
-   * GET /api/v1/mmn/volumes
-   */
+  // =======================================================
+  // Volumes, commissions, ranks, payouts
+  // =======================================================
+
   .get(
     '/volumes',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting volumes', { userId: user.id });
-
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId, set }) => {
       const node = await TreeService.getNodeByUserId(user.id, tenantId);
-
       if (!node) {
-        return { error: 'Not in MMN tree' };
+        set.status = 404;
+        return { success: false, error: 'User not found in MMN tree' };
       }
 
       const volumes = await VolumeService.getVolumes(node.id, query.period);
       const calculation = await VolumeService.calculateLegVolumes(node.id, query.period);
 
-      return { volumes, calculation };
+      return { success: true, data: { volumes, calculation } };
     },
-    {
-      query: t.Object({
-        period: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get volumes',
-        description: 'Get volume statistics for current or specified period',
-      },
-    }
+    { query: t.Object({ period: t.Optional(t.String()) }) }
   )
 
-  /**
-   * Get commissions
-   * GET /api/v1/mmn/commissions
-   */
   .get(
     '/commissions',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting commissions', { userId: user.id });
-
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId, set }) => {
       const node = await TreeService.getNodeByUserId(user.id, tenantId);
-
       if (!node) {
-        return { error: 'Not in MMN tree' };
+        set.status = 404;
+        return { success: false, error: 'User not found in MMN tree' };
       }
 
-      const filters: any = {};
-
-      if (query.type) {
-        filters.type = query.type.split(',');
-      }
-
-      if (query.status) {
-        filters.status = query.status.split(',');
-      }
-
-      if (query.period) {
-        filters.period = query.period;
-      }
+      const filters: Record<string, any> = {};
+      if (query.type) filters.type = query.type.split(',');
+      if (query.status) filters.status = query.status.split(',');
+      if (query.period) filters.period = query.period;
 
       const commissions = await CommissionService.getCommissions(node.id, filters);
       const pendingBalance = await CommissionService.getPendingBalance(node.id);
       const totals = await CommissionService.getTotalsByType(node.id, query.period);
 
       return {
-        commissions,
-        pendingBalance,
-        totals,
-        count: commissions.length,
+        success: true,
+        data: { commissions, pendingBalance, totals, count: commissions.length },
       };
     },
     {
@@ -267,113 +207,67 @@ export const mmnRoutes = new Elysia({ prefix: '/api/v1/mmn' })
         status: t.Optional(t.String()),
         period: t.Optional(t.String()),
       }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get commissions',
-        description: 'Get commission history with filters',
-      },
     }
   )
 
-  /**
-   * Get rank
-   * GET /api/v1/mmn/rank
-   */
   .get(
     '/rank',
-    async ({ user, tenantId }: any) => {
-      logger.info('Getting rank', { userId: user.id });
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ user, tenantId }) => {
+      const [current, progress, history] = await Promise.all([
+        RankService.getCurrentRank(user.id, tenantId),
+        RankService.getRankProgress(user.id, tenantId),
+        RankService.getRankHistory(user.id, tenantId),
+      ]);
 
-      const currentRank = await RankService.getCurrentRank(user.id, tenantId);
-      const progress = await RankService.getRankProgress(user.id, tenantId);
-      const history = await RankService.getRankHistory(user.id, tenantId);
-
-      return {
-        current: currentRank,
-        progress,
-        history,
-      };
-    },
-    {
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get rank',
-        description: 'Get current rank, progress to next rank, and rank history',
-      },
+      return { success: true, data: { current, progress, history } };
     }
   )
 
-  /**
-   * Get payouts
-   * GET /api/v1/mmn/payouts
-   */
   .get(
     '/payouts',
-    async ({ query, user, tenantId }: any) => {
-      logger.info('Getting payouts', { userId: user.id });
-
-      const filters: any = {};
-
-      if (query.status) {
-        filters.status = query.status.split(',');
-      }
-
-      if (query.limit) {
-        filters.limit = parseInt(query.limit);
-      }
+    { beforeHandle: [requirePermission('mmn', 'read')] },
+    async ({ query, user, tenantId }) => {
+      const filters: Record<string, any> = {};
+      if (query.status) filters.status = query.status.split(',');
+      if (query.limit) filters.limit = Number(query.limit);
 
       const payouts = await PayoutService.getPayouts(user.id, tenantId, filters);
       const stats = await PayoutService.getPayoutStats(user.id, tenantId);
 
-      return {
-        payouts,
-        stats,
-        count: payouts.length,
-      };
+      return { success: true, data: { payouts, stats, count: payouts.length } };
     },
     {
-      query: t.Object({
-        status: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Get payouts',
-        description: 'Get payout history and statistics',
-      },
+      query: t.Object({ status: t.Optional(t.String()), limit: t.Optional(t.String()) }),
     }
   )
 
-  /**
-   * Request payout
-   * POST /api/v1/mmn/request-payout
-   */
   .post(
     '/request-payout',
-    async ({ body, user, tenantId }: any) => {
-      logger.info('Requesting payout', {
-        userId: user.id,
-        amount: body.amount,
-      });
-
-      const payout = await PayoutService.requestPayout(
-        user.id,
-        tenantId,
-        body.amount,
-        body.method,
-        body.bankInfo
-      );
-
-      return { payout };
+    { beforeHandle: [requirePermission('mmn', 'write')] },
+    async ({ body, user, tenantId, set }) => {
+      try {
+        const payout = await PayoutService.requestPayout(
+          user.id,
+          tenantId,
+          body.amount,
+          body.method,
+          body.bankInfo,
+        );
+        return { success: true, data: payout };
+      } catch (error) {
+        logger.error('Error requesting payout', { error, userId: user.id });
+        set.status = 400;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to request payout',
+        };
+      }
     },
     {
       body: t.Object({
-        amount: t.Number(),
-        method: t.Union([
-          t.Literal('stripe'),
-          t.Literal('bank_transfer'),
-          t.Literal('pix'),
-        ]),
+        amount: t.Number({ minimum: 0 }),
+        method: t.Union([t.Literal('stripe'), t.Literal('bank_transfer'), t.Literal('pix')]),
         bankInfo: t.Optional(
           t.Object({
             bankName: t.Optional(t.String()),
@@ -383,38 +277,26 @@ export const mmnRoutes = new Elysia({ prefix: '/api/v1/mmn' })
           })
         ),
       }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Request payout',
-        description: 'Request payout of accumulated commissions',
-      },
     }
   )
 
-  /**
-   * Cancel payout
-   * POST /api/v1/mmn/payouts/:id/cancel
-   */
   .post(
     '/payouts/:id/cancel',
-    async ({ params, user, tenantId }: any) => {
-      logger.info('Cancelling payout', {
-        userId: user.id,
-        payoutId: params.id,
-      });
-
-      const payout = await PayoutService.cancelPayout(params.id, user.id, tenantId);
-
-      return { payout };
+    { beforeHandle: [requirePermission('mmn', 'write')] },
+    async ({ params, user, tenantId, set }) => {
+      try {
+        const payout = await PayoutService.cancelPayout(params.id, user.id, tenantId);
+        return { success: true, data: payout };
+      } catch (error) {
+        logger.error('Error cancelling payout', { error, payoutId: params.id });
+        set.status = 400;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to cancel payout',
+        };
+      }
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
-      detail: {
-        tags: ['MMN'],
-        summary: 'Cancel payout',
-        description: 'Cancel pending payout request',
-      },
+      params: t.Object({ id: t.String() }),
     }
   );

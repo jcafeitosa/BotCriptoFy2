@@ -6,7 +6,13 @@
 import logger from '@/utils/logger';
 import { marketDataWebSocketManager } from './market-data-websocket-manager';
 import type { ChannelType, ConnectionConfig, ExchangeId } from './types';
-import { getDefaultWebSocketConfig } from '@/modules/exchanges';
+// Module not yet implemented
+// import { getDefaultWebSocketConfig } from '@/modules/exchanges';
+
+// Temporary stub until exchanges module is implemented
+function getDefaultWebSocketConfig(exchangeId: ExchangeId): ConnectionConfig {
+  throw new Error(`Exchanges module not yet implemented. Cannot get config for ${exchangeId}`);
+}
 
 /**
  * Default reconnection strategy used for all managed exchanges.

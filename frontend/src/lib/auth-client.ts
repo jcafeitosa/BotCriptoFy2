@@ -6,14 +6,7 @@
  */
 
 import { createAuthClient } from "better-auth/react";
-
-/**
- * Backend API URL (from environment variables)
- * @description Automatically uses correct URL based on environment
- * - Development: http://localhost:3000
- * - Production: https://api.botcriptofy.com
- */
-const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000";
+import { API_URL } from './config';
 
 /**
  * Better Auth Client

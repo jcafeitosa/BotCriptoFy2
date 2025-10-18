@@ -5,14 +5,19 @@
 
 import { Elysia, t } from 'elysia';
 import { taxJurisdictionService } from '../services/tax-jurisdiction.service';
+import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 
 export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdiction' })
+  .use(sessionGuard)
+  .use(requireTenant)
   /**
    * Get current platform tax jurisdiction
    * Public endpoint (all users can see current configuration)
    */
   .get(
     '/current',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async () => {
       const current = taxJurisdictionService.getCurrentJurisdiction();
 
@@ -43,6 +48,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .get(
     '/available',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async () => {
       const jurisdictions = taxJurisdictionService.getAvailableJurisdictions();
 
@@ -65,6 +71,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .get(
     '/:jurisdiction',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ params }) => {
       const { jurisdiction } = params;
 
@@ -101,12 +108,8 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .post(
     '/configure',
-    async ({ body, headers }) => {
-      // In production, extract user from JWT token
-      // For now, we'll use headers
-      const userId = headers['x-user-id'] || 'unknown';
-      const userRole = headers['x-user-role'] || 'user';
-
+    { beforeHandle: [requirePermission('financial', 'manage')] },
+    async ({ body, user }) => {
       const { jurisdiction } = body;
 
       // Validate jurisdiction
@@ -118,11 +121,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
       }
 
       // Set jurisdiction (async - writes to database)
-      const result = await taxJurisdictionService.setJurisdiction(
-        jurisdiction,
-        userId as string,
-        userRole as string,
-      );
+      const result = await taxJurisdictionService.setJurisdiction(jurisdiction, user.id);
 
       if (!result.success) {
         return result;
@@ -152,17 +151,8 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .get(
     '/history',
-    async ({ headers }) => {
-      // Optional: Add auth check here
-      const userRole = headers['x-user-role'] || 'user';
-
-      if (userRole !== 'CEO' && userRole !== 'SUPER_ADMIN') {
-        return {
-          success: false,
-          error: 'Only CEO or Super Admin can view jurisdiction history',
-        };
-      }
-
+    { beforeHandle: [requirePermission('financial', 'manage')] },
+    async () => {
       const result = await taxJurisdictionService.getJurisdictionHistory();
 
       return result;
@@ -181,6 +171,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .post(
     '/test/vat',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ body }) => {
       const { amount, category, stateCode, cityCode } = body;
 

@@ -7,6 +7,8 @@
 import { Elysia, t } from 'elysia';
 import { sessionGuard, requireRole } from '../../auth/middleware/session.middleware';
 import { ceoService } from '../services/ceo.service';
+import { getRecentCriticalEvents } from '../../audit/services/audit-logger.service';
+import { markAudit } from '../../audit';
 import logger from '../../../utils/logger';
 import type { DashboardQueryOptions } from '../types/ceo.types';
 
@@ -96,6 +98,54 @@ export const ceoRoutes = new Elysia({ prefix: '/api/v1/ceo' })
   )
 
   /**
+   * GET /api/v1/ceo/executive-summary
+   * Key highlights for CEO: KPIs, critical alerts, recent critical audit events
+   */
+  .get(
+    '/executive-summary',
+    async ({ set, session }) => {
+      try {
+        const tenantId = (session as any)?.activeOrganizationId;
+        if (!tenantId) {
+          set.status = 400;
+          return { success: false, error: 'No active organization' };
+        }
+
+        const now = new Date();
+        const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const [kpis, alerts, criticalEvents] = await Promise.all([
+          ceoService.getKPIs(tenantId),
+          ceoService.getAlerts(tenantId, 'critical'),
+          getRecentCriticalEvents(tenantId, 20),
+        ]);
+
+        return {
+          success: true,
+          data: {
+            kpis: kpis.data || [],
+            criticalAlerts: alerts.data || [],
+            recentCriticalEvents: criticalEvents,
+            period: { start, end: now },
+          },
+        };
+      } catch (error) {
+        logger.error('Error in CEO executive summary route', { error });
+        set.status = 500;
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      }
+    },
+    {
+      detail: {
+        tags: ['CEO Dashboard'],
+        summary: 'Executive summary',
+        description: 'Key KPIs, critical alerts, and recent critical audit events',
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  /**
    * GET /api/v1/ceo/kpis
    * Get real-time KPIs
    */
@@ -142,6 +192,154 @@ export const ceoRoutes = new Elysia({ prefix: '/api/v1/ceo' })
         tags: ['CEO Dashboard'],
         summary: 'Get real-time KPIs',
         description: 'Returns key performance indicators (MRR, ARR, CAC, LTV, churn, etc.)',
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  /**
+   * PATCH /api/v1/ceo/alerts/:id/ack
+   * Acknowledge alert
+   */
+  .patch(
+    '/alerts/:id/ack',
+    async (ctx) => {
+      const { params, set, user, session } = ctx as any;
+      const tenantId = (session as any)?.activeOrganizationId;
+      if (!tenantId || !user) {
+        set.status = 400;
+        return { success: false, error: 'Missing tenant or user context' };
+      }
+      const result = await ceoService.acknowledgeAlert(tenantId, params.id, user.id);
+      if (!result.success) {
+        set.status = 400;
+        return { success: false, error: result.error, code: result.code };
+      }
+      markAudit(ctx, {
+        eventType: 'system.warning',
+        severity: 'medium',
+        resource: 'ceo_alerts',
+        action: 'acknowledge',
+        metadata: { alertId: params.id, tenantId, userId: user.id },
+      });
+      return { success: true, data: result.data };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['CEO Dashboard'],
+        summary: 'Acknowledge alert',
+        description: 'Marks the alert as acknowledged',
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  /**
+   * PATCH /api/v1/ceo/alerts/:id/resolve
+   * Resolve alert
+   */
+  .patch(
+    '/alerts/:id/resolve',
+    async (ctx) => {
+      const { params, set, user, session } = ctx as any;
+      const tenantId = (session as any)?.activeOrganizationId;
+      if (!tenantId || !user) {
+        set.status = 400;
+        return { success: false, error: 'Missing tenant or user context' };
+      }
+      const result = await ceoService.resolveAlert(tenantId, params.id, user.id);
+      if (!result.success) {
+        set.status = 400;
+        return { success: false, error: result.error, code: result.code };
+      }
+      markAudit(ctx, {
+        eventType: 'system.warning',
+        severity: 'medium',
+        resource: 'ceo_alerts',
+        action: 'resolve',
+        metadata: { alertId: params.id, tenantId, userId: user.id },
+      });
+      return { success: true, data: result.data };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['CEO Dashboard'],
+        summary: 'Resolve alert',
+        description: 'Marks the alert as resolved',
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  /**
+   * PATCH /api/v1/ceo/alerts/:id/dismiss
+   * Dismiss alert
+   */
+  .patch(
+    '/alerts/:id/dismiss',
+    async (ctx) => {
+      const { params, set, session, user } = ctx as any;
+      const tenantId = (session as any)?.activeOrganizationId;
+      if (!tenantId) {
+        set.status = 400;
+        return { success: false, error: 'Missing tenant context' };
+      }
+      const result = await ceoService.dismissAlert(tenantId, params.id);
+      if (!result.success) {
+        set.status = 400;
+        return { success: false, error: result.error, code: result.code };
+      }
+      markAudit(ctx, {
+        eventType: 'system.warning',
+        severity: 'low',
+        resource: 'ceo_alerts',
+        action: 'dismiss',
+        metadata: { alertId: params.id, tenantId, userId: user?.id },
+      });
+      return { success: true, data: result.data };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['CEO Dashboard'],
+        summary: 'Dismiss alert',
+        description: 'Dismisses the alert',
+        security: [{ bearerAuth: [] }],
+      },
+    }
+  )
+
+  /**
+   * GET /api/v1/ceo/trends/users
+   * New users per day in range
+   */
+  .get(
+    '/trends/users',
+    async ({ query, set, session }) => {
+      const tenantId = (session as any)?.activeOrganizationId;
+      if (!tenantId) {
+        set.status = 400;
+        return { success: false, error: 'No active organization' };
+      }
+      const endDate = query.endDate ? new Date(query.endDate) : new Date();
+      const startDate = query.startDate
+        ? new Date(query.startDate)
+        : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const trends = await ceoService.getUserTrends(tenantId, startDate, endDate);
+      if (!trends.success) {
+        set.status = 500;
+        return { success: false, error: trends.error, code: trends.code };
+      }
+      return { success: true, data: trends.data };
+    },
+    {
+      query: t.Object({ startDate: t.Optional(t.String()), endDate: t.Optional(t.String()) }),
+      detail: {
+        tags: ['CEO Dashboard'],
+        summary: 'User trends',
+        description: 'New users per day in a date range',
         security: [{ bearerAuth: [] }],
       },
     }

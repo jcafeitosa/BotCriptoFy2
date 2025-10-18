@@ -6,12 +6,11 @@
 
 import { Elysia, t } from 'elysia';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import { paymentProcessor } from '../services/payment-processor.service';
 import { gatewaySelector } from '../services/gateway-selector.service';
 import { dunningService } from '../services/dunning.service';
-import { db } from '../../../db';
-import { paymentTransactions, paymentRefunds } from '../schema/payments.schema';
-import { eq, and, desc } from 'drizzle-orm';
+import type { PaymentListFilters } from '../types/payment.types';
 
 /**
  * Payment routes
@@ -24,6 +23,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .post(
     '/',
+    { beforeHandle: [requirePermission('financial', 'write')] },
     async ({ body, user, tenantId }) => {
       const result = await paymentProcessor.processPayment({
         tenantId,
@@ -74,6 +74,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .get(
     '/:id',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ params, tenantId }) => {
       const result = await paymentProcessor.getPaymentStatus(params.id);
 
@@ -108,50 +109,106 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .get(
     '/',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ query, tenantId }) => {
-      const { status, limit = 50, offset = 0 } = query;
+      const page = query.page ? parseInt(query.page) : 1;
+      const pageSize = query.pageSize ? parseInt(query.pageSize) : 50;
 
-      let queryBuilder = db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.tenantId, tenantId))
-        .orderBy(desc(paymentTransactions.createdAt))
-        .limit(limit)
-        .offset(offset);
+      const filters = {
+        status: query.status as any,
+        paymentMethod: query.paymentMethod as any,
+        gateway: query.gateway,
+        dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
+        dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+      } satisfies PaymentListFilters;
 
-      if (status) {
-        queryBuilder = db
-          .select()
-          .from(paymentTransactions)
-          .where(
-            and(
-              eq(paymentTransactions.tenantId, tenantId),
-              eq(paymentTransactions.status, status)
-            )
-          )
-          .orderBy(desc(paymentTransactions.createdAt))
-          .limit(limit)
-          .offset(offset);
+      const result = await paymentProcessor.listTransactions(tenantId, filters, page, pageSize);
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error || 'Failed to list transactions',
+          code: result.code,
+        };
       }
-
-      const transactions = await queryBuilder;
 
       return {
         success: true,
-        data: transactions,
-        pagination: {
-          limit,
-          offset,
-          total: transactions.length,
-        },
+        data: result.data,
       };
     },
     {
       query: t.Object({
         status: t.Optional(t.String()),
-        limit: t.Optional(t.Number({ minimum: 1, maximum: 100 })),
-        offset: t.Optional(t.Number({ minimum: 0 })),
+        paymentMethod: t.Optional(t.String()),
+        gateway: t.Optional(t.String()),
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
+        page: t.Optional(t.String()),
+        pageSize: t.Optional(t.String()),
       }),
+    }
+  )
+  .get(
+    '/analytics',
+    { beforeHandle: [requirePermission('financial', 'read')] },
+    async ({ query, tenantId }) => {
+      const result = await paymentProcessor.getAnalytics(tenantId, {
+        dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
+        dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+      });
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Failed to compute analytics',
+          code: result.code,
+        };
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      };
+    },
+    {
+      query: t.Object({
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Financeiro - Pagamentos'],
+        summary: 'Resumo analítico de pagamentos',
+        description: 'Retorna totais, breakdown por status/método e métricas de dunning',
+      },
+    }
+  )
+  .get(
+    '/:id/detail',
+    { beforeHandle: [requirePermission('financial', 'read')] },
+    async ({ params, tenantId }) => {
+      const detail = await paymentProcessor.getTransactionDetail(params.id, tenantId);
+
+      if (!detail.success || !detail.data) {
+        return {
+          success: false,
+          error: detail.error || 'Transaction not found',
+          code: detail.code || 'NOT_FOUND',
+        };
+      }
+
+      return {
+        success: true,
+        data: detail.data,
+      };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      detail: {
+        tags: ['Financeiro - Pagamentos'],
+        summary: 'Detalhes completos de um pagamento',
+        description: 'Inclui transação, reembolsos, webhooks e status de dunning',
+      },
     }
   )
 
@@ -160,15 +217,11 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .post(
     '/:id/refund',
+    { beforeHandle: [requirePermission('financial', 'manage')] },
     async ({ params, body, tenantId }) => {
-      // Get transaction to verify ownership
-      const transaction = await db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.id, params.id))
-        .limit(1);
+      const transactionStatus = await paymentProcessor.getPaymentStatus(params.id);
 
-      if (transaction.length === 0 || transaction[0].tenantId !== tenantId) {
+      if (!transactionStatus.success || transactionStatus.data?.transaction.tenantId !== tenantId) {
         return {
           success: false,
           error: 'Transaction not found',
@@ -200,31 +253,21 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .get(
     '/:id/refunds',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ params, tenantId }) => {
-      // Verify transaction ownership
-      const transaction = await db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.id, params.id))
-        .limit(1);
+      const detail = await paymentProcessor.getTransactionDetail(params.id, tenantId);
 
-      if (transaction.length === 0 || transaction[0].tenantId !== tenantId) {
+      if (!detail.success || !detail.data) {
         return {
           success: false,
-          error: 'Transaction not found',
-          code: 'NOT_FOUND',
+          error: detail.error || 'Transaction not found',
+          code: detail.code || 'NOT_FOUND',
         };
       }
 
-      const refunds = await db
-        .select()
-        .from(paymentRefunds)
-        .where(eq(paymentRefunds.transactionId, params.id))
-        .orderBy(desc(paymentRefunds.createdAt));
-
       return {
         success: true,
-        data: refunds,
+        data: detail.data.refunds,
       };
     },
     {
@@ -239,15 +282,11 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .get(
     '/:id/dunning',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ params, tenantId }) => {
-      // Verify transaction ownership
-      const transaction = await db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.id, params.id))
-        .limit(1);
+      const status = await paymentProcessor.getPaymentStatus(params.id);
 
-      if (transaction.length === 0 || transaction[0].tenantId !== tenantId) {
+      if (!status.success || status.data?.transaction.tenantId !== tenantId) {
         return {
           success: false,
           error: 'Transaction not found',
@@ -274,15 +313,11 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .post(
     '/:id/dunning/pause',
+    { beforeHandle: [requirePermission('financial', 'manage')] },
     async ({ params, tenantId }) => {
-      // Verify transaction ownership
-      const transaction = await db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.id, params.id))
-        .limit(1);
+      const status = await paymentProcessor.getPaymentStatus(params.id);
 
-      if (transaction.length === 0 || transaction[0].tenantId !== tenantId) {
+      if (!status.success || status.data?.transaction.tenantId !== tenantId) {
         return {
           success: false,
           error: 'Transaction not found',
@@ -309,15 +344,11 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .post(
     '/:id/dunning/resume',
+    { beforeHandle: [requirePermission('financial', 'manage')] },
     async ({ params, tenantId }) => {
-      // Verify transaction ownership
-      const transaction = await db
-        .select()
-        .from(paymentTransactions)
-        .where(eq(paymentTransactions.id, params.id))
-        .limit(1);
+      const status = await paymentProcessor.getPaymentStatus(params.id);
 
-      if (transaction.length === 0 || transaction[0].tenantId !== tenantId) {
+      if (!status.success || status.data?.transaction.tenantId !== tenantId) {
         return {
           success: false,
           error: 'Transaction not found',
@@ -344,6 +375,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
    */
   .get(
     '/dunning/stats',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ tenantId }) => {
       const stats = await dunningService.getDunningStats(tenantId);
 
@@ -352,6 +384,14 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
         data: stats,
       };
     }
+  )
+  .post(
+    '/dunning/process',
+    { beforeHandle: [requirePermission('financial', 'manage')] },
+    async () => {
+      const result = await dunningService.processDueDunning();
+      return { success: true, data: result };
+    }
   );
 
 /**
@@ -359,11 +399,13 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
  */
 export const gatewayRoutes = new Elysia({ prefix: '/api/v1/gateways' })
   .use(sessionGuard)
+  .use(requireTenant)
   /**
    * List available gateways
    */
   .get(
     '/',
+    { beforeHandle: [requirePermission('financial', 'read')] },
     async ({ query }) => {
       const { country, currency, paymentMethod } = query;
 

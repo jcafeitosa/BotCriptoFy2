@@ -85,6 +85,21 @@ export class LeadsService {
   }
 
   /**
+   * Soft delete a lead (safety measure)
+   */
+  static async softDeleteLead(id: string, tenantId: string): Promise<void> {
+    await db
+      .update(leads)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.tenantId, tenantId)));
+
+    await cacheManager.invalidate({
+      namespace: CacheNamespace.USERS,
+      pattern: 'lead:' + id,
+    });
+  }
+
+  /**
    * Import leads from CSV
    */
   static async importLeads(csvContent: string, tenantId: string): Promise<CSVImportResult> {

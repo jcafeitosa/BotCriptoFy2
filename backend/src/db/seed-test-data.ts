@@ -1,0 +1,481 @@
+/**
+ * Test Data Seed
+ *
+ * Seeds database with minimal test data for running integration tests.
+ * Creates users, tenants, exchanges, strategies, and bots.
+ *
+ * Run with: cd backend && bun src/db/seed-test-data.ts
+ */
+
+import 'dotenv/config';
+import { db } from './connection';
+import { users } from '../modules/auth/schema/auth.schema';
+import { tenants, tenantMembers } from '../modules/tenants/schema/tenants.schema';
+import { exchanges } from '../modules/exchanges/schema/exchanges.schema';
+import { tradingStrategies } from '../modules/strategies/schema/strategies.schema';
+import { bots, botTemplates } from '../modules/bots/schema/bots.schema';
+import logger from '../utils/logger';
+
+/**
+ * Helper: Generate UUID
+ */
+function uuid(): string {
+  return crypto.randomUUID();
+}
+
+/**
+ * Main seed function
+ */
+async function seedTestData() {
+  try {
+    logger.info('🌱 Starting test data seed...');
+
+    // ==========================
+    // 1. Create Test Users
+    // ==========================
+    logger.info('👤 Creating test users...');
+
+    const testUsers = await db.insert(users).values([
+      {
+        id: 'user-1',
+        email: 'test@example.com',
+        emailVerified: true,
+        name: 'Test User',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'user-2',
+        email: 'admin@example.com',
+        emailVerified: true,
+        name: 'Admin User',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'user-3',
+        email: 'trader@example.com',
+        emailVerified: true,
+        name: 'Trader User',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testUsers.length} test users`);
+
+    // ==========================
+    // 2. Create Test Tenants
+    // ==========================
+    logger.info('🏢 Creating test tenants...');
+
+    const testTenants = await db.insert(tenants).values([
+      {
+        id: 'tenant-1',
+        name: 'Test Company',
+        slug: 'test-company',
+        type: 'empresa',
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'tenant-2',
+        name: 'Trading Corp',
+        slug: 'trading-corp',
+        type: 'trader',
+        status: 'active',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testTenants.length} test tenants`);
+
+    // ==========================
+    // 3. Create Tenant Members
+    // ==========================
+    logger.info('👥 Creating tenant members...');
+
+    await db.insert(tenantMembers).values([
+      {
+        id: uuid(),
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        role: 'ceo',
+        createdAt: new Date(),
+      },
+      {
+        id: uuid(),
+        tenantId: 'tenant-1',
+        userId: 'user-2',
+        role: 'admin',
+        createdAt: new Date(),
+      },
+      {
+        id: uuid(),
+        tenantId: 'tenant-2',
+        userId: 'user-3',
+        role: 'trader',
+        createdAt: new Date(),
+      },
+    ]).onConflictDoNothing();
+
+    logger.info('✅ Created tenant members');
+
+    // ==========================
+    // 4. Create Test Exchanges
+    // ==========================
+    logger.info('💱 Creating test exchanges...');
+
+    const testExchanges = await db.insert(exchanges).values([
+      {
+        id: 'exchange-binance',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        name: 'Binance',
+        exchangeId: 'binance',
+        apiKey: 'test-api-key-binance',
+        apiSecret: 'test-api-secret-binance',
+        isActive: true,
+        isPaperTrading: true, // Test mode
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'exchange-coinbase',
+        userId: 'user-2',
+        tenantId: 'tenant-1',
+        name: 'Coinbase Pro',
+        exchangeId: 'coinbasepro',
+        apiKey: 'test-api-key-coinbase',
+        apiSecret: 'test-api-secret-coinbase',
+        isActive: true,
+        isPaperTrading: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'exchange-kraken',
+        userId: 'user-3',
+        tenantId: 'tenant-2',
+        name: 'Kraken',
+        exchangeId: 'kraken',
+        apiKey: 'test-api-key-kraken',
+        apiSecret: 'test-api-secret-kraken',
+        isActive: true,
+        isPaperTrading: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testExchanges.length} test exchanges`);
+
+    // ==========================
+    // 5. Create Test Strategies
+    // ==========================
+    logger.info('📈 Creating test strategies...');
+
+    const testStrategies = await db.insert(tradingStrategies).values([
+      {
+        id: 'strategy-1',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        name: 'Simple Moving Average',
+        type: 'technical',
+        status: 'active',
+        description: 'Basic SMA crossover strategy for testing',
+        rules: {
+          entry: [
+            {
+              indicator: 'sma',
+              period: 20,
+              condition: 'cross_above',
+              value: 'sma_50',
+            },
+          ],
+          exit: [
+            {
+              indicator: 'sma',
+              period: 20,
+              condition: 'cross_below',
+              value: 'sma_50',
+            },
+          ],
+        },
+        timeframe: '1h',
+        indicators: ['sma'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'strategy-2',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        name: 'RSI Oversold/Overbought',
+        type: 'technical',
+        status: 'active',
+        description: 'RSI-based mean reversion strategy',
+        rules: {
+          entry: [
+            {
+              indicator: 'rsi',
+              period: 14,
+              condition: 'below',
+              value: 30,
+            },
+          ],
+          exit: [
+            {
+              indicator: 'rsi',
+              period: 14,
+              condition: 'above',
+              value: 70,
+            },
+          ],
+        },
+        timeframe: '4h',
+        indicators: ['rsi'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'strategy-3',
+        userId: 'user-3',
+        tenantId: 'tenant-2',
+        name: 'MACD Momentum',
+        type: 'technical',
+        status: 'paused',
+        description: 'MACD-based momentum strategy',
+        rules: {
+          entry: [
+            {
+              indicator: 'macd',
+              condition: 'histogram_positive',
+            },
+          ],
+          exit: [
+            {
+              indicator: 'macd',
+              condition: 'histogram_negative',
+            },
+          ],
+        },
+        timeframe: '1d',
+        indicators: ['macd'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testStrategies.length} test strategies`);
+
+    // ==========================
+    // 6. Create Bot Templates
+    // ==========================
+    logger.info('📋 Creating bot templates...');
+
+    const testTemplates = await db.insert(botTemplates).values([
+      {
+        id: 'template-1',
+        name: 'Beginner Grid Bot',
+        type: 'grid',
+        category: 'beginner',
+        isPublic: true,
+        isSystem: true,
+        isFeatured: true,
+        description: 'Simple grid trading bot for beginners',
+        configuration: {
+          gridLevels: 10,
+          gridProfitPercent: 1.5,
+          positionSizePercent: 10,
+        },
+        requiredParameters: ['gridUpperPrice', 'gridLowerPrice'],
+        defaultParameters: {
+          maxPositions: 5,
+          stopLossPercent: 5,
+        },
+        supportedExchanges: ['binance', 'coinbasepro', 'kraken'],
+        supportedSymbols: ['BTC/USDT', 'ETH/USDT'],
+        supportedTimeframes: ['5m', '15m', '1h'],
+        expectedReturn: '15.5',
+        expectedRisk: '8.0',
+        minimumCapital: '1000',
+        recommendedCapital: '5000',
+        version: '1.0.0',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'template-2',
+        name: 'DCA Strategy',
+        type: 'dca',
+        category: 'intermediate',
+        isPublic: true,
+        isSystem: true,
+        description: 'Dollar-cost averaging bot',
+        configuration: {
+          dcaOrderCount: 5,
+          dcaStepPercent: 2,
+          dcaTakeProfitPercent: 10,
+        },
+        supportedExchanges: ['binance'],
+        supportedSymbols: ['BTC/USDT'],
+        version: '1.0.0',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testTemplates.length} bot templates`);
+
+    // ==========================
+    // 7. Create Test Bots
+    // ==========================
+    logger.info('🤖 Creating test bots...');
+
+    const testBots = await db.insert(bots).values([
+      {
+        id: 'bot-1',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        name: 'Test Bot 1',
+        description: 'Test trading bot for integration tests',
+        type: 'trend_following',
+        status: 'stopped',
+        strategyId: 'strategy-1',
+        exchangeId: 'exchange-binance',
+        symbol: 'BTC/USDT',
+        timeframe: '1h',
+        allocatedCapital: '10000',
+        currentCapital: '10000',
+        maxDrawdown: '20',
+        stopLossPercent: '2',
+        takeProfitPercent: '5',
+        maxPositions: '3',
+        positionSizing: 'fixed',
+        positionSizePercent: '10',
+        orderType: 'limit',
+        useTrailingStop: false,
+        trailingStopPercent: '1',
+        runOnWeekends: true,
+        runOnHolidays: true,
+        cooldownMinutes: '5',
+        enabled: true,
+        autoRestart: false,
+        autoStopOnDrawdown: true,
+        autoStopOnLoss: false,
+        version: '1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'bot-2',
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        name: 'Grid Bot ETH',
+        type: 'grid',
+        status: 'running',
+        templateId: 'template-1',
+        exchangeId: 'exchange-binance',
+        symbol: 'ETH/USDT',
+        timeframe: '15m',
+        allocatedCapital: '5000',
+        currentCapital: '5200',
+        maxDrawdown: '15',
+        stopLossPercent: '3',
+        takeProfitPercent: '6',
+        maxPositions: '5',
+        positionSizing: 'fixed',
+        positionSizePercent: '20',
+        orderType: 'limit',
+        gridLevels: '10',
+        gridUpperPrice: '2500',
+        gridLowerPrice: '1500',
+        gridProfitPercent: '1.5',
+        useTrailingStop: false,
+        trailingStopPercent: '1',
+        runOnWeekends: true,
+        runOnHolidays: true,
+        cooldownMinutes: '3',
+        totalTrades: '45',
+        winningTrades: '28',
+        losingTrades: '17',
+        totalProfit: '450.50',
+        totalLoss: '250.30',
+        netProfit: '200.20',
+        enabled: true,
+        autoRestart: true,
+        autoStopOnDrawdown: true,
+        autoStopOnLoss: false,
+        version: '1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'bot-3',
+        userId: 'user-3',
+        tenantId: 'tenant-2',
+        name: 'Scalping Bot',
+        type: 'scalping',
+        status: 'paused',
+        strategyId: 'strategy-3',
+        exchangeId: 'exchange-kraken',
+        symbol: 'BTC/USD',
+        timeframe: '5m',
+        allocatedCapital: '20000',
+        currentCapital: '19500',
+        maxDrawdown: '10',
+        stopLossPercent: '1',
+        takeProfitPercent: '2',
+        maxPositions: '10',
+        positionSizing: 'kelly',
+        positionSizePercent: '5',
+        orderType: 'market',
+        useTrailingStop: true,
+        trailingStopPercent: '0.5',
+        runOnWeekends: false,
+        runOnHolidays: false,
+        maxDailyTrades: '50',
+        cooldownMinutes: '1',
+        totalTrades: '120',
+        winningTrades: '72',
+        losingTrades: '48',
+        totalProfit: '1200',
+        totalLoss: '700',
+        netProfit: '500',
+        enabled: false, // Disabled bot for testing
+        autoRestart: false,
+        autoStopOnDrawdown: true,
+        autoStopOnLoss: true,
+        version: '1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]).onConflictDoNothing().returning();
+
+    logger.info(`✅ Created ${testBots.length} test bots`);
+
+    // ==========================
+    // Summary
+    // ==========================
+    logger.info('\n✅ Test data seed completed successfully!');
+    logger.info('📊 Summary:');
+    logger.info(`   - Users: ${testUsers.length}`);
+    logger.info(`   - Tenants: ${testTenants.length}`);
+    logger.info(`   - Exchanges: ${testExchanges.length}`);
+    logger.info(`   - Strategies: ${testStrategies.length}`);
+    logger.info(`   - Bot Templates: ${testTemplates.length}`);
+    logger.info(`   - Bots: ${testBots.length}`);
+    logger.info('\n🎯 Database ready for testing!');
+
+    process.exit(0);
+  } catch (error) {
+    logger.error('❌ Test data seed failed:', error);
+    process.exit(1);
+  }
+}
+
+// Run seed
+seedTestData();

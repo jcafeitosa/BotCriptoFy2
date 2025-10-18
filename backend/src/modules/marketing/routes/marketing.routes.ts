@@ -1,61 +1,46 @@
 /**
  * Marketing Routes
- * Complete API endpoints for marketing system
- * Handles campaigns, leads, templates, and analytics
+ * Campaigns, leads, templates, and analytics APIs with RBAC enforcement
  */
 
 import { Elysia, t } from 'elysia';
-import { db } from '@/db';
-import { eq, and, desc, isNull, sql } from 'drizzle-orm';
-import { sessionGuard, requireRole } from '../../auth/middleware/session.middleware';
-import { LeadsService } from '../services/leads.service';
-import { campaigns } from '../schema/campaigns.schema';
-import { emailTemplates } from '../schema/templates.schema';
-import { campaignAnalytics } from '../schema/analytics.schema';
-import { campaignSends } from '../schema/campaign-sends.schema';
-import { TemplateRenderer } from '../utils/template-renderer';
+import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
+import {
+  LeadsService,
+  CampaignService,
+  TemplateService,
+  MarketingAnalyticsService,
+} from '../services';
+import type {
+  CampaignFilters,
+  CreateCampaignData,
+  UpdateCampaignData,
+  CreateLeadData,
+  UpdateLeadData,
+  CreateTemplateData,
+  UpdateTemplateData,
+} from '../types';
 import logger from '@/utils/logger';
 
 export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .use(sessionGuard)
-  .use(requireRole(['ceo', 'admin', 'manager']))
+  .use(requireTenant)
 
   // ========================================================================
   // CAMPAIGNS
   // ========================================================================
 
-  /**
-   * POST /api/v1/marketing/campaigns
-   * Create new campaign
-   */
   .post(
     '/campaigns',
-    async ({ body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-        const userId = (session as any)?.userId;
-
-        const [campaign] = await db
-          .insert(campaigns)
-          .values({
-            tenantId,
-            createdBy: userId,
-            ...body,
-            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
-          } as any)
-          .returning();
-
-        logger.info('Campaign created', { campaignId: campaign.id, tenantId });
-
-        return { success: true, data: campaign };
-      } catch (error) {
-        logger.error('Error creating campaign', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ body, user, tenantId }) => {
+      const campaign = await CampaignService.createCampaign(
+        tenantId,
+        user.id,
+        body as CreateCampaignData,
+      );
+      return { success: true, data: campaign };
     },
     {
       body: t.Object({
@@ -64,126 +49,79 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
         type: t.Union([t.Literal('email'), t.Literal('social'), t.Literal('ads'), t.Literal('mixed')]),
         templateId: t.Optional(t.String()),
         targetAudience: t.Optional(t.Any()),
-        scheduleType: t.Union([t.Literal('immediate'), t.Literal('scheduled'), t.Literal('recurring')]),
+        scheduleType: t.Union([
+          t.Literal('immediate'),
+          t.Literal('scheduled'),
+          t.Literal('recurring'),
+        ]),
         scheduledAt: t.Optional(t.String()),
         recurringPattern: t.Optional(t.Any()),
       }),
     }
   )
+  .get(
+    '/campaigns',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ query, tenantId }) => {
+      const filters: CampaignFilters = {};
+      if (query.status) filters.status = [query.status as any];
+      if (query.type) filters.type = [query.type as any];
+      if (query.dateFrom) filters.dateFrom = new Date(query.dateFrom);
+      if (query.dateTo) filters.dateTo = new Date(query.dateTo);
+      if (query.search) filters.search = query.search;
 
-  /**
-   * GET /api/v1/marketing/campaigns
-   * List all campaigns
-   */
-  .get('/campaigns', async ({ query, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-      const limit = Number(query.limit) || 50;
-      const offset = Number(query.offset) || 0;
-
-      const [campaignsData, countResult] = await Promise.all([
-        db
-          .select()
-          .from(campaigns)
-          .where(and(eq(campaigns.tenantId, tenantId), isNull(campaigns.deletedAt)))
-          .orderBy(desc(campaigns.createdAt))
-          .limit(limit)
-          .offset(offset),
-        db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(campaigns)
-          .where(and(eq(campaigns.tenantId, tenantId), isNull(campaigns.deletedAt))),
-      ]);
-
-      const total = countResult[0]?.count || 0;
-
-      return {
-        success: true,
-        data: campaignsData,
-        pagination: {
-          total,
-          limit,
-          offset,
-        },
+      const pagination = {
+        page: query.page ? Number(query.page) : 1,
+        limit: query.limit ? Number(query.limit) : 50,
       };
-    } catch (error) {
-      logger.error('Error listing campaigns', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+
+      const result = await CampaignService.listCampaigns(tenantId, filters, pagination);
+      return { success: true, data: result.data, pagination: result.pagination };
+    },
+    {
+      query: t.Object({
+        status: t.Optional(t.String()),
+        type: t.Optional(t.String()),
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
+        search: t.Optional(t.String()),
+        page: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
     }
-  })
-
-  /**
-   * GET /api/v1/marketing/campaigns/:id
-   * Get campaign by ID
-   */
-  .get('/campaigns/:id', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const [campaign] = await db
-        .select()
-        .from(campaigns)
-        .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
-        .limit(1);
-
+  )
+  .get(
+    '/campaigns/:id',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ params, tenantId, set }) => {
+      const campaign = await CampaignService.getCampaignById(params.id, tenantId);
       if (!campaign) {
         set.status = 404;
         return { success: false, error: 'Campaign not found' };
       }
-
       return { success: true, data: campaign };
-    } catch (error) {
-      logger.error('Error getting campaign', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * PATCH /api/v1/marketing/campaigns/:id
-   * Update campaign
-   */
-  .patch(
-    '/campaigns/:id',
-    async ({ params, body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-
-        const [updated] = await db
-          .update(campaigns)
-          .set({
-            ...body,
-            scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
-            updatedAt: new Date(),
-          } as any)
-          .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
-          .returning();
-
-        if (!updated) {
-          set.status = 404;
-          return { success: false, error: 'Campaign not found' };
-        }
-
-        logger.info('Campaign updated', { campaignId: params.id });
-
-        return { success: true, data: updated };
-      } catch (error) {
-        logger.error('Error updating campaign', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
     },
     {
+      params: t.Object({ id: t.String() }),
+    }
+  )
+  .patch(
+    '/campaigns/:id',
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ params, body, tenantId, set }) => {
+      const campaign = await CampaignService.updateCampaign(
+        params.id,
+        tenantId,
+        body as UpdateCampaignData,
+      );
+      if (!campaign) {
+        set.status = 404;
+        return { success: false, error: 'Campaign not found' };
+      }
+      return { success: true, data: campaign };
+    },
+    {
+      params: t.Object({ id: t.String() }),
       body: t.Partial(
         t.Object({
           name: t.String(),
@@ -191,196 +129,126 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
           status: t.String(),
           targetAudience: t.Any(),
           scheduledAt: t.String(),
+          recurringPattern: t.Any(),
         })
       ),
     }
   )
-
-  /**
-   * DELETE /api/v1/marketing/campaigns/:id
-   * Delete campaign (soft delete)
-   */
-  .delete('/campaigns/:id', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      await db
-        .update(campaigns)
-        .set({ deletedAt: new Date() })
-        .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)));
-
-      logger.info('Campaign deleted', { campaignId: params.id });
-
+  .delete(
+    '/campaigns/:id',
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ params, tenantId }) => {
+      await CampaignService.deleteCampaign(params.id, tenantId);
       return { success: true };
-    } catch (error) {
-      logger.error('Error deleting campaign', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * POST /api/v1/marketing/campaigns/:id/launch
-   * Launch campaign
-   */
-  .post('/campaigns/:id/launch', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const [updated] = await db
-        .update(campaigns)
-        .set({
-          status: 'running',
-          startedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
-        .returning();
-
-      if (!updated) {
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .post(
+    '/campaigns/:id/launch',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId, set }) => {
+      const campaign = await CampaignService.setStatus(params.id, tenantId, 'running');
+      if (!campaign) {
         set.status = 404;
         return { success: false, error: 'Campaign not found' };
       }
-
-      logger.info('Campaign launched', { campaignId: params.id });
-
-      return { success: true, data: updated };
-    } catch (error) {
-      logger.error('Error launching campaign', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * POST /api/v1/marketing/campaigns/:id/pause
-   * Pause campaign
-   */
-  .post('/campaigns/:id/pause', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const [updated] = await db
-        .update(campaigns)
-        .set({
-          status: 'paused',
-          updatedAt: new Date(),
-        })
-        .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
-        .returning();
-
-      if (!updated) {
+      return { success: true, data: campaign };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .post(
+    '/campaigns/:id/pause',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId, set }) => {
+      const campaign = await CampaignService.setStatus(params.id, tenantId, 'paused');
+      if (!campaign) {
         set.status = 404;
         return { success: false, error: 'Campaign not found' };
       }
-
-      logger.info('Campaign paused', { campaignId: params.id });
-
-      return { success: true, data: updated };
-    } catch (error) {
-      logger.error('Error pausing campaign', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * GET /api/v1/marketing/campaigns/:id/analytics
-   * Get campaign analytics
-   */
-  .get('/campaigns/:id/analytics', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      // Verify campaign exists and belongs to tenant
-      const [campaign] = await db
-        .select()
-        .from(campaigns)
-        .where(and(eq(campaigns.id, params.id), eq(campaigns.tenantId, tenantId)))
-        .limit(1);
-
+      return { success: true, data: campaign };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .post(
+    '/campaigns/:id/duplicate',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId, user, set }) => {
+      try {
+        const duplicate = await CampaignService.duplicateCampaign(params.id, tenantId, user.id);
+        return { success: true, data: duplicate };
+      } catch (error) {
+        logger.error('Error duplicating campaign', { error });
+        set.status = 404;
+        return { success: false, error: 'Campaign not found' };
+      }
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .post(
+    '/campaigns/:id/test-send',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId, user, body, set }) => {
+      const campaign = await CampaignService.getCampaignById(params.id, tenantId);
       if (!campaign) {
         set.status = 404;
         return { success: false, error: 'Campaign not found' };
       }
 
-      // Get analytics
-      const analytics = await db
-        .select()
-        .from(campaignAnalytics)
-        .where(eq(campaignAnalytics.campaignId, params.id))
-        .orderBy(desc(campaignAnalytics.date));
+      const template = campaign.templateId
+        ? await TemplateService.getTemplate(tenantId, campaign.templateId)
+        : null;
 
-      // Get overall stats from campaign_sends
-      const [stats] = await db
-        .select({
-          totalSends: sql<number>`count(*)::int`,
-          delivered: sql<number>`count(*) filter (where status = 'delivered')::int`,
-          opened: sql<number>`count(*) filter (where status = 'opened')::int`,
-          clicked: sql<number>`count(*) filter (where status = 'clicked')::int`,
-          bounced: sql<number>`count(*) filter (where status = 'bounced')::int`,
-        })
-        .from(campaignSends)
-        .where(eq(campaignSends.campaignId, params.id));
+      if (!template) {
+        set.status = 400;
+        return { success: false, error: 'Campaign does not have an email template associated' };
+      }
+
+      const rendered = await TemplateService.previewTemplate(template, body.context || {});
+      logger.info('Test campaign send simulated', {
+        campaignId: params.id,
+        previewSubject: rendered.subject,
+        userId: user.id,
+      });
 
       return {
         success: true,
         data: {
-          campaign: {
-            id: campaign.id,
-            name: campaign.name,
-            status: campaign.status,
-            startedAt: campaign.startedAt,
-            completedAt: campaign.completedAt,
-          },
-          overall: stats,
-          daily: analytics,
+          preview: rendered,
+          message: 'Test send simulated successfully (no email provider configured)',
         },
       };
-    } catch (error) {
-      logger.error('Error getting campaign analytics', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({ context: t.Optional(t.Any()) }),
     }
-  })
+  )
+  .get(
+    '/campaigns/:id/analytics',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ params, tenantId, set }) => {
+      try {
+        const analytics = await CampaignService.getAnalytics(params.id, tenantId);
+        return { success: true, data: analytics };
+      } catch (error) {
+        logger.error('Error getting campaign analytics', { error });
+        set.status = 404;
+        return { success: false, error: 'Campaign not found' };
+      }
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
 
   // ========================================================================
   // LEADS
   // ========================================================================
 
-  /**
-   * POST /api/v1/marketing/leads
-   * Create new lead
-   */
   .post(
     '/leads',
-    async ({ body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-
-        const lead = await LeadsService.createLead(body, tenantId);
-
-        return { success: true, data: lead };
-      } catch (error) {
-        logger.error('Error creating lead', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ body, tenantId }) => {
+      const lead = await LeadsService.createLead(body as CreateLeadData, tenantId);
+      return { success: true, data: lead };
     },
     {
       body: t.Object({
@@ -396,44 +264,19 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
       }),
     }
   )
-
-  /**
-   * POST /api/v1/marketing/leads/import
-   * Import leads from CSV
-   */
   .post(
     '/leads/import',
-    async ({ body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-
-        const result = await LeadsService.importLeads(body.csvContent, tenantId);
-
-        return { success: true, data: result };
-      } catch (error) {
-        logger.error('Error importing leads', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ body, tenantId }) => {
+      const result = await LeadsService.importLeads(body.csvContent, tenantId);
+      return { success: true, data: result };
     },
-    {
-      body: t.Object({
-        csvContent: t.String({ minLength: 1 }),
-      }),
-    }
+    { body: t.Object({ csvContent: t.String({ minLength: 1 }) }) }
   )
-
-  /**
-   * GET /api/v1/marketing/leads
-   * List leads with filters
-   */
-  .get('/leads', async ({ query, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
+  .get(
+    '/leads',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ query, tenantId }) => {
       const filters: any = {};
       if (query.status) filters.status = [query.status];
       if (query.minScore) filters.minScore = Number(query.minScore);
@@ -441,72 +284,46 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
       if (query.search) filters.search = query.search;
 
       const pagination = {
-        page: Number(query.page) || 1,
-        limit: Number(query.limit) || 50,
+        page: query.page ? Number(query.page) : 1,
+        limit: query.limit ? Number(query.limit) : 50,
       };
 
       const result = await LeadsService.listLeads(filters, tenantId, pagination);
-
       return { success: true, ...result };
-    } catch (error) {
-      logger.error('Error listing leads', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+    },
+    {
+      query: t.Object({
+        status: t.Optional(t.String()),
+        minScore: t.Optional(t.String()),
+        maxScore: t.Optional(t.String()),
+        search: t.Optional(t.String()),
+        page: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
     }
-  })
-
-  /**
-   * GET /api/v1/marketing/leads/:id
-   * Get lead by ID
-   */
-  .get('/leads/:id', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
+  )
+  .get(
+    '/leads/:id',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ params, tenantId, set }) => {
       const lead = await LeadsService.getLeadById(params.id, tenantId);
-
       if (!lead) {
         set.status = 404;
         return { success: false, error: 'Lead not found' };
       }
-
       return { success: true, data: lead };
-    } catch (error) {
-      logger.error('Error getting lead', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * PATCH /api/v1/marketing/leads/:id
-   * Update lead
-   */
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
   .patch(
     '/leads/:id',
-    async ({ params, body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-
-        const lead = await LeadsService.updateLead(params.id, body as any, tenantId);
-
-        return { success: true, data: lead };
-      } catch (error) {
-        logger.error('Error updating lead', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ params, body, tenantId }) => {
+      const lead = await LeadsService.updateLead(params.id, body as UpdateLeadData, tenantId);
+      return { success: true, data: lead };
     },
     {
+      params: t.Object({ id: t.String() }),
       body: t.Partial(
         t.Object({
           firstName: t.String(),
@@ -521,132 +338,49 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
       ),
     }
   )
-
-  /**
-   * DELETE /api/v1/marketing/leads/:id
-   * Delete lead
-   */
-  .delete('/leads/:id', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      await LeadsService.deleteLead(params.id, tenantId);
-
+  .delete(
+    '/leads/:id',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId }) => {
+      await LeadsService.softDeleteLead(params.id, tenantId);
       return { success: true };
-    } catch (error) {
-      logger.error('Error deleting lead', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .get(
+    '/leads/analytics',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ query, tenantId }) => {
+      const dateFrom = query.dateFrom ? new Date(query.dateFrom) : undefined;
+      const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
+      const analytics = await MarketingAnalyticsService.getLeadAnalytics(tenantId, {
+        dateFrom,
+        dateTo,
+      });
+      return { success: true, data: analytics };
+    },
+    {
+      query: t.Object({
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
+      }),
     }
-  })
-
-  /**
-   * POST /api/v1/marketing/leads/:id/convert
-   * Convert lead to customer
-   */
-  .post('/leads/:id/convert', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-      const userId = (session as any)?.userId;
-
-      const lead = await LeadsService.convertLead(params.id, userId, tenantId);
-
-      return { success: true, data: lead };
-    } catch (error) {
-      logger.error('Error converting lead', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * GET /api/v1/marketing/leads/:id/activity
-   * Get lead activity timeline
-   */
-  .get('/leads/:id/activity', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const activities = await LeadsService.getLeadActivity(params.id, tenantId);
-
-      return { success: true, data: activities };
-    } catch (error) {
-      logger.error('Error getting lead activity', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * GET /api/v1/marketing/leads/search
-   * Search leads
-   */
-  .get('/leads/search', async ({ query, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      if (!query.q) {
-        set.status = 400;
-        return { success: false, error: 'Search query required' };
-      }
-
-      const leads = await LeadsService.searchLeads(query.q, tenantId);
-
-      return { success: true, data: leads };
-    } catch (error) {
-      logger.error('Error searching leads', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
+  )
 
   // ========================================================================
   // TEMPLATES
   // ========================================================================
 
-  /**
-   * POST /api/v1/marketing/templates
-   * Create email template
-   */
   .post(
     '/templates',
-    async ({ body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-        const userId = (session as any)?.userId;
-
-        const [template] = await db
-          .insert(emailTemplates)
-          .values({
-            tenantId,
-            createdBy: userId,
-            ...body,
-          })
-          .returning();
-
-        logger.info('Template created', { templateId: template.id });
-
-        return { success: true, data: template };
-      } catch (error) {
-        logger.error('Error creating template', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
-      }
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ body, tenantId, user }) => {
+      const template = await TemplateService.createTemplate(
+        tenantId,
+        user.id,
+        body as CreateTemplateData,
+      );
+      return { success: true, data: template };
     },
     {
       body: t.Object({
@@ -659,109 +393,113 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
       }),
     }
   )
-
-  /**
-   * GET /api/v1/marketing/templates
-   * List templates
-   */
-  .get('/templates', async ({ query, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const conditions = [eq(emailTemplates.tenantId, tenantId)];
-      
-      if (query.category) {
-        conditions.push(eq(emailTemplates.category, query.category));
-      }
-
-      const templates = await db
-        .select()
-        .from(emailTemplates)
-        .where(and(...conditions))
-        .orderBy(desc(emailTemplates.createdAt));
-
+  .get(
+    '/templates',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ query, tenantId }) => {
+      const templates = await TemplateService.listTemplates(tenantId, query.category);
       return { success: true, data: templates };
-    } catch (error) {
-      logger.error('Error listing templates', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * GET /api/v1/marketing/templates/:id
-   * Get template by ID
-   */
-  .get('/templates/:id', async ({ params, set, session }) => {
-    try {
-      const tenantId = (session as any)?.activeOrganizationId;
-
-      const [template] = await db
-        .select()
-        .from(emailTemplates)
-        .where(and(eq(emailTemplates.id, params.id), eq(emailTemplates.tenantId, tenantId)))
-        .limit(1);
-
+    },
+    { query: t.Object({ category: t.Optional(t.String()) }) }
+  )
+  .get(
+    '/templates/:id',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ params, tenantId, set }) => {
+      const template = await TemplateService.getTemplate(tenantId, params.id);
       if (!template) {
         set.status = 404;
         return { success: false, error: 'Template not found' };
       }
-
       return { success: true, data: template };
-    } catch (error) {
-      logger.error('Error getting template', { error });
-      set.status = 500;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  })
-
-  /**
-   * POST /api/v1/marketing/templates/:id/preview
-   * Preview template with variables
-   */
-  .post(
-    '/templates/:id/preview',
-    async ({ params, body, set, session }) => {
-      try {
-        const tenantId = (session as any)?.activeOrganizationId;
-
-        const [template] = await db
-          .select()
-          .from(emailTemplates)
-          .where(and(eq(emailTemplates.id, params.id), eq(emailTemplates.tenantId, tenantId)))
-          .limit(1);
-
-        if (!template) {
-          set.status = 404;
-          return { success: false, error: 'Template not found' };
-        }
-
-        const rendered = TemplateRenderer.renderEmail(
-          template.subject,
-          template.htmlContent,
-          template.textContent,
-          body.context
-        );
-
-        return { success: true, data: rendered };
-      } catch (error) {
-        logger.error('Error previewing template', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .patch(
+    '/templates/:id',
+    { beforeHandle: [requirePermission('marketing', 'write')] },
+    async ({ params, body, tenantId, set }) => {
+      const template = await TemplateService.updateTemplate(
+        tenantId,
+        params.id,
+        body as UpdateTemplateData,
+      );
+      if (!template) {
+        set.status = 404;
+        return { success: false, error: 'Template not found' };
       }
+      return { success: true, data: template };
     },
     {
-      body: t.Object({
-        context: t.Any(),
+      params: t.Object({ id: t.String() }),
+      body: t.Partial(
+        t.Object({
+          name: t.String(),
+          subject: t.String(),
+          htmlContent: t.String(),
+          textContent: t.String(),
+          variables: t.Any(),
+          category: t.String(),
+          isActive: t.Boolean(),
+        })
+      ),
+    }
+  )
+  .delete(
+    '/templates/:id',
+    { beforeHandle: [requirePermission('marketing', 'manage')] },
+    async ({ params, tenantId }) => {
+      await TemplateService.deactivateTemplate(tenantId, params.id);
+      return { success: true };
+    },
+    { params: t.Object({ id: t.String() }) }
+  )
+  .post(
+    '/templates/:id/preview',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ params, body, tenantId, set }) => {
+      const template = await TemplateService.getTemplate(tenantId, params.id);
+      if (!template) {
+        set.status = 404;
+        return { success: false, error: 'Template not found' };
+      }
+      const rendered = await TemplateService.previewTemplate(template, body.context || {});
+      return { success: true, data: rendered };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({ context: t.Optional(t.Any()) }),
+    }
+  )
+
+  // ========================================================================
+  // DASHBOARD ANALYTICS
+  // ========================================================================
+
+  .get(
+    '/dashboard',
+    { beforeHandle: [requirePermission('marketing', 'read')] },
+    async ({ query, tenantId }) => {
+      const dateFrom = query.dateFrom ? new Date(query.dateFrom) : undefined;
+      const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
+
+      const [leadsAnalytics, campaignOverview] = await Promise.all([
+        MarketingAnalyticsService.getLeadAnalytics(tenantId, { dateFrom, dateTo }),
+        MarketingAnalyticsService.getCampaignOverview(tenantId, { dateFrom, dateTo }),
+      ]);
+
+      return {
+        success: true,
+        data: {
+          leads: leadsAnalytics,
+          campaigns: campaignOverview,
+        },
+      };
+    },
+    {
+      query: t.Object({
+        dateFrom: t.Optional(t.String()),
+        dateTo: t.Optional(t.String()),
       }),
     }
   );

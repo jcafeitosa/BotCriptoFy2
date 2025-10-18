@@ -271,14 +271,16 @@ See [Testing Guide](./testing/strategy.md) for details.
 
 ## 🐛 Known Issues
 
-### Better-Auth JSON Parsing
-The Better-Auth sign-up endpoint (`/api/auth/sign-up/email`) returns "Failed to parse JSON" errors. This requires investigation of Elysia + Better-Auth integration.
+### Better-Auth JSON Parsing — RESOLVIDO
+O erro "Failed to parse JSON" ao chamar `POST /api/auth/sign-up/email` foi resolvido.
 
-**Workaround**: Direct database user creation for testing.
+Correções aplicadas:
+- Uso de `app.mount(auth.handler)` no plugin `authRoutes` (evita consumo prévio do body);
+- Middlewares de transformação foram aplicados APÓS as rotas de auth para não interferir;
+- CORS e cookies com `credentials: true` e `trustedOrigins` configurados no Better-Auth.
 
-**Status**: Documented for future investigation.
+Status: Corrigido e validado manualmente com as novas rotas. 
 
-See [Troubleshooting Guide](./troubleshooting/better-auth.md) for details.
 
 ## 📦 Dependencies
 
@@ -383,3 +385,11 @@ Proprietary - All rights reserved
 **Last Updated**: October 16, 2025
 **Version**: 1.0.0
 **Status**: Phase 0 Complete ✅
+### Admin Users Endpoints (moved)
+
+- GET  /api/admin/users                 # List all users (admin)
+- GET  /api/admin/users/:userId         # Get user details (admin)
+- POST /api/admin/users/:userId/verify-email  # Verify email (admin)
+- DELETE /api/admin/users/:userId       # Delete user (admin)
+
+Note: These endpoints were moved from `/api/admin/auth/*` to the Users module to respect module ownership.

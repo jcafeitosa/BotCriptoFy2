@@ -12,6 +12,11 @@ import { eq, and, desc, gte, sql } from 'drizzle-orm';
 import logger from '@/utils/logger';
 import RiskCacheService from './risk-cache.service';
 import RiskLockService from './risk-lock.service';
+import RiskRateService from './risk-rate.service';
+import { riskNotificationService } from './risk-notification.service';
+import { riskWebSocketService } from './risk-websocket.service';
+import { getRiskRepositoryFactory } from '../repositories/factories/risk-repository.factory';
+import type { IRiskRepositoryFactory } from '../repositories/interfaces/risk-repository.interface';
 import type {
   RiskProfile,
   RiskLimit,
@@ -36,6 +41,12 @@ import type {
 } from '../types/risk.types';
 
 class RiskService implements IRiskService {
+  private repositories: IRiskRepositoryFactory;
+
+  constructor() {
+    this.repositories = getRiskRepositoryFactory();
+  }
+
   // ============================================================================
   // RISK PROFILE MANAGEMENT
   // ============================================================================
@@ -46,44 +57,18 @@ class RiskService implements IRiskService {
     request: CreateRiskProfileRequest
   ): Promise<RiskProfile> {
     try {
-      const [profile] = await db
-        .insert(riskProfiles)
-        .values({
-          userId,
-          tenantId,
-          riskTolerance: request.riskTolerance,
-          maxPortfolioRisk: request.maxPortfolioRisk?.toString(),
-          maxPositionRisk: request.maxPositionRisk?.toString(),
-          maxDrawdown: request.maxDrawdown?.toString(),
-          defaultPositionSize: request.defaultPositionSize?.toString(),
-          maxPositionSize: request.maxPositionSize?.toString(),
-          useKellyCriterion: request.useKellyCriterion,
-          kellyFraction: request.kellyFraction?.toString(),
-          maxLeverage: request.maxLeverage?.toString(),
-          maxMarginUtilization: request.maxMarginUtilization?.toString(),
-          maxTotalExposure: request.maxTotalExposure?.toString(),
-          maxLongExposure: request.maxLongExposure?.toString(),
-          maxShortExposure: request.maxShortExposure?.toString(),
-          maxSingleAssetExposure: request.maxSingleAssetExposure?.toString(),
-          maxCorrelatedExposure: request.maxCorrelatedExposure?.toString(),
-          minDiversification: request.minDiversification?.toString(),
-          defaultStopLoss: request.defaultStopLoss?.toString(),
-          useTrailingStop: request.useTrailingStop,
-          defaultTrailingStop: request.defaultTrailingStop?.toString(),
-          minRiskRewardRatio: request.minRiskRewardRatio?.toString(),
-          alertOnLimitViolation: request.alertOnLimitViolation,
-          alertOnDrawdown: request.alertOnDrawdown,
-          alertOnLargePosition: request.alertOnLargePosition,
-        })
-        .returning();
-
-      const mappedProfile = this.mapRiskProfile(profile);
+      // Create new profile using repository
+      const profile = await this.repositories.profiles.create({
+        ...request,
+        userId,
+        tenantId,
+      });
 
       // Cache the newly created profile
-      await RiskCacheService.cacheProfile(mappedProfile);
+      await RiskCacheService.cacheProfile(profile);
 
       logger.info('Risk profile created and cached', { userId, tenantId });
-      return mappedProfile;
+      return profile;
     } catch (error) {
       logger.error('Failed to create risk profile', {
         userId,
@@ -102,20 +87,15 @@ class RiskService implements IRiskService {
         return cached;
       }
 
-      const [profile] = await db
-        .select()
-        .from(riskProfiles)
-        .where(and(eq(riskProfiles.userId, userId), eq(riskProfiles.tenantId, tenantId)))
-        .limit(1);
-
-      const mappedProfile = profile ? this.mapRiskProfile(profile) : null;
+      // Get profile using repository
+      const profile = await this.repositories.profiles.findByUserIdAndTenant(userId, tenantId);
 
       // Cache the profile
-      if (mappedProfile) {
-        await RiskCacheService.cacheProfile(mappedProfile);
+      if (profile) {
+        await RiskCacheService.cacheProfile(profile);
       }
 
-      return mappedProfile;
+      return profile;
     } catch (error) {
       logger.error('Failed to get risk profile', {
         userId,
@@ -1047,9 +1027,15 @@ class RiskService implements IRiskService {
     userId: string,
     tenantId: string,
     days: number,
-    riskFreeRate: number = 0.02
+    riskFreeRate?: number
   ): Promise<PerformanceRatios> {
     try {
+      // Get real-time risk-free rate if not provided
+      if (riskFreeRate === undefined) {
+        riskFreeRate = await RiskRateService.getRiskFreeRate();
+        logger.debug('Using real-time risk-free rate', { rate: riskFreeRate });
+      }
+
       const metricsHistory = await this.getRiskMetricsHistory(userId, tenantId, days);
 
       if (metricsHistory.length < 30) {
@@ -1522,7 +1508,66 @@ class RiskService implements IRiskService {
       })
       .returning();
 
-    return this.mapRiskAlert(alert);
+    const mappedAlert = this.mapRiskAlert(alert);
+
+    // Send notifications
+    try {
+      await this.sendAlertNotifications(mappedAlert);
+    } catch (error) {
+      logger.error('Failed to send alert notifications', {
+        alertId: mappedAlert.id,
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return mappedAlert;
+  }
+
+  /**
+   * Send alert notifications via multiple channels
+   */
+  private async sendAlertNotifications(alert: RiskAlert): Promise<void> {
+    try {
+      // Determine notification channels based on severity
+      const channels = this.getNotificationChannelsForSeverity(alert.severity);
+
+      // Send via notification service
+      await riskNotificationService.sendRiskAlert(alert, channels);
+
+      // Send via WebSocket
+      await riskWebSocketService.sendRiskAlert(alert.userId, alert.tenantId, alert);
+
+      logger.debug('Alert notifications sent', {
+        alertId: alert.id,
+        userId: alert.userId,
+        severity: alert.severity,
+        channels: channels.length,
+      });
+    } catch (error) {
+      logger.error('Failed to send alert notifications', {
+        alertId: alert.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Get notification channels based on alert severity
+   */
+  private getNotificationChannelsForSeverity(severity: string): string[] {
+    switch (severity) {
+      case 'critical':
+        return ['websocket', 'email', 'sms', 'slack'];
+      case 'high':
+        return ['websocket', 'email', 'slack'];
+      case 'medium':
+        return ['websocket', 'email'];
+      case 'low':
+        return ['websocket'];
+      default:
+        return ['websocket'];
+    }
   }
 
   // Mapper methods
@@ -1654,6 +1699,469 @@ class RiskService implements IRiskService {
       actionDetails: data.actionDetails,
       createdAt: data.createdAt,
     };
+  }
+
+  // ============================================================================
+  // ADVANCED RISK ANALYSIS METHODS
+  // ============================================================================
+
+  /**
+   * Get correlation matrix between all positions
+   */
+  async getCorrelationMatrix(userId: string, tenantId: string): Promise<number[][]> {
+    try {
+      const positions = await this.getOpenPositions(userId, tenantId);
+      
+      if (positions.length < 2) {
+        return [];
+      }
+
+      // For now, return a simplified correlation matrix
+      // In a full implementation, this would calculate real correlations using historical price data
+      const matrix: number[][] = [];
+      
+      for (let i = 0; i < positions.length; i++) {
+        const row: number[] = [];
+        for (let j = 0; j < positions.length; j++) {
+          if (i === j) {
+            row.push(1.0); // Perfect correlation with itself
+          } else {
+            // Simplified correlation based on asset type similarity
+            const correlation = this.calculateAssetCorrelation(positions[i], positions[j]);
+            row.push(correlation);
+          }
+        }
+        matrix.push(row);
+      }
+
+      return matrix;
+    } catch (error) {
+      logger.error('Failed to get correlation matrix', { userId, error });
+      return [];
+    }
+  }
+
+  /**
+   * Run stress test scenarios
+   */
+  async runStressTest(userId: string, tenantId: string, scenarios: any[] = []): Promise<any[]> {
+    try {
+      const defaultScenarios = [
+        { name: 'Market Crash', marketCrash: 0.2 },
+        { name: 'Volatility Spike', volatilitySpike: 0.5 },
+        { name: 'Liquidity Crisis', liquidityCrisis: 0.3 },
+        { name: 'Black Swan', marketCrash: 0.4, volatilitySpike: 0.8 },
+      ];
+
+      const testScenarios = scenarios.length > 0 ? scenarios : defaultScenarios;
+      const results = [];
+
+      for (const scenario of testScenarios) {
+        const result = await this.simulateStressScenario(userId, tenantId, scenario);
+        results.push(result);
+      }
+
+      return results;
+    } catch (error) {
+      logger.error('Failed to run stress test', { userId, error });
+      return [];
+    }
+  }
+
+  /**
+   * Analyze liquidity risk
+   */
+  async analyzeLiquidityRisk(userId: string, tenantId: string): Promise<any> {
+    try {
+      const positions = await this.getOpenPositions(userId, tenantId);
+      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+
+      let totalLiquidity = 0;
+      let illiquidPositions = 0;
+      let estimatedLiquidationTime = 0;
+
+      for (const position of positions) {
+        const positionValue = parseFloat(position.currentPrice) * parseFloat(position.remainingQuantity);
+        const liquidity = this.estimatePositionLiquidity(position);
+        
+        totalLiquidity += positionValue * liquidity;
+        
+        if (liquidity < 0.5) {
+          illiquidPositions++;
+        }
+        
+        estimatedLiquidationTime += this.estimateLiquidationTime(position, liquidity);
+      }
+
+      const liquidityRatio = totalLiquidity / portfolioValue;
+      const averageLiquidationTime = positions.length > 0 ? estimatedLiquidationTime / positions.length : 0;
+
+      return {
+        liquidityRatio,
+        totalLiquidity,
+        illiquidPositions,
+        averageLiquidationTime,
+        riskLevel: this.assessLiquidityRisk(liquidityRatio, illiquidPositions),
+        recommendations: this.getLiquidityRecommendations(liquidityRatio, illiquidPositions),
+      };
+    } catch (error) {
+      logger.error('Failed to analyze liquidity risk', { userId, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Optimize portfolio using Modern Portfolio Theory
+   */
+  async optimizePortfolio(userId: string, tenantId: string, options: any = {}): Promise<any> {
+    try {
+      const positions = await this.getOpenPositions(userId, tenantId);
+      const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+
+      // Simplified portfolio optimization
+      // In a full implementation, this would use quadratic programming
+      const currentWeights = positions.map(p => {
+        const value = parseFloat(p.currentPrice) * parseFloat(p.remainingQuantity);
+        return value / portfolioValue;
+      });
+
+      const optimizedWeights = this.calculateOptimalWeights(positions, options);
+      const rebalancingActions = this.calculateRebalancingActions(positions, optimizedWeights, portfolioValue);
+
+      return {
+        currentWeights,
+        optimizedWeights,
+        rebalancingActions,
+        expectedReturn: this.calculateExpectedReturn(optimizedWeights, positions),
+        expectedRisk: this.calculateExpectedRisk(optimizedWeights, positions),
+        improvement: this.calculateImprovement(currentWeights, optimizedWeights),
+      };
+    } catch (error) {
+      logger.error('Failed to optimize portfolio', { userId, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Get comprehensive risk dashboard
+   */
+  async getRiskDashboard(userId: string, tenantId: string): Promise<any> {
+    try {
+      const [
+        metrics,
+        profile,
+        limits,
+        alerts,
+        correlationMatrix,
+        liquidityAnalysis,
+      ] = await Promise.all([
+        this.calculateRiskMetrics(userId, tenantId),
+        this.getRiskProfile(userId, tenantId),
+        this.getRiskLimits(userId, tenantId),
+        this.getAlerts(userId, tenantId),
+        this.getCorrelationMatrix(userId, tenantId),
+        this.analyzeLiquidityRisk(userId, tenantId),
+      ]);
+
+      return {
+        overview: {
+          portfolioValue: metrics.portfolioValue,
+          openPositions: metrics.openPositions,
+          riskLevel: metrics.riskLevel,
+          overallRiskScore: metrics.overallRiskScore,
+        },
+        riskMetrics: {
+          valueAtRisk: metrics.valueAtRisk,
+          expectedShortfall: metrics.expectedShortfall,
+          sharpeRatio: metrics.sharpeRatio,
+          sortinoRatio: metrics.sortinoRatio,
+          calmarRatio: metrics.calmarRatio,
+        },
+        diversification: {
+          concentrationRisk: metrics.concentrationRisk,
+          correlationAverage: metrics.correlationAverage,
+          diversificationScore: correlationMatrix.length > 0 
+            ? Math.max(0, 100 - (correlationMatrix.reduce((sum, row) => sum + row.reduce((rowSum, val) => rowSum + val, 0), 0) / (correlationMatrix.length * correlationMatrix.length)) * 100)
+            : 0,
+        },
+        liquidity: liquidityAnalysis,
+        alerts: alerts.filter(a => !a.resolved),
+        profile: profile,
+        limits: limits,
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error('Failed to get risk dashboard', { userId, error });
+      throw error;
+    }
+  }
+
+  /**
+   * Backtest strategy with risk analysis
+   */
+  async backtestWithRiskAnalysis(userId: string, tenantId: string, options: any): Promise<any> {
+    try {
+      // This is a simplified backtest implementation
+      // In a full implementation, this would integrate with the backtesting engine
+      
+      const {
+        startDate,
+        endDate,
+        initialCapital,
+        strategy,
+        riskMetrics = ['sharpe', 'sortino', 'calmar', 'var', 'cvar'],
+      } = options;
+
+      // Simulate backtest results
+      const backtestResults = {
+        startDate,
+        endDate,
+        initialCapital,
+        finalCapital: initialCapital * (1 + Math.random() * 0.5 - 0.1), // Simulated return
+        totalReturn: Math.random() * 0.5 - 0.1,
+        maxDrawdown: Math.random() * 0.2,
+        sharpeRatio: Math.random() * 2,
+        sortinoRatio: Math.random() * 2.5,
+        calmarRatio: Math.random() * 1.5,
+        valueAtRisk: initialCapital * (Math.random() * 0.1),
+        expectedShortfall: initialCapital * (Math.random() * 0.15),
+        winRate: Math.random() * 0.8 + 0.2,
+        profitFactor: Math.random() * 2 + 0.5,
+        strategy,
+        riskMetrics,
+        trades: [], // Would contain actual trade data
+        dailyReturns: [], // Would contain daily return series
+      };
+
+      return backtestResults;
+    } catch (error) {
+      logger.error('Failed to backtest with risk analysis', { userId, error });
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE HELPER METHODS FOR ADVANCED FEATURES
+  // ============================================================================
+
+  /**
+   * Calculate asset correlation (simplified)
+   */
+  private calculateAssetCorrelation(position1: any, position2: any): number {
+    // Simplified correlation based on asset type
+    const asset1 = position1.asset?.toLowerCase() || '';
+    const asset2 = position2.asset?.toLowerCase() || '';
+
+    // Same asset = perfect correlation
+    if (asset1 === asset2) return 1.0;
+
+    // Major cryptocurrencies tend to be correlated
+    const majorCrypto = ['btc', 'eth', 'bnb', 'ada', 'sol', 'dot', 'matic'];
+    if (majorCrypto.includes(asset1) && majorCrypto.includes(asset2)) {
+      return 0.7 + Math.random() * 0.2; // 0.7-0.9
+    }
+
+    // Stablecoins vs crypto
+    const stablecoins = ['usdt', 'usdc', 'dai', 'busd'];
+    if (stablecoins.includes(asset1) && majorCrypto.includes(asset2)) {
+      return 0.1 + Math.random() * 0.2; // 0.1-0.3
+    }
+
+    // Default correlation
+    return 0.3 + Math.random() * 0.4; // 0.3-0.7
+  }
+
+  /**
+   * Simulate stress scenario
+   */
+  private async simulateStressScenario(userId: string, tenantId: string, scenario: any): Promise<any> {
+    const positions = await this.getOpenPositions(userId, tenantId);
+    const portfolioValue = await this.getPortfolioValue(userId, tenantId);
+    
+    let impact = 0;
+    let description = '';
+
+    if (scenario.marketCrash) {
+      impact += scenario.marketCrash;
+      description += `Market crash: -${(scenario.marketCrash * 100).toFixed(1)}%`;
+    }
+
+    if (scenario.volatilitySpike) {
+      impact += scenario.volatilitySpike * 0.1; // Volatility affects returns
+      description += `, Volatility spike: +${(scenario.volatilitySpike * 100).toFixed(1)}%`;
+    }
+
+    if (scenario.liquidityCrisis) {
+      impact += scenario.liquidityCrisis * 0.05; // Liquidity affects pricing
+      description += `, Liquidity crisis: -${(scenario.liquidityCrisis * 100).toFixed(1)}%`;
+    }
+
+    const newPortfolioValue = portfolioValue * (1 - impact);
+    const lossPercent = (portfolioValue - newPortfolioValue) / portfolioValue;
+
+    return {
+      name: scenario.name,
+      description,
+      originalValue: portfolioValue,
+      portfolioValue: newPortfolioValue,
+      lossAmount: portfolioValue - newPortfolioValue,
+      lossPercent: lossPercent * 100,
+      impact,
+    };
+  }
+
+  /**
+   * Estimate position liquidity
+   */
+  private estimatePositionLiquidity(position: any): number {
+    const asset = position.asset?.toLowerCase() || '';
+    
+    // Major cryptocurrencies are highly liquid
+    const majorCrypto = ['btc', 'eth', 'bnb', 'ada', 'sol'];
+    if (majorCrypto.includes(asset)) return 0.95;
+
+    // Stablecoins are very liquid
+    const stablecoins = ['usdt', 'usdc', 'dai', 'busd'];
+    if (stablecoins.includes(asset)) return 0.98;
+
+    // Smaller cap coins are less liquid
+    return 0.6 + Math.random() * 0.3; // 0.6-0.9
+  }
+
+  /**
+   * Estimate liquidation time
+   */
+  private estimateLiquidationTime(position: any, liquidity: number): number {
+    // Base time in hours
+    const baseTime = 1; // 1 hour for highly liquid assets
+    return baseTime / liquidity;
+  }
+
+  /**
+   * Assess liquidity risk level
+   */
+  private assessLiquidityRisk(liquidityRatio: number, illiquidPositions: number): string {
+    if (liquidityRatio > 0.8 && illiquidPositions === 0) return 'Low';
+    if (liquidityRatio > 0.6 && illiquidPositions < 2) return 'Medium';
+    if (liquidityRatio > 0.4 && illiquidPositions < 5) return 'High';
+    return 'Critical';
+  }
+
+  /**
+   * Get liquidity recommendations
+   */
+  private getLiquidityRecommendations(liquidityRatio: number, illiquidPositions: number): string[] {
+    const recommendations = [];
+
+    if (liquidityRatio < 0.5) {
+      recommendations.push('Consider reducing position sizes in illiquid assets');
+    }
+
+    if (illiquidPositions > 3) {
+      recommendations.push('Diversify away from illiquid positions');
+    }
+
+    if (liquidityRatio < 0.3) {
+      recommendations.push('Consider keeping more cash reserves');
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Calculate optimal weights (simplified)
+   */
+  private calculateOptimalWeights(positions: any[], options: any): number[] {
+    // Simplified equal-weight optimization
+    // In a full implementation, this would use quadratic programming
+    const equalWeight = 1.0 / positions.length;
+    return positions.map(() => equalWeight);
+  }
+
+  /**
+   * Calculate rebalancing actions
+   */
+  private calculateRebalancingActions(positions: any[], optimalWeights: number[], portfolioValue: number): any[] {
+    const actions = [];
+    
+    for (let i = 0; i < positions.length; i++) {
+      const position = positions[i];
+      const currentValue = parseFloat(position.currentPrice) * parseFloat(position.remainingQuantity);
+      const currentWeight = currentValue / portfolioValue;
+      const targetWeight = optimalWeights[i];
+      
+      const weightDiff = targetWeight - currentWeight;
+      const valueDiff = weightDiff * portfolioValue;
+      
+      if (Math.abs(weightDiff) > 0.05) { // 5% threshold
+        actions.push({
+          asset: position.asset,
+          action: weightDiff > 0 ? 'BUY' : 'SELL',
+          amount: Math.abs(valueDiff),
+          currentWeight: currentWeight * 100,
+          targetWeight: targetWeight * 100,
+          priority: Math.abs(weightDiff),
+        });
+      }
+    }
+
+    return actions.sort((a, b) => b.priority - a.priority);
+  }
+
+  /**
+   * Calculate expected return
+   */
+  private calculateExpectedReturn(weights: number[], positions: any[]): number {
+    // Simplified expected return calculation
+    // In a full implementation, this would use historical returns
+    return weights.reduce((sum, weight, i) => {
+      const position = positions[i];
+      const expectedReturn = this.estimateExpectedReturn(position);
+      return sum + weight * expectedReturn;
+    }, 0);
+  }
+
+  /**
+   * Calculate expected risk
+   */
+  private calculateExpectedRisk(weights: number[], positions: any[]): number {
+    // Simplified risk calculation
+    // In a full implementation, this would use covariance matrix
+    return weights.reduce((sum, weight, i) => {
+      const position = positions[i];
+      const risk = this.estimatePositionRisk(position);
+      return sum + weight * weight * risk * risk;
+    }, 0);
+  }
+
+  /**
+   * Calculate improvement
+   */
+  private calculateImprovement(currentWeights: number[], optimalWeights: number[]): number {
+    // Calculate improvement in risk-adjusted return
+    // This is a simplified calculation
+    const currentConcentration = currentWeights.reduce((sum, w) => sum + w * w, 0);
+    const optimalConcentration = optimalWeights.reduce((sum, w) => sum + w * w, 0);
+    
+    return (currentConcentration - optimalConcentration) / currentConcentration;
+  }
+
+  /**
+   * Estimate expected return for position
+   */
+  private estimateExpectedReturn(position: any): number {
+    // Simplified expected return estimation
+    // In a full implementation, this would use historical data
+    return 0.1 + Math.random() * 0.2 - 0.1; // -10% to +30%
+  }
+
+  /**
+   * Estimate position risk
+   */
+  private estimatePositionRisk(position: any): number {
+    // Simplified risk estimation
+    // In a full implementation, this would use historical volatility
+    return 0.2 + Math.random() * 0.3; // 20% to 50%
   }
 }
 

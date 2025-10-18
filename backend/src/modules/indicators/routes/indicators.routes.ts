@@ -9,7 +9,7 @@
 import { Elysia, t } from 'elysia';
 import { indicatorsService } from '../services/indicators.service';
 import { sessionGuard } from '../../auth/middleware/session.middleware';
-import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { getUserPrimaryTenantId } from '../../tenants/services/membership.service';
 import { BadRequestError } from '../../../utils/errors';
 import type {
   CalculateIndicatorRequest,

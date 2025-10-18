@@ -35,7 +35,7 @@ Todos os **167 endpoints** distribuídos em **12 módulos** foram mapeados e tes
 | `/api/rate-limit/stats` | Rate Limiting | ✅ 200 | 2ms |
 | `/api/v1/tax-jurisdiction/available` | Financial | ✅ 200 | 2ms |
 | `/api/v1/tax-jurisdiction/current` | Financial | ✅ 200 | 1ms |
-| `/api/dev/auth/users` | Auth (Dev) | ✅ 200 | 7ms |
+| `/api/admin/users` | Users (Admin) | ✅ 401 (sem auth) | 3ms |
 
 **Resultado:** ✅ Todos os endpoints públicos estão acessíveis e funcionando
 

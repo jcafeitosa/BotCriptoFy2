@@ -397,5 +397,3 @@ export function TradingChart({
     </div>
   );
 }
-
-export default TradingChart;

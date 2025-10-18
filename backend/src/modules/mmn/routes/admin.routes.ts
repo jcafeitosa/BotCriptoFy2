@@ -1,6 +1,5 @@
 /**
- * MMN Admin Routes
- * Administrative endpoints for MMN management
+ * MMN Admin Routes – require mmn:manage
  */
 
 import { Elysia, t } from 'elysia';
@@ -10,98 +9,134 @@ import {
   CommissionService,
   RankService,
   PayoutService,
+  AnalyticsService,
 } from '../services';
 import logger from '@/utils/logger';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
-import { requireAnyRole } from '../../security/middleware/rbac.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
+import { BadRequestError, NotFoundError } from '@/utils/errors';
+import type { MemberListFilters } from '../types/mmn.types';
+
+const MEMBERS_QUERY_SCHEMA = t.Object({
+  page: t.Optional(t.String()),
+  limit: t.Optional(t.String()),
+  status: t.Optional(t.String()),
+  rank: t.Optional(t.String()),
+  search: t.Optional(t.String()),
+  qualified: t.Optional(t.String()),
+  sort: t.Optional(t.String()),
+  direction: t.Optional(t.Union([t.Literal('asc'), t.Literal('desc')])),
+});
+
+const LEADERBOARD_QUERY_SCHEMA = t.Object({
+  limit: t.Optional(t.String()),
+  period: t.Optional(t.String()),
+});
+
+const PAYOUT_PROCESS_SCHEMA = t.Object({
+  stripeTransferId: t.Optional(t.String()),
+  stripeAccountId: t.Optional(t.String()),
+});
+
+const PAYOUT_FAIL_SCHEMA = t.Object({
+  failureReason: t.String(),
+});
+
+const parseNumber = (value: string | undefined, fallback: number): number => {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
+const parseBoolean = (value: string | undefined): boolean | undefined => {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  if (['true', '1', 'yes'].includes(normalized)) return true;
+  if (['false', '0', 'no'].includes(normalized)) return false;
+  return undefined;
+};
+
+const parseCsv = (value: string | undefined): string[] | undefined => {
+  if (!value) return undefined;
+  const parts = value
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  return parts.length > 0 ? parts : undefined;
+};
+
+const parseSortKey = (value: string | undefined): MemberListFilters['sortBy'] => {
+  if (!value) return 'joinedAt';
+  const normalized = value.toLowerCase();
+
+  if (normalized === 'rank') return 'rank';
+  if (normalized === 'volume') return 'volume';
+  if (normalized === 'team' || normalized === 'team_size') return 'teamSize';
+  if (normalized === 'commissions') return 'commissions';
+  if (normalized === 'joined_at') return 'joinedAt';
+
+  return 'joinedAt';
+};
+
+const buildMemberFilters = (query: Record<string, string | undefined>): MemberListFilters => ({
+  page: Math.max(parseNumber(query.page, 1), 1),
+  limit: parseNumber(query.limit, 25),
+  status: parseCsv(query.status),
+  ranks: parseCsv(query.rank),
+  search: query.search?.trim() || undefined,
+  qualified: parseBoolean(query.qualified),
+  sortBy: parseSortKey(query.sort),
+  sortDirection: query.direction === 'asc' ? 'asc' : 'desc',
+});
 
 export const adminRoutes = new Elysia({ prefix: '/api/v1/mmn/admin' })
   .use(sessionGuard)
   .use(requireTenant)
-  .use(requireAnyRole(['super_admin', 'admin']))
+  .use(requirePermission('mmn', 'manage'))
 
-  /**
-   * Get all members
-   * GET /api/v1/mmn/admin/members
-   */
   .get(
     '/members',
-    async ({ tenantId }: any) => {
-      logger.info('Getting all MMN members', { tenantId });
+    async ({ tenantId, query }) => {
+      const filters = buildMemberFilters(query);
+      const response = await AnalyticsService.listMembers(tenantId, filters);
 
-      // This would need pagination in production
-      // For now, simplified implementation
-      return {
-        members: [],
-        count: 0,
-      };
-    },
-    {
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Get all members',
-        description: 'Get all members in MMN tree (admin only)',
-      },
-    }
-  )
-
-  /**
-   * Process commissions for period
-   * POST /api/v1/mmn/admin/calculate-commissions
-   */
-  .post(
-    '/calculate-commissions',
-    async ({ body, tenantId }: any) => {
-      logger.info('Processing commissions', {
+      logger.info('MMN admin members listed', {
         tenantId,
-        period: body.period,
+        filters,
+        total: response.pagination.total,
       });
 
-      const result = await CommissionService.processCommissions(
-        tenantId,
-        body.period
-      );
-
-      return { result };
+      return { success: true, data: response };
     },
-    {
-      body: t.Object({
-        period: t.String(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Process commissions',
-        description: 'Calculate and process all commissions for a period',
-      },
-    }
+    { query: MEMBERS_QUERY_SCHEMA },
   )
 
-  /**
-   * Get statistics
-   * GET /api/v1/mmn/admin/stats
-   */
+  .post(
+    '/calculate-commissions',
+    async ({ body, tenantId, set }) => {
+      try {
+        const result = await CommissionService.processCommissions(tenantId, body.period);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error('Error processing commissions', { error });
+        set.status = 500;
+        return { success: false, error: 'Failed to process commissions' };
+      }
+    },
+    { body: t.Object({ period: t.String() }) }
+  )
+
   .get(
     '/stats',
-    async ({ query, tenantId }: any) => {
-      logger.info('Getting MMN statistics', { tenantId });
-
-      const volumes = await VolumeService.getTotalVolumes(
+    async ({ query, tenantId }) => {
+      const volumes = await VolumeService.getTotalVolumes(tenantId, query.period);
+      const payouts = await PayoutService.getTenantPayoutStats(
         tenantId,
-        query.period
+        query.periodStart && query.periodEnd
+          ? { start: new Date(query.periodStart), end: new Date(query.periodEnd) }
+          : undefined,
       );
-
-      const payoutStats = await PayoutService.getTenantPayoutStats(
-        tenantId,
-        query.period ? {
-          start: new Date(query.periodStart),
-          end: new Date(query.periodEnd),
-        } : undefined
-      );
-
-      return {
-        volumes,
-        payouts: payoutStats,
-      };
+      return { success: true, data: { volumes, payouts } };
     },
     {
       query: t.Object({
@@ -109,282 +144,198 @@ export const adminRoutes = new Elysia({ prefix: '/api/v1/mmn/admin' })
         periodStart: t.Optional(t.String()),
         periodEnd: t.Optional(t.String()),
       }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Get statistics',
-        description: 'Get tenant-wide MMN statistics',
-      },
     }
   )
 
-  /**
-   * Update member qualification
-   * POST /api/v1/mmn/admin/members/:userId/qualify
-   */
   .post(
     '/members/:userId/qualify',
-    async ({ params, body, tenantId }: any) => {
-      logger.info('Updating member qualification', {
-        userId: params.userId,
-        isQualified: body.isQualified,
-      });
-
+    async ({ params, body, tenantId, set }) => {
       const node = await TreeService.getNodeByUserId(params.userId, tenantId);
-
       if (!node) {
-        return { error: 'Member not found in MMN tree' };
+        set.status = 404;
+        return { success: false, error: 'Member not found in MMN tree' };
       }
 
-      const updated = await TreeService.updateQualification(
-        node.id,
-        body.isQualified
-      );
-
-      return { node: updated };
+      const updated = await TreeService.updateQualification(node.id, body.isQualified);
+      return { success: true, data: updated };
     },
     {
-      params: t.Object({
-        userId: t.String(),
-      }),
-      body: t.Object({
-        isQualified: t.Boolean(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Update qualification',
-        description: 'Update member qualification status',
-      },
+      params: t.Object({ userId: t.String() }),
+      body: t.Object({ isQualified: t.Boolean() }),
     }
   )
 
-  /**
-   * Update member status
-   * POST /api/v1/mmn/admin/members/:userId/status
-   */
   .post(
     '/members/:userId/status',
-    async ({ params, body, tenantId }: any) => {
-      logger.info('Updating member status', {
-        userId: params.userId,
-        status: body.status,
-      });
-
+    async ({ params, body, tenantId, set }) => {
       const node = await TreeService.getNodeByUserId(params.userId, tenantId);
-
       if (!node) {
-        return { error: 'Member not found in MMN tree' };
+        set.status = 404;
+        return { success: false, error: 'Member not found in MMN tree' };
       }
 
       const updated = await TreeService.updateNodeStatus(node.id, body.status);
-
-      return { node: updated };
+      return { success: true, data: updated };
     },
     {
-      params: t.Object({
-        userId: t.String(),
-      }),
+      params: t.Object({ userId: t.String() }),
       body: t.Object({
-        status: t.Union([
-          t.Literal('active'),
-          t.Literal('inactive'),
-          t.Literal('suspended'),
-        ]),
+        status: t.Union([t.Literal('active'), t.Literal('inactive'), t.Literal('suspended')]),
       }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Update status',
-        description: 'Update member status',
-      },
     }
   )
 
-  /**
-   * Get pending payouts
-   * GET /api/v1/mmn/admin/payouts/pending
-   */
-  .get(
-    '/payouts/pending',
-    async ({ tenantId }: any) => {
-      logger.info('Getting pending payouts', { tenantId });
-
-      const payouts = await PayoutService.getPendingPayouts(tenantId);
-
-      return {
-        payouts,
-        count: payouts.length,
-        totalAmount: payouts.reduce((sum, p) => sum + parseFloat(p.amount), 0),
-      };
-    },
-    {
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Get pending payouts',
-        description: 'Get all pending payout requests',
-      },
-    }
-  )
-
-  /**
-   * Process payout
-   * POST /api/v1/mmn/admin/payouts/:id/process
-   */
-  .post(
-    '/payouts/:id/process',
-    async ({ params, body }: any) => {
-      logger.info('Processing payout', { payoutId: params.id });
-
-      const payout = await PayoutService.processPayout(
-        params.id,
-        body.stripeTransferId,
-        body.stripeAccountId
-      );
-
-      return { payout };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        stripeTransferId: t.Optional(t.String()),
-        stripeAccountId: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Process payout',
-        description: 'Process pending payout',
-      },
-    }
-  )
-
-  /**
-   * Complete payout
-   * POST /api/v1/mmn/admin/payouts/:id/complete
-   */
-  .post(
-    '/payouts/:id/complete',
-    async ({ params }: any) => {
-      logger.info('Completing payout', { payoutId: params.id });
-
-      const payout = await PayoutService.completePayout(params.id);
-
-      return { payout };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Complete payout',
-        description: 'Mark payout as completed',
-      },
-    }
-  )
-
-  /**
-   * Fail payout
-   * POST /api/v1/mmn/admin/payouts/:id/fail
-   */
-  .post(
-    '/payouts/:id/fail',
-    async ({ params, body }: any) => {
-      logger.info('Failing payout', { payoutId: params.id });
-
-      const payout = await PayoutService.failPayout(params.id, body.reason);
-
-      return { payout };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      body: t.Object({
-        reason: t.String(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Fail payout',
-        description: 'Mark payout as failed with reason',
-      },
-    }
-  )
-
-  /**
-   * Approve commission
-   * POST /api/v1/mmn/admin/commissions/:id/approve
-   */
-  .post(
-    '/commissions/:id/approve',
-    async ({ params }: any) => {
-      logger.info('Approving commission', { commissionId: params.id });
-
-      const commission = await CommissionService.approveCommission(params.id);
-
-      return { commission };
-    },
-    {
-      params: t.Object({
-        id: t.String(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Approve commission',
-        description: 'Approve pending commission',
-      },
-    }
-  )
-
-  /**
-   * Calculate rank for member
-   * POST /api/v1/mmn/admin/members/:userId/calculate-rank
-   */
   .post(
     '/members/:userId/calculate-rank',
-    async ({ params, tenantId }: any) => {
-      logger.info('Calculating rank', { userId: params.userId });
+    async ({ params, tenantId, set }) => {
+      try {
+        const rank = await RankService.calculateRank(params.userId, tenantId);
+        if (!rank) {
+          return { success: true, data: { message: 'Member does not qualify for a higher rank yet.' } };
+        }
 
-      const rank = await RankService.calculateRank(params.userId, tenantId);
-
-      return { rank };
+        return { success: true, data: rank };
+      } catch (error) {
+        logger.error('Error calculating rank for member', { error, userId: params.userId });
+        set.status = error instanceof NotFoundError ? 404 : 500;
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to calculate rank' };
+      }
     },
     {
-      params: t.Object({
-        userId: t.String(),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Calculate rank',
-        description: 'Calculate and update member rank',
-      },
+      params: t.Object({ userId: t.String() }),
     }
   )
 
-  /**
-   * Get rank leaderboard
-   * GET /api/v1/mmn/admin/leaderboard
-   */
-  .get(
-    '/leaderboard',
-    async ({ query, tenantId }: any) => {
-      logger.info('Getting rank leaderboard', { tenantId });
+  .post(
+    '/commissions/:id/approve',
+    async ({ params, set }) => {
+      try {
+        const commission = await CommissionService.approveCommission(params.id);
+        return { success: true, data: commission };
+      } catch (error) {
+        logger.error('Error approving commission', { error, commissionId: params.id });
+        if (error instanceof NotFoundError) {
+          set.status = 404;
+          return { success: false, error: error.message };
+        }
 
-      const limit = query.limit ? parseInt(query.limit) : 50;
-      const leaderboard = await RankService.getRankLeaderboard(tenantId, limit);
-
-      return {
-        leaderboard,
-        count: leaderboard.length,
-      };
+        set.status = 500;
+        return { success: false, error: 'Failed to approve commission' };
+      }
     },
     {
-      query: t.Object({
-        limit: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['MMN - Admin'],
-        summary: 'Get leaderboard',
-        description: 'Get rank leaderboard',
-      },
+      params: t.Object({ id: t.String() }),
     }
+  )
+
+  .get(
+    '/payouts/pending',
+    async ({ tenantId }) => {
+      const payouts = await PayoutService.getPendingPayouts(tenantId);
+      const memberMap = await AnalyticsService.getMemberProfiles(
+        tenantId,
+        payouts.map((payout) => payout.memberId),
+      );
+
+      const data = payouts.map((payout) => ({
+        payout,
+        member: memberMap[payout.memberId] ?? null,
+      }));
+
+      return { success: true, data: { pending: data, count: data.length } };
+    }
+  )
+
+  .post(
+    '/payouts/:id/process',
+    async ({ params, body, set }) => {
+      try {
+        const payout = await PayoutService.processPayout(
+          params.id,
+          body.stripeTransferId,
+          body.stripeAccountId,
+        );
+        return { success: true, data: payout };
+      } catch (error) {
+        logger.error('Error processing payout', { error, payoutId: params.id });
+
+        if (error instanceof NotFoundError) {
+          set.status = 404;
+          return { success: false, error: error.message };
+        }
+
+        if (error instanceof BadRequestError) {
+          set.status = 400;
+          return { success: false, error: error.message };
+        }
+
+        set.status = 500;
+        return { success: false, error: 'Failed to process payout' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: PAYOUT_PROCESS_SCHEMA,
+    }
+  )
+
+  .post(
+    '/payouts/:id/complete',
+    async ({ params, set }) => {
+      try {
+        const payout = await PayoutService.completePayout(params.id);
+        return { success: true, data: payout };
+      } catch (error) {
+        logger.error('Error completing payout', { error, payoutId: params.id });
+
+        if (error instanceof NotFoundError) {
+          set.status = 404;
+          return { success: false, error: error.message };
+        }
+
+        set.status = 500;
+        return { success: false, error: 'Failed to complete payout' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+    }
+  )
+
+  .post(
+    '/payouts/:id/fail',
+    async ({ params, body, set }) => {
+      try {
+        const payout = await PayoutService.failPayout(params.id, body.failureReason);
+        return { success: true, data: payout };
+      } catch (error) {
+        logger.error('Error marking payout as failed', { error, payoutId: params.id });
+
+        if (error instanceof NotFoundError) {
+          set.status = 404;
+          return { success: false, error: error.message };
+        }
+
+        set.status = 500;
+        return { success: false, error: 'Failed to mark payout as failed' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: PAYOUT_FAIL_SCHEMA,
+    }
+  )
+
+  .get(
+    '/leaderboard',
+    async ({ tenantId, query }) => {
+      const limit = parseNumber(query.limit, 10);
+      const entries = await AnalyticsService.getLeaderboard(tenantId, {
+        limit,
+        period: query.period,
+      });
+
+      return { success: true, data: { entries, count: entries.length } };
+    },
+    { query: LEADERBOARD_QUERY_SCHEMA },
   );

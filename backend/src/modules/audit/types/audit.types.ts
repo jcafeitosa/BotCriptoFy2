@@ -148,6 +148,17 @@ export interface AuditStatistics {
 }
 
 /**
+ * Time-bucketed aggregation
+ */
+export type BucketGranularity = 'minute' | 'hour' | 'day';
+
+export interface TimelineBucket {
+  bucket: string; // ISO timestamp of bucket start (UTC)
+  count: number;
+  eventType?: AuditEventType;
+}
+
+/**
  * Compliance report
  */
 export interface ComplianceReport {

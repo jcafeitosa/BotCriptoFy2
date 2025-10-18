@@ -96,6 +96,72 @@ export interface MmnStats {
   fillRate: number;
 }
 
+export interface MemberListFilters {
+  page: number;
+  limit: number;
+  status?: string[];
+  ranks?: string[];
+  search?: string;
+  qualified?: boolean;
+  sortBy: 'joinedAt' | 'rank' | 'volume' | 'teamSize' | 'commissions';
+  sortDirection: 'asc' | 'desc';
+}
+
+export interface MemberSummary {
+  memberId: string;
+  userId: string;
+  name: string;
+  email: string;
+  sponsorId: string;
+  status: MemberStatus;
+  isQualified: boolean;
+  level: number;
+  position: TreePosition;
+  rankName: string | null;
+  rankLevel: number | null;
+  joinedAt: Date;
+  teamSize: number;
+  totalVolume: number;
+  pendingCommissions: number;
+}
+
+export interface LeaderboardEntry {
+  memberId: string;
+  userId: string;
+  name: string;
+  email: string;
+  rankName: string | null;
+  rankLevel: number | null;
+  teamSize: number;
+  totalVolume: number;
+  totalCommissions: number;
+  score: number;
+}
+
+export interface GrowthPoint {
+  period: string;
+  newMembers: number;
+  qualifiedMembers: number;
+  totalVolume: number;
+  totalCommissions: number;
+}
+
+export interface DownlineSnapshot {
+  status: MemberStatus;
+  isQualified: boolean;
+  level: number;
+}
+
+export interface NetworkHealth {
+  totalMembers: number;
+  activeMembers: number;
+  inactiveMembers: number;
+  qualifiedMembers: number;
+  retentionRate: number;
+  qualificationRate: number;
+  averageLevel: number;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {

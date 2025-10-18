@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { ledgerService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 
 export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
@@ -47,6 +48,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         entry: t.Object({
           entryNumber: t.String(),
@@ -97,6 +99,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -126,6 +129,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       params: t.Object({
         id: t.String(),
       }),
@@ -160,6 +164,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       params: t.Object({
         id: t.String(),
       }),
@@ -199,6 +204,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         code: t.String(),
         name: t.String(),
@@ -244,6 +250,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
     }
   )
 
@@ -274,6 +281,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -306,6 +314,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         fiscalPeriod: t.String(),
       }),
@@ -339,6 +348,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       params: t.Object({
         period: t.String(),
       }),

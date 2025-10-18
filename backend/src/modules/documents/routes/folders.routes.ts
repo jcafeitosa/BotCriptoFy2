@@ -7,7 +7,7 @@ import { Elysia, t } from 'elysia';
 import { foldersService } from '../services/folders.service';
 import logger from '../../../utils/logger';
 import { sessionGuard } from '../../auth/middleware/session.middleware';
-import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { getUserPrimaryTenantId } from '../../tenants/services/membership.service';
 import { BadRequestError } from '../../../utils/errors';
 
 export const foldersRoutes = new Elysia({ prefix: '/folders' })

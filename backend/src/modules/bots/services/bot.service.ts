@@ -32,6 +32,7 @@ import type {
   LogCategory,
   BotStatus,
 } from '../types/bots.types';
+import { botEngineRegistry } from '../engine/bot-engine.registry';
 
 class BotService implements IBotService {
   // ============================================================================
@@ -374,6 +375,21 @@ class BotService implements IBotService {
         allocatedCapital: bot.allocatedCapital,
       });
 
+      // Attempt to start live execution engine (non-critical to DB record)
+      try {
+        await botEngineRegistry.start({ ...bot, lastExecutionId: execution.id }, undefined, false);
+      } catch (engineError) {
+        logger.error('Failed to start execution engine for bot', {
+          botId,
+          error: engineError instanceof Error ? engineError.message : String(engineError),
+        });
+        // Mark bot as error if engine failed right away
+        await db
+          .update(bots)
+          .set({ status: 'error', updatedAt: new Date(), lastErrorAt: new Date(), lastErrorMessage: 'Engine start failed' })
+          .where(eq(bots.id, botId));
+      }
+
       logger.info('Bot started successfully', {
         botId,
         executionId: execution.id,
@@ -432,6 +448,9 @@ class BotService implements IBotService {
             .where(eq(botExecutions.id, bot.lastExecutionId));
         }
       }
+
+      // Stop live execution engine first (best-effort)
+      await botEngineRegistry.stop(botId);
 
       // Update bot status
       await db
@@ -739,6 +758,12 @@ class BotService implements IBotService {
         performanceStatus = 'acceptable';
       }
 
+      // Cross-check engine registry state vs DB state
+      const engineRunning = botEngineRegistry.isRunning(botId);
+      if (bot.status === 'running' && !engineRunning) {
+        issues.push({ severity: 'high', category: 'engine', message: 'Engine not active while bot marked running' });
+      }
+
       const isHealthy = issues.filter((i) => i.severity === 'critical' || i.severity === 'high').length === 0;
 
       return {
@@ -748,7 +773,7 @@ class BotService implements IBotService {
         issues,
         lastHeartbeat: bot.updatedAt,
         consecutiveErrors: bot.consecutiveErrors,
-        marketConnection: bot.status === 'running' ? 'connected' : 'disconnected',
+        marketConnection: engineRunning ? 'connected' : bot.status === 'running' ? 'degraded' : 'disconnected',
         capitalStatus,
         performanceStatus,
       };

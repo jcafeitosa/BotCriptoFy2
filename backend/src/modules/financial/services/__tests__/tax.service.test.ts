@@ -8,8 +8,8 @@ import { TaxService } from '../tax.service';
 import type { NewTaxFiling } from '../../types/financial.types';
 
 // Mock data
-const mockTenantId = 'tenant-123';
-const mockUserId = 'user-456';
+const mockTenantId = '00000000-0000-0000-0000-000000000001';
+const mockUserId = '00000000-0000-0000-0000-000000000101';
 
 const mockFilingData: NewTaxFiling = {
   tenantId: mockTenantId,

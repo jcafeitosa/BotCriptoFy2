@@ -6,6 +6,16 @@
 import { Elysia, t } from 'elysia';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
 import { riskService } from '../services/risk.service';
+import { riskAdvancedRoutes } from './risk-advanced.routes';
+import { 
+  CreateRiskProfileSchema,
+  UpdateRiskProfileSchema,
+  CreateRiskLimitSchema,
+  UpdateRiskLimitSchema,
+  TradeValidationSchema,
+  safeValidate,
+  formatZodError
+} from '../validation/risk.validation';
 
 export const riskRoutes = new Elysia({ prefix: '/api/v1/risk' })
   .use(sessionGuard)
@@ -46,7 +56,13 @@ export const riskRoutes = new Elysia({ prefix: '/api/v1/risk' })
     '/profile',
     async ({ user, tenantId, body }: any) => {
       try {
-        const profile = await riskService.createRiskProfile(user.id, tenantId, body);
+        // Validate request body with Zod
+        const validation = safeValidate(CreateRiskProfileSchema, body);
+        if (!validation.success) {
+          return validation.error;
+        }
+
+        const profile = await riskService.createRiskProfile(user.id, tenantId, validation.data);
         return { success: true, data: profile, message: 'Risk profile created successfully' };
       } catch (error: any) {
         return { success: false, error: error.message || 'Failed to create risk profile' };
@@ -55,15 +71,14 @@ export const riskRoutes = new Elysia({ prefix: '/api/v1/risk' })
     {
       body: t.Object({
         riskTolerance: t.Union([t.Literal('conservative'), t.Literal('moderate'), t.Literal('aggressive')]),
-        maxPortfolioRisk: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-        maxPositionRisk: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
+        investmentHorizon: t.Union([t.Literal('short'), t.Literal('medium'), t.Literal('long')]),
         maxDrawdown: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-        defaultPositionSize: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-        maxPositionSize: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
-        useKellyCriterion: t.Optional(t.Boolean()),
-        kellyFraction: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
         maxLeverage: t.Optional(t.Number({ minimum: 1, maximum: 125 })),
-        maxMarginUtilization: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
+        maxPositionSize: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
+        maxSectorExposure: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
+        maxCorrelation: t.Optional(t.Number({ minimum: 0, maximum: 1 })),
+        isActive: t.Optional(t.Boolean()),
+        preferences: t.Optional(t.Record(t.String(), t.Any())),
       }),
       detail: {
         tags: ['Risk Management'],
@@ -478,7 +493,13 @@ export const riskRoutes = new Elysia({ prefix: '/api/v1/risk' })
     '/validate',
     async ({ user, tenantId, body }: any) => {
       try {
-        const result = await riskService.validateTrade(user.id, tenantId, body);
+        // Validate request body with Zod
+        const validation = safeValidate(TradeValidationSchema, body);
+        if (!validation.success) {
+          return validation.error;
+        }
+
+        const result = await riskService.validateTrade(user.id, tenantId, validation.data);
         return { success: true, data: result };
       } catch (error: any) {
         return { success: false, error: error.message || 'Failed to validate trade' };
@@ -497,5 +518,9 @@ export const riskRoutes = new Elysia({ prefix: '/api/v1/risk' })
         summary: 'Validate trade',
         description: 'Check if trade complies with risk limits',
       },
-    }
-  );
+    })
+
+  // ============================================================================
+  // ADVANCED RISK ROUTES
+  // ============================================================================
+  .use(riskAdvancedRoutes);

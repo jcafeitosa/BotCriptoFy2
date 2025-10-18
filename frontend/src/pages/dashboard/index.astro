@@ -25,6 +25,7 @@ import Layout from '../../layouts/Layout.astro';
      * @performance < 200ms total
      */
     import { authClient } from '../../lib/auth-client';
+    import { API_URL } from '../../lib/config';
 
     async function autoRedirect() {
       try {
@@ -42,7 +43,7 @@ import Layout from '../../layouts/Layout.astro';
         console.log('✅ Session found:', session.data.user.email);
 
         // 2. Buscar perfil via API
-        const response = await fetch("http://localhost:3000/api/user/profile", {
+        const response = await fetch(`${API_URL}/api/user/profile`, {
           method: "GET",
           credentials: "include",
         });

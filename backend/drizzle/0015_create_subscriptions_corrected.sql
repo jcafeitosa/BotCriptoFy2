@@ -1,7 +1,10 @@
 -- Manual migration: Create subscription tables with correct types (text for tenant_id and user_id)
 -- Based on 0008 but with corrected foreign key types
 
-CREATE TABLE "subscription_features" (
+-- Ensure pgcrypto is available for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS "subscription_features" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"display_name" varchar(100) NOT NULL,
@@ -19,7 +22,7 @@ CREATE TABLE "subscription_features" (
 	CONSTRAINT "subscription_features_slug_unique" UNIQUE("slug")
 );
 
-CREATE TABLE "subscription_plans" (
+CREATE TABLE IF NOT EXISTS "subscription_plans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"display_name" varchar(100) NOT NULL,
@@ -45,7 +48,7 @@ CREATE TABLE "subscription_plans" (
 	CONSTRAINT "subscription_plans_slug_unique" UNIQUE("slug")
 );
 
-CREATE TABLE "tenant_subscription_plans" (
+CREATE TABLE IF NOT EXISTS "tenant_subscription_plans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -63,7 +66,7 @@ CREATE TABLE "tenant_subscription_plans" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE "subscription_usage" (
+CREATE TABLE IF NOT EXISTS "subscription_usage" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -90,7 +93,7 @@ CREATE TABLE "subscription_usage" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE "subscription_usage_events" (
+CREATE TABLE IF NOT EXISTS "subscription_usage_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"usage_id" uuid,
@@ -110,7 +113,7 @@ CREATE TABLE "subscription_usage_events" (
 	"event_time" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE "subscription_quotas" (
+CREATE TABLE IF NOT EXISTS "subscription_quotas" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"plan_id" uuid NOT NULL,
@@ -131,7 +134,7 @@ CREATE TABLE "subscription_quotas" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE "subscription_history" (
+CREATE TABLE IF NOT EXISTS "subscription_history" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"plan_id" uuid,
@@ -165,7 +168,7 @@ CREATE TABLE "subscription_history" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE "subscription_invoices" (
+CREATE TABLE IF NOT EXISTS "subscription_invoices" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" text NOT NULL,
 	"plan_id" uuid,

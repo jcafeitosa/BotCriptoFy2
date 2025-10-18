@@ -1,12 +1,8 @@
-/**
- * Exchanges Module Main Export
- */
-
-export * from './schema/exchanges.schema';
-export * from './schema/exchange-markets.schema';
+export { exchangesRoutes } from './routes/exchanges.routes';
+export { ExchangeService } from './services/exchange.service';
+export { ExchangeConfigurationService } from './services/exchange-config.service';
+export { ExchangeConnectionService } from './services/exchange-connection.service';
+export { createWebSocketAdapter, getDefaultWebSocketConfig } from './services/exchange-websocket.service';
+export { exchangeConnectionPool } from './services/connection-pool.service';
 export * from './types/exchanges.types';
-export * from './types/realtime.types';
-export * from './services/exchange.service';
-export { exchangesRoutes } from './routes';
-export { createWebSocketAdapter, getDefaultWebSocketConfig } from './services/exchange-websocket.factory';
-export { ExchangeWebSocketMetadataService } from './services/exchange-websocket-metadata.service';
+export * from './schema/exchanges.schema';

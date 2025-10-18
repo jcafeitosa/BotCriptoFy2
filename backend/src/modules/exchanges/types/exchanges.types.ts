@@ -1,166 +1,228 @@
-/**
- * Exchanges Types
- * TypeScript types for exchange operations
- */
+import type { Exchange } from '../schema/exchanges.schema';
+import type { ExchangeId } from '@/modules/market-data/websocket/types';
 
-/**
- * Exchange ID - CCXT supports 100+ exchanges
- * Using string type instead of literal union for flexibility
- * Validation is done at runtime using ccxt.exchanges
- */
-export type ExchangeId = string;
-
-export type ExchangeStatus = 'active' | 'disabled' | 'error';
-
-export interface ExchangeCredentials {
-  apiKey: string;
-  apiSecret: string;
-  apiPassword?: string;
-  sandbox?: boolean;
-}
-
-export interface ExchangeBalance {
-  currency: string;
-  free: number;
-  used: number;
-  total: number;
-}
-
-export interface ExchangeMarket {
-  symbol: string;
-  base: string;
-  quote: string;
-  active: boolean;
-  type: 'spot' | 'future' | 'swap';
-  spot: boolean;
-  future: boolean;
-  swap: boolean;
-  precision?: {
-    amount?: number;
-    price?: number;
-    base?: number;
-    quote?: number;
+export interface ExchangeMetadata extends Pick<Exchange, 'id' | 'slug' | 'name' | 'displayName' | 'status'> {
+  readonly ccxtId: string;
+  readonly country?: string;
+  readonly website?: string;
+  readonly apiDocsUrl?: string;
+  readonly supportedPairs?: string[];
+  readonly features: {
+    readonly spotTrading: boolean;
+    readonly marginTrading: boolean;
+    readonly futuresTrading: boolean;
+    readonly sandbox: boolean;
+    readonly websockets: boolean;
   };
-  limits: {
-    amount?: { min?: number; max?: number };
-    price?: { min?: number; max?: number };
-    cost?: { min?: number; max?: number };
+  readonly websocket?: {
+    readonly public: boolean;
+    readonly private: boolean;
+    readonly url?: string;
+  };
+  readonly capabilities?: ExchangeCapability;
+}
+
+export interface CreateExchangeConfigRequest {
+  readonly exchangeSlug: string;
+  readonly apiKey: string;
+  readonly apiSecret: string;
+  readonly passphrase?: string;
+  readonly sandbox?: boolean;
+  readonly permissions?: Record<string, boolean>;
+}
+
+export interface ExchangeConfigurationResponse {
+  readonly id: string;
+  readonly exchangeId: string;
+  readonly exchangeSlug: string;
+  readonly status: string;
+  readonly sandbox: boolean;
+  readonly permissions: Record<string, boolean>;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly lastSyncAt?: Date | null;
+  readonly lastErrorAt?: Date | null;
+  readonly lastErrorMessage?: string | null;
+}
+
+export interface ExchangeConfigurationWithSecrets extends ExchangeConfigurationResponse {
+  readonly apiKey: string;
+  readonly apiSecret: string;
+  readonly passphrase?: string | null;
+}
+
+export interface ExchangeConnectionSummary extends ExchangeConfigurationResponse {
+  readonly exchangeName: string;
+  readonly exchangeDisplayName: string;
+}
+
+export interface MarketQueryOptions {
+  readonly quote?: string;
+  readonly limit?: number;
+}
+
+export interface MarketDescription {
+  readonly symbol: string;
+  readonly base: string;
+  readonly quote: string;
+  readonly active: boolean;
+  readonly type: string;
+  readonly precision: {
+    readonly amount?: number;
+    readonly price?: number;
+  };
+  readonly limits: {
+    readonly amount?: { readonly min?: number; readonly max?: number };
+    readonly price?: { readonly min?: number; readonly max?: number };
+    readonly cost?: { readonly min?: number; readonly max?: number };
   };
 }
 
-export interface ExchangeTicker {
-  symbol: string;
-  timestamp: number;
-  datetime: string;
-  high: number;
-  low: number;
-  bid: number;
-  ask: number;
-  last: number;
-  close: number;
-  baseVolume: number;
-  quoteVolume: number;
-  percentage: number;
+export type SupportedExchangeId = ExchangeId;
+
+export interface ExchangeCapability {
+  readonly rest: {
+    readonly public: ExchangeRestFeature[];
+    readonly private: ExchangeRestFeature[];
+    readonly rateLimited: boolean;
+  };
+  readonly websocket: {
+    readonly supported: boolean;
+    readonly native: boolean;
+    readonly channels: ExchangeWebSocketChannel[];
+  };
+  readonly notes?: string[];
 }
 
-export interface ExchangeOrderBook {
-  symbol: string;
-  timestamp?: number;
-  datetime?: string;
-  bids: [number, number][];
-  asks: [number, number][];
+export type ExchangeRestFeature =
+  | 'fetchTicker'
+  | 'fetchTickers'
+  | 'fetchOrderBook'
+  | 'fetchTrades'
+  | 'fetchOHLCV'
+  | 'fetchBalance'
+  | 'createOrder'
+  | 'cancelOrder'
+  | 'fetchOpenOrders'
+  | 'fetchClosedOrders'
+  | 'fetchOrders'
+  | 'fetchPositions'
+  | 'setLeverage'
+  | 'transfer'
+  | 'fetchFundingRate'
+  | 'unknown';
+
+export type ExchangeWebSocketChannel = 'ticker' | 'orderbook' | 'trades' | 'candles' | 'balance' | 'userOrders' | 'positions';
+
+export interface NormalizedTicker {
+  readonly exchange: ExchangeId;
+  readonly symbol: string;
+  readonly timestamp: number;
+  readonly last: number;
+  readonly bid: number | null;
+  readonly ask: number | null;
+  readonly high24h: number | null;
+  readonly low24h: number | null;
+  readonly baseVolume24h: number | null;
+  readonly quoteVolume24h: number | null;
+  readonly change24h: number | null;
 }
 
-export interface ExchangeTrade {
-  id?: string;
-  symbol: string;
-  timestamp: number;
-  datetime?: string;
-  price: number;
-  amount: number;
-  cost?: number;
-  side?: 'buy' | 'sell';
-  takerOrMaker?: 'taker' | 'maker';
+export interface NormalizedTrade {
+  readonly exchange: ExchangeId;
+  readonly symbol: string;
+  readonly id: string;
+  readonly timestamp: number;
+  readonly price: number;
+  readonly amount: number;
+  readonly side: 'buy' | 'sell';
+  readonly takerOrMaker: 'taker' | 'maker';
 }
 
-export interface ExchangeCandle {
-  symbol: string;
-  timeframe: string;
-  timestamp: number;
-  datetime?: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
+export interface NormalizedOrderBookLevel {
+  readonly price: number;
+  readonly amount: number;
+}
+
+export interface NormalizedOrderBook {
+  readonly exchange: ExchangeId;
+  readonly symbol: string;
+  readonly timestamp: number;
+  readonly bids: NormalizedOrderBookLevel[];
+  readonly asks: NormalizedOrderBookLevel[];
+}
+
+export interface NormalizedCandle {
+  readonly exchange: ExchangeId;
+  readonly symbol: string;
+  readonly timeframe: string;
+  readonly timestamp: number;
+  readonly open: number;
+  readonly high: number;
+  readonly low: number;
+  readonly close: number;
+  readonly volume: number;
+}
+
+export interface NormalizedBalance {
+  readonly exchange: ExchangeId;
+  readonly currency: string;
+  readonly free: number;
+  readonly used: number;
+  readonly total: number;
+  readonly timestamp: number;
+}
+
+export interface ExchangeBalanceSnapshot {
+  readonly balances: NormalizedBalance[];
+  readonly info?: unknown;
+  readonly updatedAt: number;
+}
+
+export interface ExchangeMarketSummary {
+  readonly symbol: string;
+  readonly base: string;
+  readonly quote: string;
+  readonly type: string;
+  readonly active: boolean;
+  readonly margin: boolean;
+  readonly swap: boolean;
+  readonly future: boolean;
+  readonly spot: boolean;
+  readonly precision: {
+    readonly amount?: number;
+    readonly price?: number;
+  };
+  readonly limits: {
+    readonly amount?: { readonly min?: number; readonly max?: number };
+    readonly price?: { readonly min?: number; readonly max?: number };
+    readonly cost?: { readonly min?: number; readonly max?: number };
+  };
+  readonly info?: unknown;
 }
 
 export interface ExchangeInfo {
-  id: string;
-  name?: string;
-  rateLimit?: number;
-  has: Record<string, boolean>;
-  timeframes?: Record<string, string> | null;
-  countries?: string | string[] | null;
-  urls?: Record<string, unknown>;
+  readonly id: string;
+  readonly name: string;
+  readonly countries?: string[];
+  readonly has?: Record<string, boolean>;
+  readonly timeframes?: Record<string, string>;
+  readonly urls?: Record<string, unknown>;
+  readonly rateLimit?: number;
+  readonly version?: string;
+  readonly certified?: boolean;
 }
 
-export interface CreateExchangeConnectionData {
-  userId: string;
-  tenantId: string;
-  exchangeId: ExchangeId;
-  apiKey: string;
-  apiSecret: string;
-  apiPassword?: string;
-  sandbox?: boolean;
-  enableTrading?: boolean;
-  enableWithdrawal?: boolean;
-}
-
-export interface UpdateExchangeConnectionData {
-  apiKey?: string;
-  apiSecret?: string;
-  apiPassword?: string;
-  sandbox?: boolean;
-  enableTrading?: boolean;
-  enableWithdrawal?: boolean;
-  status?: ExchangeStatus;
-}
-
-export interface ExchangeConnectionFilters {
-  userId?: string;
-  exchangeId?: ExchangeId;
-  status?: ExchangeStatus;
-  sandbox?: boolean;
-}
-
-export interface ExchangePosition {
-  symbol: string;
-  id?: string;
-  timestamp?: number;
-  datetime?: string;
-  contracts?: number;
-  contractSize?: number;
-  side: 'long' | 'short';
-  notional?: number;
-  leverage?: number;
-  unrealizedPnl?: number;
-  realizedPnl?: number;
-  collateral?: number;
-  entryPrice?: number;
-  markPrice?: number;
-  liquidationPrice?: number;
-  marginMode?: string;
-  hedged?: boolean;
-  maintenanceMargin?: number;
-  maintenanceMarginPercentage?: number;
-  initialMargin?: number;
-  initialMarginPercentage?: number;
-  marginRatio?: number;
-  lastUpdateTimestamp?: number;
-  lastPrice?: number;
-  stopLossPrice?: number;
-  takeProfitPrice?: number;
-  percentage?: number;
-  info?: any;
+export interface ExchangeConnectionStatus {
+  readonly connection: ExchangeConnectionSummary;
+  readonly exchange: ExchangeInfo;
+  readonly capabilities: {
+    readonly rest: string[];
+    readonly websocket: string[];
+  };
+  readonly lastSyncAt?: Date | null;
+  readonly lastError?: {
+    readonly at: Date | null;
+    readonly message: string | null;
+  };
 }

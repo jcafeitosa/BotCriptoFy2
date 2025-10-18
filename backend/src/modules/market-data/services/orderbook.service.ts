@@ -5,7 +5,8 @@
 
 import { db } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
+// Module not yet implemented
+// import { ExchangeService } from '../../exchanges/services/exchange.service';
 import { marketOrderBookSnapshots } from '../schema/market-data.schema';
 import logger from '@/utils/logger';
 import { BadRequestError } from '@/utils/errors';

@@ -9,7 +9,8 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import logger from '../../../utils/logger';
 import type { CreateCopySettingsRequest, CopySettings, ServiceResponse } from '../types/social.types';
 import { prepareCopiedTrade, type TradeToConform } from '../utils/copy-engine';
-import { ExchangeService } from '../../exchanges/services/exchange.service';
+// Module not yet implemented
+// import { ExchangeService } from '../../exchanges/services/exchange.service';
 import { OrderService } from '../../orders/services/order.service';
 import type { CreateOrderRequest, TradingOrder } from '../../orders/types/orders.types';
 

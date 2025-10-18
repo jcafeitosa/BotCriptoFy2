@@ -7,9 +7,11 @@
 
 import { EventEmitter } from 'events';
 import logger from '@/utils/logger';
-import { createWebSocketAdapter } from '@/modules/exchanges';
+// Module not yet implemented
+// import { createWebSocketAdapter } from '@/modules/exchanges';
 import { RedisEventBridge, type RedisEventBridgeConfig } from './redis-event-bridge';
-import type { ConnectionConfig, ExchangeId } from '@/modules/exchanges';
+// Module not yet implemented
+// import type { ConnectionConfig, ExchangeId } from '@/modules/exchanges';
 import type { IExchangeAdapter, SubscriptionRequest, ConnectionStatus, OrderBook, Trade, Ticker, Candle, ExchangeEventName, ExchangeEventListener, ConnectionMetrics } from './types';
 
 /**
@@ -474,7 +476,9 @@ export class MarketDataWebSocketManager extends EventEmitter {
    */
   private createAdapter(exchangeId: ExchangeId, config: ConnectionConfig): IExchangeAdapter {
     // Delegate creation to exchanges module to centralize exchange connectivity
-    return createWebSocketAdapter(exchangeId, config);
+    // Module not yet implemented
+    throw new Error(`Exchanges module not yet implemented. Cannot create adapter for ${exchangeId}`);
+    // return createWebSocketAdapter(exchangeId, config);
   }
 
   /**

@@ -15,8 +15,8 @@ import Layout from '../../layouts/Layout.astro';
 import { getChartWorker } from '../../lib/chart-worker-manager';
 
 // Static imports (critical, above the fold)
-import ProfileCard from '../../components/dashboard/ProfileCard';
-import LogoutButton from '../../components/dashboard/LogoutButton';
+import { ProfileCard } from '../../components/dashboard/ProfileCard';
+import { LogoutButton } from '../../components/dashboard/LogoutButton';
 
 // Dynamic imports will be used for below-the-fold components
 ---
@@ -174,13 +174,13 @@ import LogoutButton from '../../components/dashboard/LogoutButton';
         observer.observe(chartContainer);
       }
 
-      // Prefetch trading history component on hover
-      const historySection = document.querySelector('[data-component="trading-history"]');
-      if (historySection) {
-        historySection.addEventListener('mouseenter', () => {
-          import('../../components/dashboard/TradingHistory');
-        }, { once: true });
-      }
+      // Prefetch trading history component on hover (TODO: create TradingHistory component)
+      // const historySection = document.querySelector('[data-component="trading-history"]');
+      // if (historySection) {
+      //   historySection.addEventListener('mouseenter', () => {
+      //     import('../../components/dashboard/TradingHistory');
+      //   }, { once: true });
+      // }
     </script>
 
     <!-- Performance monitoring -->

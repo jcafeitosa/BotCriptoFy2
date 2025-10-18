@@ -6,17 +6,26 @@ Este documento descreve os recursos expostos pelo módulo `exchanges` e como uti
 
 Prefixo: `/api/v1/exchanges`
 
+- GET `/`
+  - Alias para `/supported`. Carrega catálogo persistido (ou fallback in-memory) com metadados.
+
 - GET `/supported`
   - Lista de exchanges suportadas (ccxt.exchanges).
 
 - GET `/info/:exchangeId`
   - Metadados e capacidades da exchange: `has`, `rateLimit`, `timeframes`, `urls`.
 
+- GET `/:exchangeId/default-websocket-config`
+  - Configuração padrão do adaptador de WebSocket (polling) para a exchange selecionada.
+
+- POST `/:exchangeId/test-websocket`
+  - Realiza um ciclo `connect → ping → disconnect` usando o adaptador padrão para garantir disponibilidade.
+
 - GET `/connections`
-  - Lista conexões do usuário atual (sem credenciais). Inclui status e `balances` cacheados.
+  - Lista conexões do usuário atual (sem credenciais). Inclui status, permissões configuradas e metadados básicos.
 
 - POST `/connections`
-  - Cria conexão validando credenciais via `fetchBalance()`. Campos: `exchangeId`, `apiKey`, `apiSecret`, `apiPassword?`, `sandbox?`, `enableTrading?`, `enableWithdrawal?`.
+  - Cria conexão validando credenciais via `fetchBalance()`. Campos: `exchangeSlug|exchangeId`, `apiKey`, `apiSecret`, `passphrase?`, `sandbox?`, `permissions?`.
 
 - DELETE `/connections/:id`
   - Desabilita conexão (status = disabled).
@@ -48,23 +57,47 @@ Prefixo: `/api/v1/exchanges`
 - GET `/connections/:id/trades/:symbol?since=&limit=`
   - Lista de trades normalizada (id, timestamp, price, amount, side, takerOrMaker).
 
+### Endpoints Legados (Compatibilidade)
+
+- POST `/config`
+- GET `/config`
+- DELETE `/config/:id`
+
+> São aliases para os novos endpoints `/connections`, preservados para compatibilidade com clientes existentes. `DELETE /config/:id` continua realizando remoção física.
+
 Todos os endpoints exigem autenticação (sessionGuard) e tenant (requireTenant).
 
 ## Serviço (ExchangeService)
 
 - `getSupportedExchanges()` / `isExchangeSupported(id)`
 - `createCCXTInstance(exchangeId, credentials)`
-- `createConnection(data)` / `updateConnection(id, userId, tenantId, data)`
-- `getUserConnections(userId, tenantId)` / `getConnectionById(id, userId, tenantId)`
-- `fetchBalances(connectionId, userId, tenantId)` (c/ cache)
-- `fetchTicker(connectionId, userId, tenantId, symbol)` (normalizado)
-- `fetchPositions(connectionId, userId, tenantId [,symbol])` (derivativos)
 - `getExchangeInfo(exchangeId)` (capabilities/metadata)
-- `getMarkets(connectionId, userId, tenantId)` / `getMarket(connectionId, userId, tenantId, symbol)`
-- `fetchOrderBook(connectionId, userId, tenantId, symbol [,limit])`
-- `fetchOHLCV(connectionId, userId, tenantId, symbol, timeframe [,since, limit])`
-- `fetchTrades(connectionId, userId, tenantId, symbol [,since, limit])`
-- `getWebSocketConfig(exchangeId, overrides?)` (padronizado + overrides por ENV)
+- `getMarkets(exchangeSlug, options?)`
+- `fetchPositions(exchangeSlug, credentials, symbols?)`
+- `createCCXTInstance` e `resolveExchangeId` centralizados
+
+## Serviço (ExchangeConnectionService)
+
+- `createConnection({ userId, tenantId, request })`
+- `listConnections({ userId, tenantId })`
+- `getConnectionSummary({ configurationId, userId, tenantId })`
+- `getConnectionStatus({ configurationId, userId, tenantId })`
+- `fetchBalances({ configurationId, userId, tenantId })`
+- `fetchTicker({ configurationId, userId, tenantId, symbol })`
+- `listMarkets({ configurationId, userId, tenantId })` / `getMarket(...)`
+- `fetchOrderBook({ configurationId, userId, tenantId, symbol, depth? })`
+- `fetchOHLCV({ configurationId, userId, tenantId, symbol, timeframe, since?, limit? })`
+- `fetchTrades({ configurationId, userId, tenantId, symbol, since?, limit? })`
+- `testConnection({ configurationId, userId, tenantId })`
+
+## Serviço (ExchangeConfigurationService)
+
+- `createConfiguration({ userId, tenantId, request })`
+- `listConfigurations({ userId, tenantId })`
+- `getConfigurationById({ configurationId, userId, tenantId, includeDisabled? })`
+- `getConfigurationWithSecrets(...)`
+- `disableConfiguration(...)`
+- `updateSyncMetadata(...)`
 
 ## Segurança
 

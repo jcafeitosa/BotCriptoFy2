@@ -9,6 +9,10 @@ import type {
   RefundStatus,
   PaymentMethodType,
   GatewayProvider,
+  PaymentTransaction,
+  PaymentRefund,
+  PaymentWebhook,
+  PaymentDunning,
 } from '../schema/payments.schema';
 
 /**
@@ -177,6 +181,34 @@ export interface WebhookProcessingResult {
   transactionId?: string;
   status?: PaymentStatus;
   error?: string;
+}
+
+export interface PaymentListFilters {
+  status?: PaymentStatus;
+  paymentMethod?: PaymentMethodType;
+  gateway?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export interface PaymentAnalytics {
+  totalTransactions: number;
+  totalsByCurrency: Record<string, number>;
+  statusBreakdown: Record<PaymentStatus, { count: number; totalsByCurrency: Record<string, number> }>;
+  methodBreakdown: Record<string, number>;
+  activeDunning: number;
+  failedToday: number;
+  timeRange: {
+    startDate?: Date;
+    endDate?: Date;
+  };
+}
+
+export interface PaymentTransactionDetail {
+  transaction: PaymentTransaction;
+  refunds: PaymentRefund[];
+  webhooks: PaymentWebhook[];
+  dunning?: PaymentDunning | null;
 }
 
 /**

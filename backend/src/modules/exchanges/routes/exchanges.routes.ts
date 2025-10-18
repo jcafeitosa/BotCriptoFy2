@@ -1,473 +1,569 @@
-/**
- * Exchanges Routes
- * API endpoints for exchange management
- */
-
 import { Elysia, t } from 'elysia';
-import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { sessionGuard } from '@/modules/auth/middleware/session.middleware';
+import { requirePermission } from '@/modules/security/middleware/rbac.middleware';
 import { ExchangeService } from '../services/exchange.service';
+import { ExchangeConfigurationService } from '../services/exchange-config.service';
+import { ExchangeConnectionService } from '../services/exchange-connection.service';
+import { createWebSocketAdapter, getDefaultWebSocketConfig } from '../services/exchange-websocket.service';
+import type { ExchangeId } from '@/modules/market-data/websocket/types';
 import logger from '@/utils/logger';
+import { BadRequestError, NotFoundError } from '@/utils/errors';
+
+const resolveTenantId = (context: any): string => {
+  const tenantId = context.tenantId ?? (context.session as any)?.activeOrganizationId;
+  if (!tenantId) {
+    throw new BadRequestError('Tenant context is required');
+  }
+  return tenantId;
+};
+
+const resolveExchangeSlug = (payload: { exchangeSlug?: string; exchangeId?: string }): string => {
+  const candidate = payload.exchangeSlug ?? payload.exchangeId;
+  if (!candidate) {
+    throw new BadRequestError('exchangeSlug or exchangeId must be provided');
+  }
+  return candidate.toLowerCase();
+};
 
 export const exchangesRoutes = new Elysia({ prefix: '/api/v1/exchanges' })
   .use(sessionGuard)
-  .use(requireTenant)
 
-  /**
-   * Get supported exchanges
-   * GET /api/v1/exchanges/supported
-   */
+  // ===== PUBLIC EXCHANGE INFORMATION (READ PERMISSION) =====
+  .use(requirePermission('exchanges', 'read'))
+  .get(
+    '/',
+    async () => {
+      await ExchangeService.bootstrapCatalog();
+      const list = await ExchangeService.listExchanges();
+      return { success: true, data: list };
+    },
+    {
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'List supported exchanges',
+        description: 'Returns catalog of exchanges with metadata and capabilities.',
+      },
+    }
+  )
   .get(
     '/supported',
     async () => {
-      const exchanges = ExchangeService.getSupportedExchanges();
-      return { success: true, data: exchanges };
+      await ExchangeService.bootstrapCatalog();
+      const list = await ExchangeService.listExchanges();
+      return { success: true, data: list };
     },
     {
       detail: {
         tags: ['Exchanges'],
-        summary: 'Get supported exchanges',
-        description: 'Get list of supported cryptocurrency exchanges',
+        summary: 'List supported exchanges (alias)',
+        description: 'Alias for GET /api/v1/exchanges returning exchange catalog.',
       },
     }
   )
-
-  /**
-   * Get exchange info (capabilities, rateLimit, timeframes, urls)
-   * GET /api/v1/exchanges/info/:exchangeId
-   */
   .get(
-    '/info/:exchangeId',
-    async ({ params }: any) => {
-      const info = ExchangeService.getExchangeInfo(params.exchangeId);
-      return { success: true, data: info };
-    },
-    {
-      params: t.Object({ exchangeId: t.String() }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get exchange info',
-        description: 'Return capabilities and metadata for a given exchange',
-      },
-    }
-  )
-
-  /**
-   * Get user connections
-   * GET /api/v1/exchanges/connections
-   */
-  .get(
-    '/connections',
-    async ({ user, tenantId }: any) => {
-      logger.info('Getting user exchange connections', { userId: user.id });
-      const connections = await ExchangeService.getUserConnections(user.id, tenantId);
-
-      // Remove sensitive data
-      const sanitized = connections.map((conn) => ({
-        id: conn.id,
-        exchangeId: conn.exchangeId,
-        exchangeName: conn.exchangeName,
-        sandbox: conn.sandbox,
-        enableTrading: conn.enableTrading,
-        enableWithdrawal: conn.enableWithdrawal,
-        status: conn.status,
-        isVerified: conn.isVerified,
-        lastSyncAt: conn.lastSyncAt,
-        balances: conn.balances,
-        createdAt: conn.createdAt,
-      }));
-
-      return { success: true, data: sanitized };
-    },
-    {
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get user connections',
-        description: 'Get all exchange connections for the authenticated user',
-      },
-    }
-  )
-
-  /**
-   * Get markets
-   * GET /api/v1/exchanges/connections/:id/markets
-   */
-  .get(
-    '/connections/:id/markets',
-    async ({ user, tenantId, params, query }: any) => {
-      const markets = await ExchangeService.getMarkets(params.id, user.id, tenantId);
-      const format = (query.format || '').toLowerCase();
-      if (format === 'csv') {
-        const header = 'symbol,base,quote,active,type';
-        const lines = markets.map((m: any) => `${m.symbol},${m.base},${m.quote},${m.active},${m.type}`);
-        const csv = [header, ...lines].join('\n');
-        return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
+    '/info/:slug',
+    async ({ params }) => {
+      if (!ExchangeService.isExchangeSupported(params.slug)) {
+        throw new NotFoundError(`Exchange ${params.slug} is not supported`);
       }
-      if (format === 'ndjson') {
-        const ndjson = markets.map((m: any) => JSON.stringify(m)).join('\n');
-        return new Response(ndjson, { headers: { 'Content-Type': 'application/x-ndjson' } });
-      }
-      return { success: true, data: markets };
-    },
-    {
-      params: t.Object({ id: t.String() }),
-      query: t.Object({ format: t.Optional(t.String()) }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'List markets',
-        description: 'List unified markets metadata (symbol, precision, limits, type)',
-      },
-    }
-  )
 
-  /**
-   * Get market details
-   * GET /api/v1/exchanges/connections/:id/markets/:symbol
-   */
-  .get(
-    '/connections/:id/markets/:symbol',
-    async ({ user, tenantId, params }: any) => {
-      const market = await ExchangeService.getMarket(params.id, user.id, tenantId, params.symbol);
-      return { success: true, data: market };
-    },
-    {
-      params: t.Object({ id: t.String(), symbol: t.String() }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get market details',
-        description: 'Return unified market details for a symbol',
-      },
-    }
-  )
+      const [metadata, info] = await Promise.all([
+        ExchangeService.getExchangeBySlug(params.slug),
+        ExchangeService.getExchangeInfo(params.slug),
+      ]);
 
-  /**
-   * Get order book
-   * GET /api/v1/exchanges/connections/:id/orderbook/:symbol
-   */
-  .get(
-    '/connections/:id/orderbook/:symbol',
-    async ({ user, tenantId, params, query }: any) => {
-      const limit = query.limit ? parseInt(query.limit) : undefined;
-      const ob = await ExchangeService.fetchOrderBook(params.id, user.id, tenantId, params.symbol, limit);
-      return { success: true, data: ob };
-    },
-    {
-      params: t.Object({ id: t.String(), symbol: t.String() }),
-      query: t.Object({ limit: t.Optional(t.String()) }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get order book',
-        description: 'Fetch unified order book (bids/asks) for a symbol',
-      },
-    }
-  )
-
-  /**
-   * Get OHLCV
-   * GET /api/v1/exchanges/connections/:id/ohlcv/:symbol/:timeframe
-   */
-  .get(
-    '/connections/:id/ohlcv/:symbol/:timeframe',
-    async ({ user, tenantId, params, query }: any) => {
-      const since = query.since ? parseInt(query.since) : undefined;
-      const limit = query.limit ? parseInt(query.limit) : undefined;
-      const candles = await ExchangeService.fetchOHLCV(
-        params.id,
-        user.id,
-        tenantId,
-        params.symbol,
-        params.timeframe,
-        since,
-        limit
-      );
-      const format = (query.format || '').toLowerCase();
-      if (format === 'csv') {
-        const header = 'timestamp,open,high,low,close,volume';
-        const lines = candles.map((c: any) => `${c.timestamp},${c.open},${c.high},${c.low},${c.close},${c.volume}`);
-        const csv = [header, ...lines].join('\n');
-        return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
-      }
-      if (format === 'ndjson') {
-        const ndjson = candles.map((c: any) => JSON.stringify(c)).join('\n');
-        return new Response(ndjson, { headers: { 'Content-Type': 'application/x-ndjson' } });
-      }
-      return { success: true, data: candles };
-    },
-    {
-      params: t.Object({ id: t.String(), symbol: t.String(), timeframe: t.String() }),
-      query: t.Object({ since: t.Optional(t.String()), limit: t.Optional(t.String()), format: t.Optional(t.String()) }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get OHLCV candles',
-        description: 'Fetch unified OHLCV data for a symbol/timeframe',
-      },
-    }
-  )
-
-  /**
-   * Get trades
-   * GET /api/v1/exchanges/connections/:id/trades/:symbol
-   */
-  .get(
-    '/connections/:id/trades/:symbol',
-    async ({ user, tenantId, params, query }: any) => {
-      const since = query.since ? parseInt(query.since) : undefined;
-      const limit = query.limit ? parseInt(query.limit) : undefined;
-      const minAmount = query.minAmount ? parseFloat(query.minAmount) : undefined;
-      const minCost = query.minCost ? parseFloat(query.minCost) : undefined;
-      const start = query.start ? parseInt(query.start) : undefined;
-      const end = query.end ? parseInt(query.end) : undefined;
-
-      let trades = await ExchangeService.fetchTrades(
-        params.id,
-        user.id,
-        tenantId,
-        params.symbol,
-        since,
-        limit
-      );
-
-      // Filtros avançados
-      if (start) trades = trades.filter((t) => t.timestamp >= start);
-      if (end) trades = trades.filter((t) => t.timestamp <= end);
-      if (minAmount) trades = trades.filter((t) => (t.amount || 0) >= minAmount);
-      if (minCost) trades = trades.filter((t) => (t.cost || (t.amount || 0) * (t.price || 0)) >= minCost);
-      const format = (query.format || '').toLowerCase();
-      if (format === 'csv') {
-        const header = 'id,timestamp,price,amount,side';
-        const lines = trades.map((t: any) => `${t.id || ''},${t.timestamp},${t.price},${t.amount},${t.side || ''}`);
-        const csv = [header, ...lines].join('\n');
-        return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
-      }
-      if (format === 'ndjson') {
-        const ndjson = trades.map((t: any) => JSON.stringify(t)).join('\n');
-        return new Response(ndjson, { headers: { 'Content-Type': 'application/x-ndjson' } });
-      }
-      return { success: true, data: trades };
-    },
-    {
-      params: t.Object({ id: t.String(), symbol: t.String() }),
-      query: t.Object({
-        since: t.Optional(t.String()),
-        limit: t.Optional(t.String()),
-        minAmount: t.Optional(t.String()),
-        minCost: t.Optional(t.String()),
-        start: t.Optional(t.String()),
-        end: t.Optional(t.String()),
-        format: t.Optional(t.String()),
-      }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Get trades',
-        description: 'Fetch unified recent trades for a symbol',
-      },
-    }
-  )
-
-  /**
-   * Admin: refresh markets (bypass cache)
-   * POST /api/v1/exchanges/connections/:id/markets/refresh
-   */
-  .post(
-    '/connections/:id/markets/refresh',
-    async ({ user, tenantId, params }: any) => {
-      const markets = await ExchangeService.refreshMarkets(params.id, user.id, tenantId);
-      return { success: true, data: { refreshed: true, count: markets.length } };
-    },
-    {
-      params: t.Object({ id: t.String() }),
-      detail: {
-        tags: ['Exchanges'],
-        summary: 'Refresh markets cache and persistence',
-        description: 'Force reload markets from exchange and refresh cache/persistence',
-      },
-    }
-  )
-
-  /**
-   * Connection status/health
-   * GET /api/v1/exchanges/connections/:id/status
-   */
-  .get(
-    '/connections/:id/status',
-    async ({ user, tenantId, params }: any) => {
-      const connection = await ExchangeService.getConnectionById(params.id, user.id, tenantId);
-      const info = ExchangeService.getExchangeInfo(connection.exchangeId);
       return {
         success: true,
         data: {
-          connection: {
-            id: connection.id,
-            exchangeId: connection.exchangeId,
-            sandbox: connection.sandbox,
-            status: connection.status,
-            isVerified: connection.isVerified,
-            lastSyncAt: connection.lastSyncAt,
-          },
-          exchange: info,
+          metadata,
+          info,
         },
       };
     },
     {
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ slug: t.String({ minLength: 2 }) }),
       detail: {
         tags: ['Exchanges'],
-        summary: 'Get connection status',
-        description: 'Return connection status and exchange capabilities',
+        summary: 'Exchange capabilities',
+        description: 'Returns CCXT describe() information alongside catalog metadata.',
       },
     }
   )
-
-  /**
-   * Test connection (revalidate credentials)
-   * POST /api/v1/exchanges/connections/:id/test
-   */
-  .post(
-    '/connections/:id/test',
-    async ({ user, tenantId, params }: any) => {
-      const connection = await ExchangeService.getConnectionById(params.id, user.id, tenantId);
-      try {
-        const ex = await ExchangeService.getCCXTInstance(params.id, user.id, tenantId);
-        await ex.fetchBalance();
-        return { success: true, data: { connectionId: connection.id, status: 'ok' } };
-      } catch (error) {
-        return { success: false, error: { message: (error as Error).message } };
-      }
+  .get(
+    '/:slug/default-websocket-config',
+    async ({ params }) => {
+      const exchangeId = params.slug as ExchangeId;
+      const config = getDefaultWebSocketConfig(exchangeId);
+      return { success: true, data: config };
     },
     {
-      params: t.Object({ id: t.String() }),
+      params: t.Object({ slug: t.String({ minLength: 2 }) }),
       detail: {
         tags: ['Exchanges'],
-        summary: 'Test exchange connection',
-        description: 'Validate connection by performing a lightweight API call',
+        summary: 'Default WebSocket configuration',
+        description: 'Returns default configuration used by the polling WebSocket adapter.',
+      },
+    }
+  )
+  .post(
+    '/:slug/test-websocket',
+    async ({ params }) => {
+      const exchangeId = params.slug as ExchangeId;
+      const adapter = createWebSocketAdapter(exchangeId, getDefaultWebSocketConfig(exchangeId));
+      await adapter.connect();
+      await adapter.ping();
+      await adapter.disconnect();
+      return { success: true };
+    },
+    {
+      params: t.Object({ slug: t.String({ minLength: 2 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Test WebSocket connectivity',
+        description: 'Performs a connectivity test using the polling adapter for the given exchange.',
+      },
+    }
+  )
+  .get(
+    '/:slug/markets',
+    async ({ params, query }) => {
+      const markets = await ExchangeService.getMarkets(params.slug, {
+        quote: query.quote,
+        limit: query.limit ? Number(query.limit) : undefined,
+      });
+      return { success: true, data: markets };
+    },
+    {
+      params: t.Object({ slug: t.String({ minLength: 2 }) }),
+      query: t.Object({
+        quote: t.Optional(t.String({ minLength: 2, maxLength: 10 })),
+        limit: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'List exchange markets',
+        description: 'Fetches market information for a specific exchange via CCXT.',
       },
     }
   )
 
-  /**
-   * Create exchange connection
-   * POST /api/v1/exchanges/connections
-   */
+  // ===== USER CONFIGURATION MANAGEMENT (MANAGE PERMISSION) =====
+  .use(requirePermission('exchanges', 'manage'))
+  .get(
+    '/connections',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const connections = await ExchangeConnectionService.listConnections({
+        userId: context.user.id,
+        tenantId,
+      });
+      return { success: true, data: connections };
+    },
+    {
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'List user exchange connections',
+        description: 'Lists exchange API connections configured by the authenticated user.',
+      },
+    }
+  )
   .post(
     '/connections',
-    async ({ user, tenantId, body }: any) => {
-      logger.info('Creating exchange connection', {
-        userId: user.id,
-        exchangeId: body.exchangeId,
-      });
+    async ({ user, session, body }) => {
+      const tenantId = resolveTenantId({ session });
+      const exchangeSlug = resolveExchangeSlug(body);
 
-      const connection = await ExchangeService.createConnection({
+      const connection = await ExchangeConnectionService.createConnection({
         userId: user.id,
         tenantId,
-        ...body,
+        request: {
+          exchangeSlug,
+          apiKey: body.apiKey,
+          apiSecret: body.apiSecret,
+          passphrase: body.passphrase,
+          sandbox: body.sandbox,
+          permissions: body.permissions,
+        },
       });
 
-      return { success: true, data: { id: connection.id, status: 'connected' } };
+      logger.info('Exchange connection created', {
+        exchange: exchangeSlug,
+        userId: user.id,
+        tenantId,
+      });
+
+      return { success: true, data: connection };
     },
     {
       body: t.Object({
-        exchangeId: t.String(),
-        apiKey: t.String(),
-        apiSecret: t.String(),
-        apiPassword: t.Optional(t.String()),
+        exchangeSlug: t.Optional(t.String({ minLength: 2 })),
+        exchangeId: t.Optional(t.String({ minLength: 2 })),
+        apiKey: t.String({ minLength: 8 }),
+        apiSecret: t.String({ minLength: 8 }),
+        passphrase: t.Optional(t.String()),
         sandbox: t.Optional(t.Boolean()),
-        enableTrading: t.Optional(t.Boolean()),
-        enableWithdrawal: t.Optional(t.Boolean()),
+        permissions: t.Optional(t.Record(t.String(), t.Boolean())),
       }),
       detail: {
         tags: ['Exchanges'],
         summary: 'Create exchange connection',
-        description: 'Connect a new exchange with API credentials',
+        description: 'Validates credentials and stores encrypted API keys for a tenant.',
       },
     }
   )
-
-  /**
-   * Get balances
-   * GET /api/v1/exchanges/connections/:id/balances
-   */
+  .get(
+    '/connections/:id',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const connection = await ExchangeConnectionService.getConnectionSummary({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+      });
+      return { success: true, data: connection };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Get exchange connection',
+        description: 'Returns sanitized details about a specific exchange connection.',
+      },
+    }
+  )
+  .delete(
+    '/connections/:id',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      await ExchangeConfigurationService.disableConfiguration({
+        configurationId: context.params.id,
+        tenantId,
+        userId: context.user.id,
+      });
+      logger.info('Exchange connection disabled', {
+        configurationId: context.params.id,
+        userId: context.user.id,
+        tenantId,
+      });
+      return { success: true };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Disable exchange connection',
+        description: 'Disables an exchange connection without deleting historical data.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/status',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const status = await ExchangeConnectionService.getConnectionStatus({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+      });
+      return { success: true, data: status };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Connection status',
+        description: 'Returns capabilities, last sync information and errors for a connection.',
+      },
+    }
+  )
+  .post(
+    '/connections/:id/test',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      await ExchangeConnectionService.testConnection({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+      });
+      return { success: true };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Test exchange connection',
+        description: 'Validates stored credentials by performing a balance fetch.',
+      },
+    }
+  )
   .get(
     '/connections/:id/balances',
-    async ({ user, tenantId, params }: any) => {
-      logger.info('Fetching exchange balances', {
-        userId: user.id,
-        connectionId: params.id,
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const balances = await ExchangeConnectionService.fetchBalances({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
       });
-
-      const balances = await ExchangeService.fetchBalances(params.id, user.id, tenantId);
-
       return { success: true, data: balances };
     },
     {
-      params: t.Object({
-        id: t.String(),
-      }),
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
       detail: {
         tags: ['Exchanges'],
-        summary: 'Get exchange balances',
-        description: 'Fetch current balances from exchange',
+        summary: 'Fetch balances',
+        description: 'Retrieves normalized balances from the connected exchange.',
       },
     }
   )
-
-  /**
-   * Get ticker
-   * GET /api/v1/exchanges/connections/:id/ticker/:symbol
-   */
   .get(
     '/connections/:id/ticker/:symbol',
-    async ({ user, tenantId, params }: any) => {
-      logger.info('Fetching ticker', {
-        userId: user.id,
-        connectionId: params.id,
-        symbol: params.symbol,
-      });
-
-      const ticker = await ExchangeService.fetchTicker(
-        params.id,
-        user.id,
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const ticker = await ExchangeConnectionService.fetchTicker({
+        userId: context.user.id,
         tenantId,
-        params.symbol
-      );
-
+        configurationId: context.params.id,
+        symbol: decodeURIComponent(context.params.symbol),
+      });
       return { success: true, data: ticker };
     },
     {
       params: t.Object({
-        id: t.String(),
-        symbol: t.String(),
+        id: t.String({ minLength: 10 }),
+        symbol: t.String({ minLength: 3 }),
       }),
       detail: {
         tags: ['Exchanges'],
-        summary: 'Get ticker data',
-        description: 'Fetch current ticker/price data for a symbol',
+        summary: 'Fetch ticker',
+        description: 'Retrieves normalized ticker data for a given trading pair.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/markets',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const markets = await ExchangeConnectionService.listMarkets({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+      });
+      return { success: true, data: markets };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'List connection markets',
+        description: 'Lists markets available for the specific authenticated exchange connection.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/markets/:symbol',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const market = await ExchangeConnectionService.getMarket({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+        symbol: decodeURIComponent(context.params.symbol),
+      });
+      return { success: true, data: market };
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 10 }),
+        symbol: t.String({ minLength: 3 }),
+      }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Get market detail',
+        description: 'Returns metadata for a specific market symbol via the authenticated connection.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/orderbook/:symbol',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const depthParam = context.query.depth ? Number(context.query.depth) : undefined;
+      const orderbook = await ExchangeConnectionService.fetchOrderBook({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+        symbol: decodeURIComponent(context.params.symbol),
+        depth: depthParam,
+      });
+      return { success: true, data: orderbook };
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 10 }),
+        symbol: t.String({ minLength: 3 }),
+      }),
+      query: t.Object({
+        depth: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Order book snapshot',
+        description: 'Fetches a normalized order book snapshot for the provided symbol.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/ohlcv/:symbol/:timeframe',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const { since, limit } = context.query;
+      const candles = await ExchangeConnectionService.fetchOHLCV({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+        symbol: decodeURIComponent(context.params.symbol),
+        timeframe: context.params.timeframe,
+        since: since ? Number(since) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      });
+      return { success: true, data: candles };
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 10 }),
+        symbol: t.String({ minLength: 3 }),
+        timeframe: t.String({ minLength: 1 }),
+      }),
+      query: t.Object({
+        since: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'OHLCV candles',
+        description: 'Retrieves normalized historical candles for the provided symbol/timeframe.',
+      },
+    }
+  )
+  .get(
+    '/connections/:id/trades/:symbol',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const trades = await ExchangeConnectionService.fetchTrades({
+        userId: context.user.id,
+        tenantId,
+        configurationId: context.params.id,
+        symbol: decodeURIComponent(context.params.symbol),
+        since: context.query.since ? Number(context.query.since) : undefined,
+        limit: context.query.limit ? Number(context.query.limit) : undefined,
+      });
+      return { success: true, data: trades };
+    },
+    {
+      params: t.Object({
+        id: t.String({ minLength: 10 }),
+        symbol: t.String({ minLength: 3 }),
+      }),
+      query: t.Object({
+        since: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Recent trades',
+        description: 'Retrieves normalized trade history for the provided symbol.',
       },
     }
   )
 
-  /**
-   * Delete connection
-   * DELETE /api/v1/exchanges/connections/:id
-   */
-  .delete(
-    '/connections/:id',
-    async ({ user, tenantId, params }: any) => {
-      logger.info('Deleting exchange connection', {
+  // ===== LEGACY CONFIG ROUTES (BACKWARD COMPATIBILITY) =====
+  .post(
+    '/config',
+    async ({ user, session, body }) => {
+      const tenantId = resolveTenantId({ session });
+      const exchangeSlug = resolveExchangeSlug(body);
+
+      const connection = await ExchangeConnectionService.createConnection({
         userId: user.id,
-        connectionId: params.id,
+        tenantId,
+        request: {
+          exchangeSlug,
+          apiKey: body.apiKey,
+          apiSecret: body.apiSecret,
+          passphrase: body.passphrase,
+          sandbox: body.sandbox,
+          permissions: body.permissions,
+        },
       });
 
-      await ExchangeService.deleteConnection(params.id, user.id, tenantId);
+      logger.info('Legacy exchange configuration created', {
+        exchange: exchangeSlug,
+        userId: user.id,
+        tenantId,
+      });
 
-      return { success: true, message: 'Exchange connection deleted' };
+      return { success: true, data: connection };
     },
     {
-      params: t.Object({
-        id: t.String(),
+      body: t.Object({
+        exchangeSlug: t.Optional(t.String({ minLength: 2 })),
+        exchangeId: t.Optional(t.String({ minLength: 2 })),
+        apiKey: t.String({ minLength: 8 }),
+        apiSecret: t.String({ minLength: 8 }),
+        passphrase: t.Optional(t.String()),
+        sandbox: t.Optional(t.Boolean()),
+        permissions: t.Optional(t.Record(t.String(), t.Boolean())),
       }),
       detail: {
         tags: ['Exchanges'],
-        summary: 'Delete exchange connection',
-        description: 'Delete an exchange connection',
+        summary: 'Create exchange configuration (legacy alias)',
+        description: 'Alias for POST /connections maintained for backward compatibility.',
+      },
+    }
+  )
+  .get(
+    '/config',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      const configs = await ExchangeConnectionService.listConnections({
+        userId: context.user.id,
+        tenantId,
+      });
+      return { success: true, data: configs };
+    },
+    {
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'List exchange configurations (legacy alias)',
+        description: 'Alias for GET /connections maintained for backward compatibility.',
+      },
+    }
+  )
+  .delete(
+    '/config/:id',
+    async (context) => {
+      const tenantId = resolveTenantId(context);
+      await ExchangeConfigurationService.deleteConfiguration({
+        configurationId: context.params.id,
+        tenantId,
+        userId: context.user.id,
+      });
+
+      logger.info('Legacy exchange configuration deleted', {
+        configurationId: context.params.id,
+        userId: context.user.id,
+        tenantId,
+      });
+
+      return { success: true };
+    },
+    {
+      params: t.Object({ id: t.String({ minLength: 10 }) }),
+      detail: {
+        tags: ['Exchanges'],
+        summary: 'Delete exchange configuration (legacy)',
+        description: 'Physically deletes configuration record (legacy behaviour).',
       },
     }
   );

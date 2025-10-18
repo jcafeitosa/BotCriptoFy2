@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { reportService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 
 export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
@@ -43,6 +44,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         fiscalPeriod: t.String(), // e.g., "2025-01" or "2025-Q1"
       }),
@@ -80,6 +82,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         date: t.String(), // ISO date string
       }),
@@ -117,6 +120,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         fiscalPeriod: t.String(),
       }),

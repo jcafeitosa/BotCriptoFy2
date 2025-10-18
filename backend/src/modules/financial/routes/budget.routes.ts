@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { budgetService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import logger from '@/utils/logger';
 
 export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
@@ -59,6 +60,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         budget: t.Object({
           name: t.String(),
@@ -120,6 +122,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -149,6 +152,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       params: t.Object({
         id: t.String(),
       }),
@@ -183,6 +187,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         alertId: t.String(),
       }),
@@ -220,6 +225,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         budgetId: t.String(),
         adjustmentNumber: t.String(),
@@ -263,6 +269,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         id: t.String(),
       }),

@@ -32,6 +32,12 @@ interface TestResult {
 const results: TestResult[] = [];
 let authCookie: string | null = null;
 
+function getTestCredentials() {
+  const email = process.env.TEST_EMAIL || '';
+  const password = process.env.TEST_PASSWORD || '';
+  return { email, password };
+}
+
 async function testEndpoint(
   module: string,
   method: string,
@@ -114,27 +120,32 @@ function printResult(result: TestResult) {
 
 async function setupTestUser() {
   console.log(`${colors.cyan}🔧 Setting up test user${colors.reset}\n`);
-
-  // Try to get existing test user from dev endpoints
-  const usersResponse = await fetch(`${BASE_URL}/api/dev/auth/users`);
-
-  if (usersResponse.ok) {
-    const users = await usersResponse.json();
-    if (users && users.length > 0) {
-      const testUser = users[0];
-      console.log(`  ${colors.green}✓${colors.reset} Found existing user: ${testUser.email}`);
-      console.log(`  ${colors.yellow}ℹ${colors.reset} User ID: ${testUser.id}`);
-      return testUser;
-    }
+  const { email, password } = getTestCredentials();
+  if (email && password) {
+    console.log(`  ${colors.green}✓${colors.reset} Using TEST_EMAIL from env: ${email}`);
+    return { email } as any;
   }
 
-  console.log(`  ${colors.yellow}⚠${colors.reset} No existing users found`);
-  console.log(`  ${colors.yellow}ℹ${colors.reset} You need to create a user manually or via signup endpoint\n`);
+  console.log(`  ${colors.yellow}⚠${colors.reset} TEST_EMAIL/TEST_PASSWORD not set. Falling back to dev endpoint...`);
+  // Fallback: Try to get existing test user from dev endpoints (development only)
+  try {
+    const usersResponse = await fetch(`${BASE_URL}/api/dev/auth/users`);
+    if (usersResponse.ok) {
+      const users = await usersResponse.json();
+      if (users && users.length > 0) {
+        const testUser = users[0];
+        console.log(`  ${colors.green}✓${colors.reset} Found existing user: ${testUser.email}`);
+        console.log(`  ${colors.yellow}ℹ${colors.reset} User ID: ${testUser.id}`);
+        return testUser;
+      }
+    }
+  } catch {}
 
+  console.log(`  ${colors.yellow}ℹ${colors.reset} No users found. Configure TEST_EMAIL/TEST_PASSWORD or signup via API.\n`);
   return null;
 }
 
-async function loginTestUser(email: string) {
+async function loginTestUser(email: string, password?: string) {
   console.log(`${colors.cyan}🔐 Attempting login${colors.reset}\n`);
 
   // Better-Auth sign-in endpoint
@@ -145,7 +156,7 @@ async function loginTestUser(email: string) {
     },
     body: JSON.stringify({
       email,
-      password: 'test123456',
+      password: password || process.env.TEST_PASSWORD || 'test123456',
     }),
   });
 
@@ -180,7 +191,8 @@ async function main() {
     console.log(`${colors.yellow}⚠ Cannot proceed with authenticated tests without a user${colors.reset}`);
     console.log(`${colors.yellow}ℹ Creating a test scenario with unauthenticated requests only${colors.reset}\n`);
   } else {
-    const loggedIn = await loginTestUser(testUser.email);
+    const creds = getTestCredentials();
+    const loggedIn = await loginTestUser(testUser.email, creds.password);
 
     if (!loggedIn) {
       console.log(`${colors.yellow}⚠ Proceeding with unauthenticated tests only${colors.reset}\n`);
@@ -190,6 +202,20 @@ async function main() {
   console.log(`${colors.blue}${'━'.repeat(80)}${colors.reset}`);
   console.log(`${colors.blue}📋 TESTING ALL MODULES${colors.reset}`);
   console.log(`${colors.blue}${'━'.repeat(80)}${colors.reset}\n`);
+
+  // ==========================================
+  // Test 0: Authenticated identity and Admin Users
+  // ==========================================
+  if (authCookie) {
+    console.log(`${colors.cyan}👤 Module: Auth + Admin Users${colors.reset}\n`);
+    // Who am I
+    results.push(await testEndpoint('auth', 'GET', '/api/auth/me', true));
+    printResult(results[results.length - 1]);
+
+    // Admin list
+    results.push(await testEndpoint('users-admin', 'GET', '/api/admin/users', true));
+    printResult(results[results.length - 1]);
+  }
 
   // ==========================================
   // Test 1: CEO Dashboard

@@ -7,6 +7,7 @@
 import { Elysia, t } from 'elysia';
 import { taxService } from '../services';
 import { sessionGuard, requireTenant } from '../../auth/middleware/session.middleware';
+import { requirePermission } from '../../security/middleware/rbac.middleware';
 import type { TaxType } from '../types';
 
 export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
@@ -41,6 +42,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         taxType: t.String(),
         taxableAmount: t.String(),
@@ -86,6 +88,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       body: t.Object({
         recordNumber: t.String(),
         taxType: t.String(),
@@ -129,6 +132,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         fiscalPeriod: t.String(),
       }),
@@ -158,6 +162,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
     }
   )
 
@@ -191,6 +196,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'write')],
       params: t.Object({
         id: t.String(),
       }),
@@ -226,6 +232,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         fiscalPeriod: t.String(),
       }),
@@ -269,6 +276,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       body: t.Object({
         name: t.String(),
         code: t.String(),
@@ -310,6 +318,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
     }
   )
 
@@ -346,6 +355,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       body: t.Object({
         obligationId: t.String(),
         fiscalYear: t.String(),
@@ -386,6 +396,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       params: t.Object({
         id: t.String(),
       }),
@@ -420,6 +431,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         days: t.Optional(t.String()),
       }),
@@ -459,6 +471,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'manage')],
       body: t.Object({
         name: t.String(),
         taxType: t.String(),
@@ -497,6 +510,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
       };
     },
     {
+      beforeHandle: [requirePermission('financial', 'read')],
       query: t.Object({
         taxType: t.Optional(t.String()),
       }),
