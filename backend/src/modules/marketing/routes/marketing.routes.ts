@@ -34,7 +34,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/campaigns',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const campaign = await CampaignService.createCampaign(
         tenantId,
         user.id,
@@ -62,7 +62,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/campaigns',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const filters: CampaignFilters = {};
       if (query.status) filters.status = [query.status as any];
       if (query.type) filters.type = [query.type as any];
@@ -93,7 +93,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/campaigns/:id',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       const campaign = await CampaignService.getCampaignById(params.id, tenantId);
       if (!campaign) {
         set.status = 404;
@@ -108,7 +108,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .patch(
     '/campaigns/:id',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ params, body, tenantId, set }) => {
+    async ({ params, body, tenantId, set }: any) => {
       const campaign = await CampaignService.updateCampaign(
         params.id,
         tenantId,
@@ -137,7 +137,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .delete(
     '/campaigns/:id',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       await CampaignService.deleteCampaign(params.id, tenantId);
       return { success: true };
     },
@@ -146,7 +146,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/campaigns/:id/launch',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       const campaign = await CampaignService.setStatus(params.id, tenantId, 'running');
       if (!campaign) {
         set.status = 404;
@@ -159,7 +159,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/campaigns/:id/pause',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       const campaign = await CampaignService.setStatus(params.id, tenantId, 'paused');
       if (!campaign) {
         set.status = 404;
@@ -172,7 +172,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/campaigns/:id/duplicate',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId, user, set }) => {
+    async ({ params, tenantId, user, set }: any) => {
       try {
         const duplicate = await CampaignService.duplicateCampaign(params.id, tenantId, user.id);
         return { success: true, data: duplicate };
@@ -187,7 +187,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/campaigns/:id/test-send',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId, user, body, set }) => {
+    async ({ params, tenantId, user, body, set }: any) => {
       const campaign = await CampaignService.getCampaignById(params.id, tenantId);
       if (!campaign) {
         set.status = 404;
@@ -226,7 +226,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/campaigns/:id/analytics',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       try {
         const analytics = await CampaignService.getAnalytics(params.id, tenantId);
         return { success: true, data: analytics };
@@ -246,7 +246,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/leads',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const lead = await LeadsService.createLead(body as CreateLeadData, tenantId);
       return { success: true, data: lead };
     },
@@ -267,7 +267,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/leads/import',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await LeadsService.importLeads(body.csvContent, tenantId);
       return { success: true, data: result };
     },
@@ -276,7 +276,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/leads',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const filters: any = {};
       if (query.status) filters.status = [query.status];
       if (query.minScore) filters.minScore = Number(query.minScore);
@@ -305,7 +305,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/leads/:id',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       const lead = await LeadsService.getLeadById(params.id, tenantId);
       if (!lead) {
         set.status = 404;
@@ -318,7 +318,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .patch(
     '/leads/:id',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ params, body, tenantId }) => {
+    async ({ params, body, tenantId }: any) => {
       const lead = await LeadsService.updateLead(params.id, body as UpdateLeadData, tenantId);
       return { success: true, data: lead };
     },
@@ -341,7 +341,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .delete(
     '/leads/:id',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       await LeadsService.softDeleteLead(params.id, tenantId);
       return { success: true };
     },
@@ -350,7 +350,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/leads/analytics',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const dateFrom = query.dateFrom ? new Date(query.dateFrom) : undefined;
       const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
       const analytics = await MarketingAnalyticsService.getLeadAnalytics(tenantId, {
@@ -374,7 +374,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/templates',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ body, tenantId, user }) => {
+    async ({ body, tenantId, user }: any) => {
       const template = await TemplateService.createTemplate(
         tenantId,
         user.id,
@@ -396,7 +396,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/templates',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const templates = await TemplateService.listTemplates(tenantId, query.category);
       return { success: true, data: templates };
     },
@@ -405,7 +405,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/templates/:id',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ params, tenantId, set }) => {
+    async ({ params, tenantId, set }: any) => {
       const template = await TemplateService.getTemplate(tenantId, params.id);
       if (!template) {
         set.status = 404;
@@ -418,7 +418,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .patch(
     '/templates/:id',
     { beforeHandle: [requirePermission('marketing', 'write')] },
-    async ({ params, body, tenantId, set }) => {
+    async ({ params, body, tenantId, set }: any) => {
       const template = await TemplateService.updateTemplate(
         tenantId,
         params.id,
@@ -448,7 +448,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .delete(
     '/templates/:id',
     { beforeHandle: [requirePermission('marketing', 'manage')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       await TemplateService.deactivateTemplate(tenantId, params.id);
       return { success: true };
     },
@@ -457,7 +457,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .post(
     '/templates/:id/preview',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ params, body, tenantId, set }) => {
+    async ({ params, body, tenantId, set }: any) => {
       const template = await TemplateService.getTemplate(tenantId, params.id);
       if (!template) {
         set.status = 404;
@@ -479,7 +479,7 @@ export const marketingRoutes = new Elysia({ prefix: '/api/v1/marketing' })
   .get(
     '/dashboard',
     { beforeHandle: [requirePermission('marketing', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const dateFrom = query.dateFrom ? new Date(query.dateFrom) : undefined;
       const dateTo = query.dateTo ? new Date(query.dateTo) : undefined;
 

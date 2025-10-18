@@ -21,7 +21,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .post(
     '/',
     { beforeHandle: [requirePermission('financial', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       logger.info('Creating expense', { user: user?.id });
 
       // Calculate totalAmount
@@ -94,7 +94,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .get(
     '/:id',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await expenseService.getById(params.id, tenantId);
 
       if (!result.success) {
@@ -124,7 +124,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .get(
     '/',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const filters = {
         tenantId: tenantId,
         category: query.category,
@@ -172,7 +172,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .patch(
     '/:id',
     { beforeHandle: [requirePermission('financial', 'write')] },
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       // Convert paymentDate string to Date if provided
       const updateData = {
         ...body,
@@ -218,7 +218,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
   .delete(
     '/:id',
     { beforeHandle: [requirePermission('financial', 'manage')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await expenseService.delete(params.id, tenantId);
 
       if (!result.success) {
@@ -247,7 +247,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .post(
     '/:id/approve',
-    async ({ params, user, tenantId }) => {
+    async ({ params, user, tenantId }: any) => {
       const result = await expenseService.approve(params.id, tenantId, user.id);
 
       if (!result.success) {
@@ -276,7 +276,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .post(
     '/:id/reject',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await expenseService.reject(
         params.id,
         tenantId,
@@ -313,7 +313,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .get(
     '/pending-approvals/list',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await expenseService.getPendingApprovals(tenantId);
 
       if (!result.success) {
@@ -343,7 +343,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .post(
     '/categories',
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await expenseService.createCategory({
         ...body,
         tenantId: tenantId,
@@ -382,7 +382,7 @@ export const expenseRoutes = new Elysia({ prefix: '/api/v1/expenses' })
    */
   .get(
     '/categories/list',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await expenseService.listCategories(tenantId);
 
       if (!result.success) {

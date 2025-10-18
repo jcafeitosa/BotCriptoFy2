@@ -38,7 +38,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/snapshot',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Fetching order book snapshot', query);
       const snapshot = await OrderBookSnapshotService.fetchAndStore({
         exchangeId: query.exchangeId,
@@ -63,7 +63,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/level1',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Fetching Level 1 order book', query);
       const level1 = await OrderBookSnapshotService.getLatestLevel1(query.exchangeId, query.symbol);
       return level1;
@@ -83,7 +83,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/historical',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Fetching historical snapshots', query);
       const snapshots = await OrderBookSnapshotService.getHistoricalSnapshots({
         exchangeId: query.exchangeId,
@@ -112,7 +112,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/statistics',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Calculating snapshot statistics', query);
       const stats = await OrderBookSnapshotService.getSnapshotStatistics(
         query.exchangeId,
@@ -144,7 +144,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/analytics',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Calculating order book analytics', query);
       const analytics = await OrderBookAnalyticsService.calculateAnalytics({
         exchangeId: query.exchangeId,
@@ -174,7 +174,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/heatmap',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Generating liquidity heatmap', query);
       const heatmap = await LiquidityHeatmapService.generateHeatmap({
         exchangeId: query.exchangeId,
@@ -203,7 +203,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/liquidity/zones',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Detecting liquidity zones', query);
       const zones = await LiquidityHeatmapService.detectLiquidityZones({
         exchangeId: query.exchangeId,
@@ -233,7 +233,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/imbalance',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Calculating order book imbalance', query);
       const imbalance = await OrderBookImbalanceService.calculateImbalance({
         exchangeId: query.exchangeId,
@@ -258,7 +258,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/imbalance/stream',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Streaming imbalance history', query);
       const history = await OrderBookImbalanceService.getImbalanceHistory({
         exchangeId: query.exchangeId,
@@ -292,7 +292,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/pulse',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Calculating pulse indicator', query);
       const pulse = await PulseIndicatorService.calculatePulse({
         exchangeId: query.exchangeId,
@@ -319,7 +319,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/pulse/signals',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Getting pulse signals', query);
       const signals = await PulseIndicatorService.getPulseSignals({
         exchangeId: query.exchangeId,
@@ -353,7 +353,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/footprint',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Generating footprint chart', query);
       const footprint = await FootprintChartService.generateFootprint({
         exchangeId: query.exchangeId,
@@ -385,7 +385,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/superdom',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Generating SuperDOM view', query);
       const superdom = await SuperDOMService.generateDOMView({
         exchangeId: query.exchangeId,
@@ -410,7 +410,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/volume-profile',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Generating volume profile', query);
       const profile = await SuperDOMService.generateVolumeProfile({
         exchangeId: query.exchangeId,
@@ -444,7 +444,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/microstructure',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Analyzing market microstructure', query);
       const metrics = await MicrostructureService.analyzeMetrics({
         exchangeId: query.exchangeId,
@@ -469,7 +469,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/toxicity',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Detecting order flow toxicity', query);
       const toxicity = await MicrostructureService.detectOrderFlowToxicity({
         exchangeId: query.exchangeId,
@@ -499,7 +499,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/large-orders',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Detecting large orders', query);
       const orders = await LargeOrderDetectionService.detectLargeOrders({
         exchangeId: query.exchangeId,
@@ -526,7 +526,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/spoofing',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Detecting spoofing', query);
       const events = await LargeOrderDetectionService.detectSpoofing({
         exchangeId: query.exchangeId,
@@ -558,7 +558,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/price-impact',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Estimating price impact', query);
       const impact = await PriceImpactService.estimatePriceImpact({
         exchangeId: query.exchangeId,
@@ -585,7 +585,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/liquidity-score',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Calculating liquidity score', query);
       const score = await PriceImpactService.calculateLiquidityScore({
         exchangeId: query.exchangeId,
@@ -615,7 +615,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
    */
   .get(
     '/aggregated',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Aggregating multi-exchange order book', query);
       const aggregated = await OrderBookAggregatorService.aggregateOrderBooks({
         symbol: query.symbol,
@@ -640,7 +640,7 @@ export const orderBookRoutes = new Elysia({ prefix: '/order-book' })
 
   .get(
     '/arbitrage',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Detecting arbitrage opportunities', query);
       const opportunities = await OrderBookAggregatorService.findArbitrageOpportunities({
         symbol: query.symbol,

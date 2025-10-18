@@ -72,7 +72,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
   .get(
     '/:jurisdiction',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params }) => {
+    async ({ params }: any) => {
       const { jurisdiction } = params;
 
       if (jurisdiction !== 'BR' && jurisdiction !== 'EE') {
@@ -109,7 +109,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
   .post(
     '/configure',
     { beforeHandle: [requirePermission('financial', 'manage')] },
-    async ({ body, user }) => {
+    async ({ body, user }: any) => {
       const { jurisdiction } = body;
 
       // Validate jurisdiction
@@ -172,7 +172,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
   .post(
     '/test/vat',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ body }) => {
+    async ({ body }: any) => {
       const { amount, category, stateCode, cityCode } = body;
 
       const result = taxJurisdictionService.calculateVAT(
@@ -205,7 +205,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .post(
     '/test/corporate-tax',
-    async ({ body }) => {
+    async ({ body }: any) => {
       const { amount, isDistribution } = body;
 
       const result = taxJurisdictionService.calculateCorporateTax(amount, isDistribution);
@@ -232,7 +232,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .post(
     '/test/validate-tax-id',
-    async ({ body }) => {
+    async ({ body }: any) => {
       const { taxId, type } = body;
 
       const result = taxJurisdictionService.validateTaxId(
@@ -278,7 +278,7 @@ export const taxJurisdictionRoutes = new Elysia({ prefix: '/api/v1/tax-jurisdict
    */
   .delete(
     '/reset',
-    async ({ headers }) => {
+    async ({ headers }: any) => {
       const userId = headers['x-user-id'] || 'unknown';
       const userRole = headers['x-user-role'] || 'user';
 

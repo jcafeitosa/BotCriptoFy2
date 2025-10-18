@@ -19,7 +19,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
   .post(
     '/generate',
     { beforeHandle: [requirePermission('financial', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const {
         reportType,
         fiscalYear,
@@ -80,7 +80,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
   .post(
     '/generate/monthly',
     { beforeHandle: [requirePermission('financial', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const { year, month } = body;
 
       // Calculate period dates
@@ -130,7 +130,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
   .get(
     '/',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const limit = query.limit ? parseInt(query.limit) : 50;
 
       const result = await taxReportService.getReports(tenantId, limit);
@@ -155,7 +155,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
   .get(
     '/:reportId',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const { reportId } = params;
 
       const result = await taxReportService.getReportById(reportId, tenantId);
@@ -179,7 +179,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .post(
     '/:reportId/file',
-    async ({ params, body, headers }) => {
+    async ({ params, body, headers }: any) => {
       const tenantId = headers['x-tenant-id'];
       const userId = headers['x-user-id'] || 'unknown';
       const { reportId } = params;
@@ -230,7 +230,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .delete(
     '/:reportId',
-    async ({ params, headers }) => {
+    async ({ params, headers }: any) => {
       const tenantId = headers['x-tenant-id'];
       const { reportId } = params;
 
@@ -269,7 +269,7 @@ export const taxReportRoutes = new Elysia({ prefix: '/api/v1/tax-reports' })
    */
   .get(
     '/stats/summary',
-    async ({ headers }) => {
+    async ({ headers }: any) => {
       const tenantId = headers['x-tenant-id'];
 
       if (!tenantId) {

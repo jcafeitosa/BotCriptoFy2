@@ -19,7 +19,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/calculate',
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await taxService.calculateTax(
         tenantId,
         body.taxType as TaxType,
@@ -62,7 +62,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/records',
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const result = await taxService.createRecord({
         ...body,
         taxType: body.taxType as TaxType,
@@ -115,7 +115,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/records',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const result = await taxService.getRecordsForPeriod(tenantId, query.fiscalPeriod);
 
       if (!result.success) {
@@ -145,7 +145,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/records/overdue',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await taxService.getOverdueRecords(tenantId);
 
       if (!result.success) {
@@ -172,7 +172,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/records/:id/pay',
-    async ({ params, body, tenantId }) => {
+    async ({ params, body, tenantId }: any) => {
       const result = await taxService.markAsPaid(
         params.id,
         tenantId,
@@ -215,7 +215,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/summary',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const result = await taxService.getTaxSummary(tenantId, query.fiscalPeriod);
 
       if (!result.success) {
@@ -249,7 +249,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/obligations',
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await taxService.createObligation({
         name: body.name,
         code: body.code,
@@ -301,7 +301,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/obligations',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await taxService.listObligations(tenantId);
 
       if (!result.success) {
@@ -332,7 +332,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/filings',
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await taxService.createFiling({
         ...body,
         periodStartDate: new Date(body.periodStartDate),
@@ -373,7 +373,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/filings/:id/submit',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await taxService.submitFiling(
         params.id,
         tenantId,
@@ -413,7 +413,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/filings/upcoming',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const days = query.days ? parseInt(query.days) : 30;
       const result = await taxService.getUpcomingFilings(tenantId, days);
 
@@ -448,7 +448,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .post(
     '/rates',
-    async ({ body, tenantId }) => {
+    async ({ body, tenantId }: any) => {
       const result = await taxService.createRate({
         ...body,
         taxType: body.taxType as TaxType,
@@ -493,7 +493,7 @@ export const taxRoutes = new Elysia({ prefix: '/api/v1/tax' })
    */
   .get(
     '/rates',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const result = await taxService.listRates(tenantId, query.taxType as any);
 
       if (!result.success) {

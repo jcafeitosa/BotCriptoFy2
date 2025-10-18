@@ -16,7 +16,7 @@ export const affiliatePublicRoutes = new Elysia({ prefix: '/api/v1/affiliate/pub
    */
   .post(
     '/click',
-    async ({ body, request }) => {
+    async ({ body, request }: any) => {
       const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() || undefined;
       const userAgent = request.headers.get('user-agent') || undefined;
 

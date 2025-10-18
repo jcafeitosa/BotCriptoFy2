@@ -19,7 +19,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .post(
     '/entries',
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       logger.info('Creating ledger entry', { user: user?.id });
 
       const { entry, lines } = body;
@@ -82,7 +82,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .get(
     '/entries/:id',
-    async ({ params, user: _user, tenantId }) => {
+    async ({ params, user: _user, tenantId }: any) => {
       const result = await ledgerService.getEntryWithLines(params.id, tenantId);
 
       if (!result.success) {
@@ -112,7 +112,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .post(
     '/entries/:id/post',
-    async ({ params, user, tenantId }) => {
+    async ({ params, user, tenantId }: any) => {
       const result = await ledgerService.postEntry(params.id, tenantId, user.id);
 
       if (!result.success) {
@@ -142,7 +142,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .post(
     '/entries/:id/reverse',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await ledgerService.reverseEntry(
         params.id,
         tenantId,
@@ -184,7 +184,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .post(
     '/accounts',
-    async ({ body, user: _user, tenantId }) => {
+    async ({ body, user: _user, tenantId }: any) => {
       const result = await ledgerService.createAccount({
         ...body,
         tenantId: tenantId,
@@ -233,7 +233,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .get(
     '/accounts',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await ledgerService.listAccounts(tenantId);
 
       if (!result.success) {
@@ -260,7 +260,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .get(
     '/accounts/:id/balance',
-    async ({ params, query, tenantId }) => {
+    async ({ params, query, tenantId }: any) => {
       const result = await ledgerService.getAccountBalance(
         tenantId,
         params.id,
@@ -297,7 +297,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .get(
     '/trial-balance',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const result = await ledgerService.getTrialBalance(tenantId, query.fiscalPeriod);
 
       if (!result.success) {
@@ -327,7 +327,7 @@ export const ledgerRoutes = new Elysia({ prefix: '/api/v1/ledger' })
    */
   .post(
     '/periods/:period/close',
-    async ({ params, user, tenantId }) => {
+    async ({ params, user, tenantId }: any) => {
       const result = await ledgerService.closeFiscalPeriod(
         tenantId,
         params.period,

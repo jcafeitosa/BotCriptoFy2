@@ -24,7 +24,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .post(
     '/',
     { beforeHandle: [requirePermission('financial', 'write')] },
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const result = await paymentProcessor.processPayment({
         tenantId,
         userId: user.id,
@@ -75,7 +75,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/:id',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await paymentProcessor.getPaymentStatus(params.id);
 
       if (!result.success) {
@@ -110,7 +110,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const page = query.page ? parseInt(query.page) : 1;
       const pageSize = query.pageSize ? parseInt(query.pageSize) : 50;
 
@@ -152,7 +152,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/analytics',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const result = await paymentProcessor.getAnalytics(tenantId, {
         dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
         dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
@@ -186,7 +186,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/:id/detail',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const detail = await paymentProcessor.getTransactionDetail(params.id, tenantId);
 
       if (!detail.success || !detail.data) {
@@ -218,7 +218,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .post(
     '/:id/refund',
     { beforeHandle: [requirePermission('financial', 'manage')] },
-    async ({ params, body, tenantId }) => {
+    async ({ params, body, tenantId }: any) => {
       const transactionStatus = await paymentProcessor.getPaymentStatus(params.id);
 
       if (!transactionStatus.success || transactionStatus.data?.transaction.tenantId !== tenantId) {
@@ -254,7 +254,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/:id/refunds',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const detail = await paymentProcessor.getTransactionDetail(params.id, tenantId);
 
       if (!detail.success || !detail.data) {
@@ -283,7 +283,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/:id/dunning',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const status = await paymentProcessor.getPaymentStatus(params.id);
 
       if (!status.success || status.data?.transaction.tenantId !== tenantId) {
@@ -314,7 +314,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .post(
     '/:id/dunning/pause',
     { beforeHandle: [requirePermission('financial', 'manage')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const status = await paymentProcessor.getPaymentStatus(params.id);
 
       if (!status.success || status.data?.transaction.tenantId !== tenantId) {
@@ -345,7 +345,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .post(
     '/:id/dunning/resume',
     { beforeHandle: [requirePermission('financial', 'manage')] },
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const status = await paymentProcessor.getPaymentStatus(params.id);
 
       if (!status.success || status.data?.transaction.tenantId !== tenantId) {
@@ -376,7 +376,7 @@ export const paymentRoutes = new Elysia({ prefix: '/api/v1/payments' })
   .get(
     '/dunning/stats',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const stats = await dunningService.getDunningStats(tenantId);
 
       return {
@@ -406,7 +406,7 @@ export const gatewayRoutes = new Elysia({ prefix: '/api/v1/gateways' })
   .get(
     '/',
     { beforeHandle: [requirePermission('financial', 'read')] },
-    async ({ query }) => {
+    async ({ query }: any) => {
       const { country, currency, paymentMethod } = query;
 
       if (!country || !currency) {
@@ -450,7 +450,7 @@ export const gatewayRoutes = new Elysia({ prefix: '/api/v1/gateways' })
    */
   .get(
     '/:slug',
-    async ({ params }) => {
+    async ({ params }: any) => {
       const gateway = await gatewaySelector.getGatewayBySlug(params.slug);
 
       if (!gateway) {
@@ -490,7 +490,7 @@ export const webhookRoutes = new Elysia({ prefix: '/api/v1/webhooks' })
    */
   .post(
     '/:gateway',
-    async ({ params, body, headers }) => {
+    async ({ params, body, headers }: any) => {
       const signature = headers['x-signature'] || headers['stripe-signature'] || '';
 
       // Get gateway ID
