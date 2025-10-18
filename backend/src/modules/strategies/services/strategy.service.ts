@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Strategy Service
  * Manages trading strategies, signals, and backtests

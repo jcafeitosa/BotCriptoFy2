@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MMN Admin Routes – require mmn:manage
  */

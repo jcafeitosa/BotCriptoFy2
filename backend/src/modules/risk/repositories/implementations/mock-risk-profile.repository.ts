@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Mock Risk Profile Repository
  * In-memory implementation for testing

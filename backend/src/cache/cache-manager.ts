@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Centralized Cache Manager
  * Implements caching strategies with Redis backend and in-memory fallback

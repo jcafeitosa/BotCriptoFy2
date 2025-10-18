@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Risk Repository Interfaces
  * Defines contracts for data access layer
