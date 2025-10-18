@@ -64,3 +64,6 @@ export * from './services/price-impact.service';
 
 // Multi-Exchange Services (✅ Implemented)
 export * from './services/order-book-aggregator.service';
+
+// Routes (✅ Implemented)
+export { orderBookRoutes } from './routes/order-book.routes';
