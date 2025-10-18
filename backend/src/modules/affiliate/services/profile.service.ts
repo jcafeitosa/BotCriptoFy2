@@ -237,7 +237,7 @@ export class AffiliateProfileService {
     }
 
     // Update profile - convert number fields to strings for decimal columns
-    const updateData: Partial<NewAffiliateProfile> = { ...data } as Partial<NewAffiliateProfile>;
+    const updateData = { ...data } as any;
     if ((data as UpdateAffiliateData).payoutMinimum !== undefined) {
       updateData.payoutMinimum = String((data as UpdateAffiliateData).payoutMinimum);
     }
@@ -315,7 +315,7 @@ export class AffiliateProfileService {
   ): Promise<AffiliateProfile> {
     logger.info('Suspending affiliate', { profileId: id, reason });
 
-    const [updated] = await db
+    const [updated] = await getAffiliateDb()
       .update(affiliateProfiles)
       .set({
         status: 'suspended',

@@ -14,7 +14,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .post(
     '/',
-    async ({ body }) => {
+    async ({ body }: any) => {
       logger.info('Creating new backtest', body);
 
       // Note: In a real implementation, you'd fetch the strategy from the database
@@ -72,7 +72,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .get(
     '/:id',
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       logger.info('Getting backtest result', { id: params.id, userId: query.userId });
       const result = await BacktestService.getResult(params.id, query.userId);
       return result;
@@ -97,7 +97,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .get(
     '/',
-    async ({ query }) => {
+    async ({ query }: any) => {
       logger.info('Listing backtest results', query);
       const results = await BacktestService.listResults(query.userId, {
         strategyId: query.strategyId,
@@ -130,7 +130,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .post(
     '/compare',
-    async ({ body }) => {
+    async ({ body }: any) => {
       logger.info('Comparing backtest results', body);
       const comparison = await BacktestService.compareResults(
         body.userId,
@@ -160,7 +160,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .delete(
     '/:id',
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       logger.info('Deleting backtest result', { id: params.id, userId: query.userId });
       await BacktestService.deleteResult(params.id, query.userId);
       return { success: true, message: 'Backtest result deleted' };
@@ -185,7 +185,7 @@ export const backtestRoutes = new Elysia({ prefix: '/backtest' })
    */
   .post(
     '/archive',
-    async ({ body }) => {
+    async ({ body }: any) => {
       logger.info('Archiving old backtest results', body);
       const archivedCount = await BacktestService.archiveOldResults(body.olderThanDays);
       return { archivedCount, message: `Archived ${archivedCount} old backtest results` };

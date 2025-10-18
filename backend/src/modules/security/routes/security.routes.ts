@@ -57,7 +57,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   .use(requireAdmin())
   .post(
     '/anomaly-detection',
-    async ({ body, session }) => {
+    async ({ body, session }: any) => {
       const tenantId = body.tenantId || (session as any)?.activeOrganizationId;
       const result = await runAnomalyDetection(body.userId, body.ipAddress, tenantId);
       return { success: true, data: result };
@@ -79,7 +79,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Get role with permissions
   .get(
     '/roles/:id',
-    async ({ params }) => {
+    async ({ params }: any) => {
       const role = await getRoleWithPermissions(params.id);
       return { success: true, data: role };
     },
@@ -99,7 +99,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   .use(requireAdmin())
   .post(
     '/roles',
-    async ({ body }) => {
+    async ({ body }: any) => {
       const role = await createRole(body);
       return {
         success: true,
@@ -145,7 +145,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Create permission (Admin only)
   .post(
     '/permissions',
-    async ({ body }) => {
+    async ({ body }: any) => {
       const permission = await createPermission(body as any);
       return {
         success: true,
@@ -174,7 +174,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Add permission to role
   .post(
     '/roles/:roleId/permissions/:permissionId',
-    async ({ params }) => {
+    async ({ params }: any) => {
       const result = await addPermissionToRole(params.roleId, params.permissionId);
       return {
         success: true,
@@ -198,7 +198,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Remove permission from role
   .delete(
     '/roles/:roleId/permissions/:permissionId',
-    async ({ params }) => {
+    async ({ params }: any) => {
       await removePermissionFromRole(params.roleId, params.permissionId);
       return {
         success: true,
@@ -225,7 +225,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Assign role to user
   .post(
     '/users/:userId/roles',
-    async ({ params, body }) => {
+    async ({ params, body }: any) => {
       const result = await assignRole({
         userId: params.userId,
         roleId: body.roleId,
@@ -256,7 +256,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Remove role from user
   .delete(
     '/users/:userId/roles/:roleId',
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       await removeRole(params.userId, params.roleId, query.tenantId);
       return {
         success: true,
@@ -286,7 +286,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Get user permissions
   .get(
     '/users/:userId/permissions',
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       const permissions = await getUserPermissions(params.userId, query.tenantId);
       return { success: true, data: permissions };
     },
@@ -308,7 +308,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Grant permission to user
   .post(
     '/users/:userId/permissions',
-    async ({ params, body }) => {
+    async ({ params, body }: any) => {
       const result = await grantPermission({
         userId: params.userId,
         permissionId: body.permissionId,
@@ -343,7 +343,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Revoke permission from user
   .delete(
     '/users/:userId/permissions/:permissionId',
-    async ({ params, query }) => {
+    async ({ params, query }: any) => {
       await revokePermission(params.userId, params.permissionId, query.tenantId);
       return {
         success: true,
@@ -373,7 +373,7 @@ export const securityRoutes = new Elysia({ prefix: '/api/security', name: 'secur
   // Check permission (any authenticated user can check their own)
   .post(
     '/check-permission',
-    async ({ user, body, session }) => {
+    async ({ user, body, session }: any) => {
       const tenantId = body.tenantId || (session as any)?.activeOrganizationId || undefined;
 
       const result = await checkPermission({

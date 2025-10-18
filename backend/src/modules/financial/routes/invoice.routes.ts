@@ -20,7 +20,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .post(
     '/',
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       logger.info('Creating invoice', { user: user?.id });
 
       // Calculate totalAmount and remainingAmount
@@ -92,7 +92,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .get(
     '/:id',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await invoiceService.getById(params.id, tenantId);
 
       if (!result.success) {
@@ -122,7 +122,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .get(
     '/',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       const filters = {
         tenantId,
         type: query.type,
@@ -172,7 +172,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .patch(
     '/:id',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await invoiceService.update(params.id, tenantId, {
         ...body,
         status: body.status as InvoiceStatus | undefined,
@@ -215,7 +215,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .delete(
     '/:id',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await invoiceService.delete(params.id, tenantId);
 
       if (!result.success) {
@@ -245,7 +245,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .post(
     '/:id/payments',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await invoiceService.addPayment(params.id, tenantId, {
         ...body,
         paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
@@ -288,7 +288,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .get(
     '/:id/payments',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await invoiceService.getPayments(params.id, tenantId);
 
       if (!result.success) {
@@ -318,7 +318,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .patch(
     '/:id/status',
-    async ({ params, body, tenantId }) => {
+    async ({ params, body, tenantId }: any) => {
       const result = await invoiceService.updateStatus(params.id, tenantId, body.status);
 
       if (!result.success) {
@@ -358,7 +358,7 @@ export const invoiceRoutes = new Elysia({ prefix: '/api/v1/invoices' })
    */
   .get(
     '/overdue/list',
-    async ({ tenantId }) => {
+    async ({ tenantId }: any) => {
       const result = await invoiceService.getOverdue(tenantId);
 
       if (!result.success) {

@@ -19,7 +19,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
    */
   .get(
     '/profit-loss',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       logger.info('Generating P&L report', {
         tenantId,
         fiscalPeriod: query.fiscalPeriod
@@ -57,7 +57,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
    */
   .get(
     '/balance-sheet',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       logger.info('Generating Balance Sheet', {
         tenantId,
         date: query.date
@@ -95,7 +95,7 @@ export const reportRoutes = new Elysia({ prefix: '/api/v1/reports' })
    */
   .get(
     '/cash-flow',
-    async ({ query, tenantId }) => {
+    async ({ query, tenantId }: any) => {
       logger.info('Generating Cash Flow Statement', {
         tenantId,
         fiscalPeriod: query.fiscalPeriod

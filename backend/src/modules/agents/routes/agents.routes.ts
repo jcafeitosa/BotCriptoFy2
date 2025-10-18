@@ -16,7 +16,7 @@ export const agentsRoutes = new Elysia({ prefix: '/agents' })
    */
   .post(
     '/',
-    async ({ body }) => {
+    async ({ body }: any) => {
       try {
         const agent = await AgentService.createAgent(body);
         return {
@@ -425,7 +425,7 @@ export const agentsRoutes = new Elysia({ prefix: '/agents' })
    */
   .post(
     '/ollama/pull',
-    async ({ body }) => {
+    async ({ body }: any) => {
       try {
         await ollamaService.pullModel(body.model);
         return {

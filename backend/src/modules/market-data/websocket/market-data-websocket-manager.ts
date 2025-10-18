@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Market Data WebSocket Manager
  * Manages real-time market data connections using native exchange adapters

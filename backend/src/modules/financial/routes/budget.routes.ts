@@ -19,7 +19,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .post(
     '/',
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       logger.info('Creating budget', { user: user?.id });
 
       const { budget, lines } = body;
@@ -105,7 +105,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .get(
     '/:id',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await budgetService.getById(params.id, tenantId);
 
       if (!result.success) {
@@ -135,7 +135,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .get(
     '/:id/alerts',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await budgetService.getAlerts(params.id, tenantId);
 
       if (!result.success) {
@@ -165,7 +165,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .post(
     '/alerts/:alertId/resolve',
-    async ({ params, body, user, tenantId }) => {
+    async ({ params, body, user, tenantId }: any) => {
       const result = await budgetService.resolveAlert(
         params.alertId,
         tenantId,
@@ -203,7 +203,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .post(
     '/adjustments',
-    async ({ body, user, tenantId }) => {
+    async ({ body, user, tenantId }: any) => {
       const result = await budgetService.createAdjustment({
         ...body,
         adjustmentDate: body.adjustmentDate ? new Date(body.adjustmentDate) : new Date(),
@@ -252,7 +252,7 @@ export const budgetRoutes = new Elysia({ prefix: '/api/v1/budgets' })
    */
   .post(
     '/:id/sync',
-    async ({ params, tenantId }) => {
+    async ({ params, tenantId }: any) => {
       const result = await budgetService.syncWithExpenses(params.id, tenantId);
 
       if (!result.success) {

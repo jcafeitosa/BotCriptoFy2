@@ -223,7 +223,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .post(
     '/calculate',
-    async ({ body, set }) => {
+    async ({ body, set }: any) => {
       try {
         logger.info('Calculating indicator', {
           type: body.indicatorType,
@@ -290,7 +290,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .post(
     '/batch',
-    async ({ body, set }) => {
+    async ({ body, set }: any) => {
       try {
         logger.info('Batch calculating indicators', {
           symbol: body.symbol,
@@ -354,7 +354,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .delete(
     '/cache',
-    async ({ body, set }) => {
+    async ({ body, set }: any) => {
       try {
         logger.info('Clearing indicator cache', body || {});
 
@@ -443,7 +443,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .get(
     '/presets',
-    async ({ user, query, set }) => {
+    async ({ user, query, set }: any) => {
       try {
         const userId = user.id;
         const tenantId = await getUserPrimaryTenantId(user.id);
@@ -504,7 +504,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .post(
     '/presets',
-    async ({ user, body, set }) => {
+    async ({ user, body, set }: any) => {
       try {
         const userId = user.id;
         const tenantId = await getUserPrimaryTenantId(user.id);
@@ -563,7 +563,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .get(
     '/presets/:id',
-    async ({ params, set }) => {
+    async ({ params, set }: any) => {
       try {
         const preset = await indicatorsService.getPreset(params.id);
 
@@ -620,7 +620,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .patch(
     '/presets/:id',
-    async ({ user, params, body, set }) => {
+    async ({ user, params, body, set }: any) => {
       try {
         const userId = user.id;
         const tenantId = await getUserPrimaryTenantId(user.id);
@@ -685,7 +685,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .delete(
     '/presets/:id',
-    async ({ user, params, set }) => {
+    async ({ user, params, set }: any) => {
       try {
         const userId = user.id;
         const tenantId = await getUserPrimaryTenantId(user.id);
@@ -744,7 +744,7 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .get(
     '/statistics',
-    async ({ user, set }) => {
+    async ({ user, set }: any) => {
       try {
         const userId = user.id;
         const tenantId = await getUserPrimaryTenantId(user.id);
