@@ -6,19 +6,26 @@
 import { Elysia, t } from 'elysia';
 import { foldersService } from '../services/folders.service';
 import logger from '../../../utils/logger';
+import { sessionGuard } from '../../auth/middleware/session.middleware';
+import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { BadRequestError } from '../../../utils/errors';
 
 export const foldersRoutes = new Elysia({ prefix: '/folders' })
+  .use(sessionGuard)
   /**
    * Create folder
    * POST /api/v1/folders
    */
   .post(
     '/',
-    async ({ body, set }) => {
+    async ({ user, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await foldersService.createFolder(body, userId, tenantId);
 
@@ -65,11 +72,14 @@ export const foldersRoutes = new Elysia({ prefix: '/folders' })
    */
   .get(
     '/',
-    async ({ query, set }) => {
+    async ({ user, query, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         // If tree view requested
         if (query.view === 'tree') {
@@ -120,11 +130,14 @@ export const foldersRoutes = new Elysia({ prefix: '/folders' })
    */
   .get(
     '/:id',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await foldersService.getFolderById(params.id, userId, tenantId);
 
@@ -160,11 +173,14 @@ export const foldersRoutes = new Elysia({ prefix: '/folders' })
    */
   .patch(
     '/:id',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await foldersService.updateFolder(
           params.id,
@@ -218,11 +234,14 @@ export const foldersRoutes = new Elysia({ prefix: '/folders' })
    */
   .delete(
     '/:id',
-    async ({ params, query, set }) => {
+    async ({ user, params, query, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const recursive = query.recursive === 'true';
 
@@ -268,11 +287,14 @@ export const foldersRoutes = new Elysia({ prefix: '/folders' })
    */
   .post(
     '/:id/move',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await foldersService.moveFolder(
           params.id,

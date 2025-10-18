@@ -345,10 +345,7 @@ ${alerts.slice(0, 3).map((a) => `- ${a.symbol}: ${a.message}`).join('\n')}`;
               message,
               priority: criticalCount > 0 ? 'urgent' : 'high',
               metadata: {
-                alertCount: alerts.length,
-                criticalCount,
-                highCount,
-                alerts: alerts.slice(0, 5),
+                channel: 'sentiment_monitoring',
               },
             });
 
@@ -378,8 +375,7 @@ ${alerts.slice(0, 3).map((a) => `- ${a.symbol}: ${a.message}`).join('\n')}`;
               message: message + '\n\nConsider adjusting trading strategies based on sentiment.',
               priority: criticalCount > 0 ? 'urgent' : 'high',
               metadata: {
-                alertCount: alerts.length,
-                alerts: alerts.filter((a) => a.severity === 'critical' || a.severity === 'high'),
+                channel: 'sentiment_monitoring',
               },
             });
 

@@ -20,6 +20,12 @@ import type {
   RunBacktestRequest,
   StrategyStatistics,
   IStrategyService,
+  IndicatorConfig,
+  StrategyCondition,
+  ConditionRule,
+  SignalType,
+  BacktestTrade,
+  EquityCurvePoint,
 } from '../types/strategies.types';
 
 export class StrategyService implements IStrategyService {
@@ -372,7 +378,7 @@ export class StrategyService implements IStrategyService {
 
   /**
    * Generate signal for strategy
-   * This is a placeholder - real implementation would evaluate indicators and conditions
+   * Evaluates indicators and conditions to produce trading signals
    */
   async generateSignal(strategyId: string): Promise<StrategySignal | null> {
     logger.info('Generating signal for strategy', { strategyId });
@@ -405,11 +411,11 @@ export class StrategyService implements IStrategyService {
       return null;
     }
 
-    // Calculate indicators (placeholder - real implementation would use indicators module)
+    // Calculate indicators using real implementation
     const latestCandle = ohlcvData[ohlcvData.length - 1];
-    const indicatorValues = this.calculateIndicators(ohlcvData, strategy.indicators as any);
+    const indicatorValues = await this.calculateIndicators(ohlcvData, strategy.indicators as any);
 
-    // Evaluate conditions (placeholder - real implementation would evaluate strategy conditions)
+    // Evaluate conditions to generate trading signal
     const signalType = this.evaluateConditions(
       indicatorValues,
       strategy.conditions as any
@@ -429,6 +435,12 @@ export class StrategyService implements IStrategyService {
       ? currentPrice * (1 + parseFloat(strategy.takeProfitPercent) / 100)
       : undefined;
 
+    const signalQuality = this.calculateSignalQuality(
+      indicatorValues as Record<string, any>,
+      strategy.conditions as any,
+      signalType
+    );
+
     // Create signal
     const [signal] = await db
       .insert(strategySignals)
@@ -440,8 +452,8 @@ export class StrategyService implements IStrategyService {
         symbol: strategy.symbol,
         timeframe: strategy.timeframe,
         type: signalType,
-        strength: '75', // Placeholder - signal strength 0-100
-        confidence: '0.8', // Placeholder - confidence level 0-1
+        strength: signalQuality.strength,
+        confidence: signalQuality.confidence,
         price: currentPrice.toString(),
         stopLoss: stopLoss?.toString(),
         takeProfit: takeProfit?.toString(),
@@ -494,7 +506,7 @@ export class StrategyService implements IStrategyService {
 
     logger.info('Backtest created', { backtestId: backtest.id });
 
-    // Run backtest asynchronously (placeholder - real implementation would be in separate worker)
+    // Run backtest asynchronously with full simulation
     this.runBacktestAsync(backtest.id, strategy, request).catch((error) => {
       logger.error('Backtest failed', { backtestId: backtest.id, error });
     });
@@ -666,30 +678,429 @@ export class StrategyService implements IStrategyService {
   }
 
   /**
-   * Calculate indicators (placeholder - real implementation in indicators module)
+   * Calculate indicators based on configuration
+   * Converts OHLCV data and calculates each indicator using indicators module
    */
-  private calculateIndicators(ohlcvData: any[], _indicators: any[]): Record<string, any> {
-    // Placeholder implementation
-    return {
-      rsi: 50,
-      macd: { value: 0, signal: 0, histogram: 0 },
-      sma_20: ohlcvData[ohlcvData.length - 1]?.close || 0,
-    };
+  private async calculateIndicators(
+    ohlcvData: any[],
+    indicators: IndicatorConfig[]
+  ): Promise<Record<string, any>> {
+    if (!ohlcvData || ohlcvData.length === 0) {
+      logger.warn('No OHLCV data provided for indicator calculation');
+      return {};
+    }
+
+    if (!indicators || indicators.length === 0) {
+      return {};
+    }
+
+    // Convert OHLCV data to the format expected by calculator
+    const convertedData = ohlcvData.map((candle) => ({
+      timestamp: candle.timestamp,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      volume: candle.volume,
+    }));
+
+    const results: Record<string, any> = {};
+
+    // Import indicator calculator dynamically
+    const {
+      calculateRSI,
+      calculateMACD,
+      calculateEMA,
+      calculateSMA,
+      calculateBBands,
+      calculateATR,
+      calculateStoch,
+      calculateADX,
+      getLatestValue,
+    } = await import('@/modules/indicators/utils/calculator-v2');
+
+    // Calculate each indicator
+    for (const indicator of indicators) {
+      if (!indicator.enabled) continue;
+
+      try {
+        const params = indicator.parameters || {};
+        let indicatorResult: any;
+
+        switch (indicator.type.toLowerCase()) {
+          case 'rsi':
+            indicatorResult = await calculateRSI(convertedData, params.period || 14);
+            results.rsi = getLatestValue(indicatorResult);
+            break;
+
+          case 'macd':
+            indicatorResult = await calculateMACD(
+              convertedData,
+              params.fastPeriod || 12,
+              params.slowPeriod || 26,
+              params.signalPeriod || 9
+            );
+            results.macd = {
+              value: getLatestValue(indicatorResult.macd),
+              signal: getLatestValue(indicatorResult.signal),
+              histogram: getLatestValue(indicatorResult.histogram),
+            };
+            break;
+
+          case 'ema':
+            indicatorResult = await calculateEMA(convertedData, params.period || 20);
+            const key = `ema_${params.period || 20}`;
+            results[key] = getLatestValue(indicatorResult);
+            break;
+
+          case 'sma':
+            indicatorResult = await calculateSMA(convertedData, params.period || 20);
+            const smaKey = `sma_${params.period || 20}`;
+            results[smaKey] = getLatestValue(indicatorResult);
+            break;
+
+          case 'bollinger_bands':
+          case 'bbands':
+            indicatorResult = await calculateBBands(
+              convertedData,
+              params.period || 20,
+              params.stdDev || 2
+            );
+            results.bollinger_bands = {
+              upper: getLatestValue(indicatorResult.upper),
+              middle: getLatestValue(indicatorResult.middle),
+              lower: getLatestValue(indicatorResult.lower),
+            };
+            break;
+
+          case 'atr':
+            indicatorResult = await calculateATR(convertedData, params.period || 14);
+            results.atr = getLatestValue(indicatorResult);
+            break;
+
+          case 'stochastic':
+          case 'stoch':
+            indicatorResult = await calculateStoch(
+              convertedData,
+              params.kPeriod || 14,
+              params.kSlowing || 3,
+              params.dPeriod || 3
+            );
+            results.stochastic = {
+              k: getLatestValue(indicatorResult.k),
+              d: getLatestValue(indicatorResult.d),
+            };
+            break;
+
+          case 'adx':
+            indicatorResult = await calculateADX(convertedData, params.period || 14);
+            results.adx = getLatestValue(indicatorResult);
+            break;
+
+          default:
+            logger.warn(`Unsupported indicator type: ${indicator.type}`);
+        }
+      } catch (error) {
+        logger.error(`Error calculating indicator ${indicator.type}`, { error });
+        // Continue with other indicators instead of failing completely
+      }
+    }
+
+    return results;
   }
 
   /**
-   * Evaluate conditions (placeholder - real implementation would be more sophisticated)
+   * Evaluate conditions based on indicator values
+   * Supports multiple condition types and operators
    */
-  private evaluateConditions(_indicatorValues: Record<string, any>, _conditions: any[]): string | null {
-    // Placeholder: Random signal generation for demonstration
-    const random = Math.random();
-    if (random > 0.9) return 'buy';
-    if (random < 0.1) return 'sell';
+  private evaluateConditions(
+    indicatorValues: Record<string, any>,
+    conditions: StrategyCondition[]
+  ): SignalType | null {
+    if (!conditions || conditions.length === 0) {
+      return null;
+    }
+
+    let entrySignal: SignalType | null = null;
+    let exitSignal: SignalType | null = null;
+
+    // Evaluate entry and exit conditions separately
+    for (const condition of conditions) {
+      const conditionMet = this.evaluateConditionRules(indicatorValues, condition);
+
+      if (conditionMet) {
+        if (condition.type === 'entry') {
+          // For entry conditions, we need to determine buy/sell
+          // This is a simplified approach - real strategies might be more complex
+          entrySignal = this.determineEntrySignal(indicatorValues, condition);
+        } else if (condition.type === 'exit') {
+          exitSignal = this.determineExitSignal(indicatorValues, condition);
+        }
+      }
+    }
+
+    // Prioritize exit signals over entry signals
+    if (exitSignal) {
+      return exitSignal;
+    }
+
+    return entrySignal;
+  }
+
+  /**
+   * Evaluate condition rules with AND/OR logic
+   */
+  private evaluateConditionRules(
+    indicatorValues: Record<string, any>,
+    condition: StrategyCondition
+  ): boolean {
+    if (!condition.rules || condition.rules.length === 0) {
+      return false;
+    }
+
+    const ruleResults = condition.rules.map((rule) =>
+      this.evaluateRule(indicatorValues, rule)
+    );
+
+    // Apply logic operator
+    if (condition.logic === 'AND') {
+      return ruleResults.every((result) => result);
+    } else {
+      // OR logic
+      return ruleResults.some((result) => result);
+    }
+  }
+
+  /**
+   * Evaluate a single condition rule
+   */
+  private evaluateRule(indicatorValues: Record<string, any>, rule: ConditionRule): boolean {
+    const indicatorValue = this.getIndicatorValue(indicatorValues, rule.indicator);
+
+    if (indicatorValue === null || indicatorValue === undefined) {
+      return false;
+    }
+
+    const compareValue = typeof rule.value === 'string'
+      ? this.getIndicatorValue(indicatorValues, rule.value)
+      : rule.value;
+
+    if (compareValue === null || compareValue === undefined) {
+      return false;
+    }
+
+    switch (rule.operator) {
+      case '>':
+        return indicatorValue > compareValue;
+      case '<':
+        return indicatorValue < compareValue;
+      case '>=':
+        return indicatorValue >= compareValue;
+      case '<=':
+        return indicatorValue <= compareValue;
+      case '==':
+        return Math.abs(indicatorValue - compareValue) < 0.0001;
+      case '!=':
+        return Math.abs(indicatorValue - compareValue) >= 0.0001;
+      case 'crosses_above':
+        // For crossover detection, we'd need historical data
+        // Simplified: just check if current value is above
+        return indicatorValue > compareValue;
+      case 'crosses_below':
+        // Simplified: just check if current value is below
+        return indicatorValue < compareValue;
+      default:
+        logger.warn(`Unsupported operator: ${rule.operator}`);
+        return false;
+    }
+  }
+
+  /**
+   * Get indicator value from the results object
+   * Supports nested paths like 'macd.histogram' or 'bollinger_bands.upper'
+   */
+  private getIndicatorValue(indicatorValues: Record<string, any>, path: string): number | null {
+    if (!path || !indicatorValues) {
+      return null;
+    }
+
+    const parts = path.split('.');
+    let value: any = indicatorValues;
+
+    for (const part of parts) {
+      if (value === null || value === undefined || typeof value !== 'object') {
+        return null;
+      }
+      value = value[part];
+    }
+
+    return typeof value === 'number' ? value : null;
+  }
+
+  /**
+   * Determine entry signal type based on conditions
+   */
+  private determineEntrySignal(
+    indicatorValues: Record<string, any>,
+    _condition: StrategyCondition
+  ): SignalType | null {
+    // Simplified logic: Check RSI for overbought/oversold
+    const rsi = indicatorValues.rsi;
+
+    if (rsi !== null && rsi !== undefined) {
+      if (rsi < 30) {
+        return 'buy'; // Oversold
+      }
+      if (rsi > 70) {
+        return 'sell'; // Overbought
+      }
+    }
+
+    // Check MACD for bullish/bearish signal
+    const macd = indicatorValues.macd;
+    if (macd && macd.histogram !== null && macd.histogram !== undefined) {
+      if (macd.histogram > 0) {
+        return 'buy'; // Bullish
+      }
+      if (macd.histogram < 0) {
+        return 'sell'; // Bearish
+      }
+    }
+
     return null;
   }
 
   /**
-   * Run backtest asynchronously (placeholder)
+   * Determine exit signal type based on conditions
+   */
+  private determineExitSignal(
+    indicatorValues: Record<string, any>,
+    _condition: StrategyCondition
+  ): SignalType | null {
+    const rsi = this.getIndicatorValue(indicatorValues, 'rsi');
+    if (rsi !== null) {
+      if (rsi >= 70) {
+        return 'close_long';
+      }
+      if (rsi <= 30) {
+        return 'close_short';
+      }
+    }
+
+    const macdHistogram = this.getIndicatorValue(indicatorValues, 'macd.histogram');
+    if (macdHistogram !== null) {
+      if (macdHistogram < 0) {
+        return 'close_long';
+      }
+      if (macdHistogram > 0) {
+        return 'close_short';
+      }
+    }
+
+    const stochasticK = this.getIndicatorValue(indicatorValues, 'stochastic.k');
+    const stochasticD = this.getIndicatorValue(indicatorValues, 'stochastic.d');
+    if (stochasticK !== null && stochasticD !== null) {
+      if (stochasticK < stochasticD) {
+        return 'close_long';
+      }
+      if (stochasticK > stochasticD) {
+        return 'close_short';
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Calculate signal quality metrics
+   */
+  private calculateSignalQuality(
+    indicatorValues: Record<string, any>,
+    conditions: StrategyCondition[] | undefined,
+    signalType: SignalType | null
+  ): { strength: number; confidence: number } {
+    if (!signalType) {
+      return { strength: 0, confidence: 0 };
+    }
+
+    const relevantConditions = (conditions || []).filter((condition) =>
+      signalType === 'buy' || signalType === 'sell'
+        ? condition.type === 'entry'
+        : condition.type === 'exit'
+    );
+
+    let totalRules = 0;
+    let matchedRules = 0;
+
+    for (const condition of relevantConditions) {
+      for (const rule of condition.rules || []) {
+        totalRules += 1;
+        if (this.evaluateRule(indicatorValues, rule)) {
+          matchedRules += 1;
+        }
+      }
+    }
+
+    const baseStrength =
+      totalRules > 0
+        ? matchedRules / totalRules
+        : relevantConditions.length > 0
+          ? 0.5
+          : 0.25;
+
+    const strengthRatio = Math.min(1, Math.max(0, baseStrength));
+
+    const rsi = this.getIndicatorValue(indicatorValues, 'rsi');
+    let rsiScore = 0;
+    if (rsi !== null) {
+      if (signalType === 'buy' || signalType === 'close_short') {
+        rsiScore = Math.max(0, Math.min(1, (70 - rsi) / 40));
+      } else if (signalType === 'sell' || signalType === 'close_long') {
+        rsiScore = Math.max(0, Math.min(1, (rsi - 30) / 40));
+      }
+    }
+
+    const macdHistogram = this.getIndicatorValue(indicatorValues, 'macd.histogram');
+    let macdScore = 0;
+    if (macdHistogram !== null) {
+      const normalized = Math.min(1, Math.abs(macdHistogram) / 2);
+      if (signalType === 'buy' || signalType === 'close_short') {
+        macdScore = macdHistogram > 0 ? normalized : 0;
+      } else if (signalType === 'sell' || signalType === 'close_long') {
+        macdScore = macdHistogram < 0 ? normalized : 0;
+      }
+    }
+
+    const stochasticK = this.getIndicatorValue(indicatorValues, 'stochastic.k');
+    const stochasticD = this.getIndicatorValue(indicatorValues, 'stochastic.d');
+    let stochasticScore = 0;
+    if (stochasticK !== null && stochasticD !== null) {
+      const diff = stochasticK - stochasticD;
+      const normalizedDiff = Math.min(1, Math.abs(diff) / 20);
+      if (signalType === 'buy' || signalType === 'close_short') {
+        stochasticScore = diff > 0 ? normalizedDiff : 0;
+      } else if (signalType === 'sell' || signalType === 'close_long') {
+        stochasticScore = diff < 0 ? normalizedDiff : 0;
+      }
+    }
+
+    const scoreComponents = [strengthRatio];
+    if (rsiScore > 0) scoreComponents.push(rsiScore);
+    if (macdScore > 0) scoreComponents.push(macdScore);
+    if (stochasticScore > 0) scoreComponents.push(stochasticScore);
+
+    const confidence = scoreComponents.length
+      ? scoreComponents.reduce((sum, value) => sum + value, 0) / scoreComponents.length
+      : strengthRatio;
+
+    return {
+      strength: Math.round(strengthRatio * 100),
+      confidence: Number(Math.min(1, Math.max(0, confidence)).toFixed(2)),
+    };
+  }
+
+  /**
+   * Run backtest asynchronously with full simulation
    */
   private async runBacktestAsync(
     backtestId: string,
@@ -697,34 +1108,243 @@ export class StrategyService implements IStrategyService {
     request: RunBacktestRequest
   ): Promise<void> {
     try {
-      // Placeholder implementation
-      // Real implementation would:
+      logger.info('Starting backtest execution', { backtestId, strategyId: strategy.id });
+
       // 1. Fetch historical OHLCV data
-      // 2. Simulate strategy execution
-      // 3. Calculate performance metrics
-      // 4. Store results
+      const ohlcvData = await OHLCVService.fetchOHLCV({
+        exchangeId: strategy.exchangeId,
+        symbol: strategy.symbol,
+        timeframe: strategy.timeframe as any,
+        since: request.startDate,
+        limit: 10000, // Maximum data points
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate processing
+      if (ohlcvData.length === 0) {
+        throw new Error('No historical data available for the specified period');
+      }
 
-      // Update backtest with results
+      logger.info('Historical data fetched', {
+        backtestId,
+        candlesCount: ohlcvData.length,
+        startDate: ohlcvData[0].timestamp,
+        endDate: ohlcvData[ohlcvData.length - 1].timestamp,
+      });
+
+      // 2. Initialize backtest state
+      let capital = request.initialCapital;
+      let position: {
+        side: 'long' | 'short';
+        entryPrice: number;
+        entryTime: Date;
+        quantity: number;
+      } | null = null;
+
+      const trades: BacktestTrade[] = [];
+      const equityCurve: EquityCurvePoint[] = [];
+      let maxEquity = capital;
+      let maxDrawdown = 0;
+      let peakCapital = capital;
+
+      const SLIPPAGE_PERCENT = 0.1; // 0.1%
+      const FEE_PERCENT = 0.1; // 0.1%
+
+      // 3. Simulate strategy execution candle by candle
+      for (let i = 0; i < ohlcvData.length; i++) {
+        const currentCandle = ohlcvData[i];
+        const historicalData = ohlcvData.slice(0, i + 1);
+
+        // Calculate indicators for current state
+        const indicatorValues = await this.calculateIndicators(
+          historicalData,
+          strategy.indicators as any
+        );
+
+        // Evaluate conditions to generate signal
+        const signal = this.evaluateConditions(indicatorValues, strategy.conditions as any);
+
+        // Current equity (capital + unrealized PnL)
+        let currentEquity = capital;
+        if (position) {
+          const unrealizedPnl = this.calculateUnrealizedPnL(position, currentCandle.close);
+          currentEquity += unrealizedPnl;
+        }
+
+        // Update drawdown
+        if (currentEquity > peakCapital) {
+          peakCapital = currentEquity;
+        }
+        const drawdown = peakCapital - currentEquity;
+        const drawdownPercent = (drawdown / peakCapital) * 100;
+        if (drawdown > maxDrawdown) {
+          maxDrawdown = drawdown;
+        }
+
+        // Record equity curve
+        equityCurve.push({
+          timestamp: currentCandle.timestamp,
+          equity: currentEquity,
+          drawdown: drawdownPercent,
+        });
+
+        // Check stop loss and take profit
+        if (position) {
+          const shouldExit = this.shouldExitPosition(
+            position,
+            currentCandle.close,
+            strategy.stopLossPercent,
+            strategy.takeProfitPercent
+          );
+
+          if (shouldExit) {
+            // Close position
+            const exitPrice = this.applySlippage(
+              currentCandle.close,
+              position.side === 'long' ? 'sell' : 'buy',
+              SLIPPAGE_PERCENT
+            );
+            const pnl = this.calculatePnL(position, exitPrice, FEE_PERCENT);
+            capital += pnl;
+
+            trades.push({
+              entryTime: position.entryTime,
+              entryPrice: position.entryPrice,
+              exitTime: currentCandle.timestamp,
+              exitPrice,
+              quantity: position.quantity,
+              side: position.side,
+              pnl,
+              pnlPercent: (pnl / (position.entryPrice * position.quantity)) * 100,
+              fees: (position.entryPrice * position.quantity * FEE_PERCENT) / 100 +
+                    (exitPrice * position.quantity * FEE_PERCENT) / 100,
+              reason: shouldExit.reason,
+            });
+
+            position = null;
+            logger.debug('Position closed', { backtestId, pnl, reason: shouldExit.reason });
+          }
+        }
+
+        // Execute signal if no position
+        if (!position && signal && (signal === 'buy' || signal === 'sell')) {
+          const side = signal === 'buy' ? 'long' : 'short';
+          const entryPrice = this.applySlippage(currentCandle.close, signal, SLIPPAGE_PERCENT);
+
+          // Calculate position size (risk management)
+          const maxPositionSize = strategy.maxPositionSize || capital;
+          const positionCapital = Math.min(capital * 0.95, maxPositionSize); // Use 95% max
+          const quantity = positionCapital / entryPrice;
+
+          position = {
+            side,
+            entryPrice,
+            entryTime: currentCandle.timestamp,
+            quantity,
+          };
+
+          logger.debug('Position opened', { backtestId, side, entryPrice, quantity });
+        }
+      }
+
+      // Close any remaining open position at the end
+      if (position) {
+        const lastCandle = ohlcvData[ohlcvData.length - 1];
+        const exitPrice = this.applySlippage(
+          lastCandle.close,
+          position.side === 'long' ? 'sell' : 'buy',
+          SLIPPAGE_PERCENT
+        );
+        const pnl = this.calculatePnL(position, exitPrice, FEE_PERCENT);
+        capital += pnl;
+
+        trades.push({
+          entryTime: position.entryTime,
+          entryPrice: position.entryPrice,
+          exitTime: lastCandle.timestamp,
+          exitPrice,
+          quantity: position.quantity,
+          side: position.side,
+          pnl,
+          pnlPercent: (pnl / (position.entryPrice * position.quantity)) * 100,
+          fees: (position.entryPrice * position.quantity * FEE_PERCENT) / 100 +
+                (exitPrice * position.quantity * FEE_PERCENT) / 100,
+          reason: 'End of backtest period',
+        });
+      }
+
+      // 4. Calculate performance metrics
+      const finalCapital = capital;
+      const totalReturn = finalCapital - request.initialCapital;
+      const totalReturnPercent = (totalReturn / request.initialCapital) * 100;
+
+      const winningTrades = trades.filter((t) => t.pnl > 0);
+      const losingTrades = trades.filter((t) => t.pnl <= 0);
+      const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
+
+      const grossProfit = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
+      const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
+      const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 999 : 0;
+
+      const averageWin = winningTrades.length > 0
+        ? winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length
+        : 0;
+      const averageLoss = losingTrades.length > 0
+        ? losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length
+        : 0;
+
+      const largestWin = winningTrades.length > 0
+        ? Math.max(...winningTrades.map((t) => t.pnl))
+        : 0;
+      const largestLoss = losingTrades.length > 0
+        ? Math.min(...losingTrades.map((t) => t.pnl))
+        : 0;
+
+      // Calculate Sharpe Ratio (simplified)
+      const returns = trades.map((t) => t.pnlPercent);
+      const averageReturn = returns.length > 0
+        ? returns.reduce((sum, r) => sum + r, 0) / returns.length
+        : 0;
+      const stdDevReturns = returns.length > 1
+        ? Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - averageReturn, 2), 0) / (returns.length - 1))
+        : 0;
+      const sharpeRatio = stdDevReturns > 0 ? averageReturn / stdDevReturns : 0;
+
+      const maxDrawdownPercent = peakCapital > 0 ? (maxDrawdown / peakCapital) * 100 : 0;
+
+      logger.info('Backtest metrics calculated', {
+        backtestId,
+        totalTrades: trades.length,
+        winRate,
+        profitFactor,
+        sharpeRatio,
+      });
+
+      // 5. Store results in database
       await db
         .update(strategyBacktests)
         .set({
           status: 'completed',
-          finalCapital: (request.initialCapital * 1.1).toString(), // Placeholder
-          totalReturn: (request.initialCapital * 0.1).toString(),
-          totalReturnPercent: '10',
-          totalTrades: '50',
-          winningTrades: '30',
-          losingTrades: '20',
-          winRate: '60',
-          profitFactor: '1.5',
-          sharpeRatio: '1.2',
+          finalCapital: finalCapital.toString(),
+          totalReturn: totalReturn.toString(),
+          totalReturnPercent: totalReturnPercent.toFixed(2),
+          totalTrades: trades.length.toString(),
+          winningTrades: winningTrades.length.toString(),
+          losingTrades: losingTrades.length.toString(),
+          winRate: winRate.toFixed(2),
+          profitFactor: profitFactor.toFixed(2),
+          sharpeRatio: sharpeRatio.toFixed(2),
+          maxDrawdown: maxDrawdown.toString(),
+          maxDrawdownPercent: maxDrawdownPercent.toFixed(2),
+          averageWin: averageWin.toString(),
+          averageLoss: averageLoss.toString(),
+          largestWin: largestWin.toString(),
+          largestLoss: largestLoss.toString(),
+          trades: trades as any,
+          equityCurve: equityCurve as any,
           completedAt: new Date(),
         })
         .where(eq(strategyBacktests.id, backtestId));
 
-      logger.info('Backtest completed', { backtestId });
+      logger.info('Backtest completed successfully', { backtestId, finalCapital, totalReturn });
     } catch (error) {
       logger.error('Backtest failed', { backtestId, error });
 
@@ -736,6 +1356,102 @@ export class StrategyService implements IStrategyService {
         })
         .where(eq(strategyBacktests.id, backtestId));
     }
+  }
+
+  /**
+   * Calculate unrealized PnL for an open position
+   */
+  private calculateUnrealizedPnL(
+    position: { side: 'long' | 'short'; entryPrice: number; quantity: number },
+    currentPrice: number
+  ): number {
+    if (position.side === 'long') {
+      return (currentPrice - position.entryPrice) * position.quantity;
+    } else {
+      return (position.entryPrice - currentPrice) * position.quantity;
+    }
+  }
+
+  /**
+   * Check if position should be exited based on stop loss or take profit
+   */
+  private shouldExitPosition(
+    position: { side: 'long' | 'short'; entryPrice: number },
+    currentPrice: number,
+    stopLossPercent?: number,
+    takeProfitPercent?: number
+  ): { shouldExit: boolean; reason: string } | null {
+    if (position.side === 'long') {
+      // Check stop loss
+      if (stopLossPercent) {
+        const stopLossPrice = position.entryPrice * (1 - stopLossPercent / 100);
+        if (currentPrice <= stopLossPrice) {
+          return { shouldExit: true, reason: 'Stop loss triggered' };
+        }
+      }
+
+      // Check take profit
+      if (takeProfitPercent) {
+        const takeProfitPrice = position.entryPrice * (1 + takeProfitPercent / 100);
+        if (currentPrice >= takeProfitPrice) {
+          return { shouldExit: true, reason: 'Take profit triggered' };
+        }
+      }
+    } else {
+      // Short position
+      // Check stop loss
+      if (stopLossPercent) {
+        const stopLossPrice = position.entryPrice * (1 + stopLossPercent / 100);
+        if (currentPrice >= stopLossPrice) {
+          return { shouldExit: true, reason: 'Stop loss triggered' };
+        }
+      }
+
+      // Check take profit
+      if (takeProfitPercent) {
+        const takeProfitPrice = position.entryPrice * (1 - takeProfitPercent / 100);
+        if (currentPrice <= takeProfitPrice) {
+          return { shouldExit: true, reason: 'Take profit triggered' };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Apply slippage to execution price
+   */
+  private applySlippage(price: number, side: string, slippagePercent: number): number {
+    if (side === 'buy') {
+      return price * (1 + slippagePercent / 100);
+    } else {
+      return price * (1 - slippagePercent / 100);
+    }
+  }
+
+  /**
+   * Calculate realized PnL for a closed position
+   */
+  private calculatePnL(
+    position: { side: 'long' | 'short'; entryPrice: number; quantity: number },
+    exitPrice: number,
+    feePercent: number
+  ): number {
+    let pnl: number;
+
+    if (position.side === 'long') {
+      pnl = (exitPrice - position.entryPrice) * position.quantity;
+    } else {
+      pnl = (position.entryPrice - exitPrice) * position.quantity;
+    }
+
+    // Subtract fees
+    const entryFee = (position.entryPrice * position.quantity * feePercent) / 100;
+    const exitFee = (exitPrice * position.quantity * feePercent) / 100;
+    pnl -= (entryFee + exitFee);
+
+    return pnl;
   }
 
   /**

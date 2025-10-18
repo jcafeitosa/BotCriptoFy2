@@ -1,5 +1,10 @@
 import { Elysia } from 'elysia';
-import logger, { logRequest, getCorrelationId } from '../utils/logger';
+import logger, {
+  logRequest,
+  getCorrelationId,
+  setLoggerContext,
+  updateLoggerContext,
+} from '../utils/logger';
 
 /**
  * Enterprise-Grade Logging Middleware
@@ -44,6 +49,12 @@ export const loggerMiddleware = new Elysia({ name: 'logger' })
     // Attach to request
     (request as any).context = context;
 
+    // Bind logger context for the lifecycle of this request
+    setLoggerContext({
+      correlationId: correlation_id,
+      requestId: correlation_id,
+    });
+
     // Log incoming request (debug level only, minimal metadata)
     logger.debug(`→ ${request.method} ${path}`, {
       source: 'http',
@@ -73,6 +84,13 @@ export const loggerMiddleware = new Elysia({ name: 'logger' })
     // Extract user context if available (from auth middleware)
     const user_id = (request as any).user?.id;
     const tenant_id = (request as any).tenant?.id;
+
+    if (user_id || tenant_id) {
+      updateLoggerContext({
+        userId: user_id,
+        tenantId: tenant_id,
+      });
+    }
 
     // Log request with minimal context
     logRequest(
@@ -111,6 +129,13 @@ export const loggerMiddleware = new Elysia({ name: 'logger' })
     // Extract user context
     const user_id = (request as any).user?.id;
     const tenant_id = (request as any).tenant?.id;
+
+    if (user_id || tenant_id) {
+      updateLoggerContext({
+        userId: user_id,
+        tenantId: tenant_id,
+      });
+    }
 
     // Extract error details safely
     const errorMessage = error instanceof Error ? error.message : String(error);

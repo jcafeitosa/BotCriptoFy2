@@ -198,6 +198,7 @@ class RedisInstanceTester {
       high24h: 110000,
       low24h: 95000,
       volume24h: 1000000,
+      change24h: 5.5,
     };
 
     const messageKey = `ticker:${ticker.symbol}:${ticker.last}`;
@@ -218,12 +219,14 @@ class RedisInstanceTester {
 
   private publishTrade(bridge: RedisEventBridge, instanceId: number): void {
     const trade: Trade = {
+      id: `trade-${Date.now()}-${Math.random()}`,
       exchange: 'binance',
       symbol: 'BTC/USDT',
       timestamp: Date.now(),
       side: Math.random() > 0.5 ? 'buy' : 'sell',
       price: 100000 + Math.random() * 10000,
       amount: Math.random() * 10,
+      takerOrMaker: Math.random() > 0.5 ? 'taker' : 'maker',
     };
 
     const messageKey = `trade:${trade.symbol}:${trade.price}:${trade.amount}`;

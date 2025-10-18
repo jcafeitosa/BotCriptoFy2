@@ -9,6 +9,9 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import logger from '../../../utils/logger';
 import type { CreateCopySettingsRequest, CopySettings, ServiceResponse } from '../types/social.types';
 import { prepareCopiedTrade, type TradeToConform } from '../utils/copy-engine';
+import { ExchangeService } from '../../exchanges/services/exchange.service';
+import { OrderService } from '../../orders/services/order.service';
+import type { CreateOrderRequest, TradingOrder } from '../../orders/types/orders.types';
 
 export interface UpdateCopySettingsRequest {
   copyRatio?: number;
@@ -267,35 +270,58 @@ export async function executeCopiedTrade(
 
     // Execute actual trade via orders module
     try {
-      const { OrderService } = await import('../../orders/services/order.service');
-
-      // Create order through Orders Service
-      // Note: We use the original trade's exchange connection if available,
-      // otherwise fall back to a default exchange connection for the copier
-      const order = await OrderService.createOrder(
+      const connections = await ExchangeService.getUserConnections(
         settings.copierId,
-        settings.tenantId,
-        {
-          exchangeConnectionId: 'default', // TODO: Get copier's exchange connection
-          symbol: copiedTrade.symbol,
-          type: 'market', // Copy trades execute at market price
-          side: copiedTrade.side,
-          amount: copiedTrade.adjustedAmount,
-          timeInForce: 'GTC',
-          strategy: copySettingsId, // Track that this order is from copy trading
-          notes: `Copy trade from trader ${settings.traderId}`,
-        }
+        settings.tenantId
       );
 
-      // Trade record is already created with status 'open'
-      // The order execution will be tracked separately in the orders module
+      if (connections.length === 0) {
+        await db
+          .update(socialCopiedTrades)
+          .set({ status: 'failed' })
+          .where(eq(socialCopiedTrades.id, trade.id));
+
+        return {
+          success: false,
+          error: 'Copier has no active exchange connection',
+          code: 'NO_EXCHANGE_CONNECTION',
+        };
+      }
+
+      const connection = connections[0];
+
+      const orderRequest: CreateOrderRequest = {
+        exchangeConnectionId: connection.id,
+        symbol: copiedTrade.symbol,
+        type: 'market',
+        side: copiedTrade.side,
+        amount: Number(copiedTrade.adjustedAmount),
+        ...(copiedTrade.stopLoss ? { stopPrice: copiedTrade.stopLoss } : {}),
+        timeInForce: 'GTC',
+        strategy: `copy:${copySettingsId}`,
+        notes: `Copy trade from trader ${settings.traderId}`,
+      };
+
+      const order: TradingOrder = await OrderService.createOrder(
+        settings.copierId,
+        settings.tenantId,
+        orderRequest
+      );
+
       logger.info('Copy trade order created', {
         copyTradeId: trade.id,
         orderId: order.id,
         symbol: copiedTrade.symbol,
+        exchangeConnectionId: connection.id,
       });
 
-      return { success: true, data: trade };
+      return {
+        success: true,
+        data: {
+          trade,
+          order,
+        },
+      };
     } catch (orderError) {
       // Mark trade as failed if order creation fails
       await db

@@ -11,11 +11,11 @@ const adapter = new BinanceAdapter({
   pingInterval: 30000,
   pongTimeout: 10000,
   reconnection: {
-    enabled: true,
-    maxRetries: 3,
+    maxAttempts: 3,
     initialDelay: 1000,
     maxDelay: 30000,
     backoffMultiplier: 2,
+    jitterFactor: 0.1,
   },
 });
 

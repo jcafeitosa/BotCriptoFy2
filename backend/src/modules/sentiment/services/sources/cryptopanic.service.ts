@@ -100,7 +100,7 @@ export class CryptoPanicService {
         throw new Error(`CryptoPanic API error: ${response.status} ${response.statusText}`);
       }
 
-      const data: CryptoPanicResponse = await response.json();
+      const data = await response.json() as CryptoPanicResponse;
       this.lastFetchTimestamp = new Date();
 
       return data.results.map((post) => this.transformToNewsArticle(post));
@@ -213,18 +213,6 @@ export class CryptoPanicService {
       isAnalyzed: totalVotes > 0, // If has votes, we have community sentiment
       isImportant,
       isTrending,
-
-      // Metadata
-      metadata: {
-        cryptopanic: {
-          id: post.id,
-          kind: post.kind,
-          domain: post.domain,
-          slug: post.slug,
-          votes: post.votes,
-          created_at: post.created_at,
-        },
-      },
     };
 
     return article;
@@ -305,7 +293,7 @@ export class CryptoPanicService {
           throw new Error(`CryptoPanic API error: ${response.status}`);
         }
 
-        const data: CryptoPanicResponse = await response.json();
+        const data = await response.json() as CryptoPanicResponse;
         const articles = data.results.map((post) => this.transformToNewsArticle(post));
 
         yield articles;

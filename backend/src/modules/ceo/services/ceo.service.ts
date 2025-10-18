@@ -7,6 +7,7 @@ import { db } from '../../../db';
 import { eq, and, sql, gte, lte, desc } from 'drizzle-orm';
 import { ceoDashboardConfigs, ceoKpis, ceoAlerts } from '../schema/ceo.schema';
 import { tenantSubscriptionPlans, subscriptionPlans } from '../../subscriptions/schema/subscription-plans.schema';
+import { subscriptionHistory } from '../../subscriptions/schema/subscription-history.schema';
 import { users } from '../../auth/schema/auth.schema';
 import { cacheManager } from '../../../cache/cache-manager';
 import logger from '../../../utils/logger';
@@ -333,6 +334,45 @@ export class CeoService {
       // Calculate ARPU (Average Revenue Per User)
       const arpu = activeSubscriptions.length > 0 ? mrr / activeSubscriptions.length : 0;
 
+      // Calculate churned revenue from canceled subscriptions in period
+      const churnedRevenueResult = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(${subscriptionHistory.oldPrice} AS DECIMAL)), 0)`,
+        })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'canceled'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const churnedRevenue = parseFloat(churnedRevenueResult[0]?.total || '0');
+
+      // Calculate expansion revenue from upgrades in period
+      const upgradesResult = await db
+        .select({
+          oldPrice: subscriptionHistory.oldPrice,
+          newPrice: subscriptionHistory.newPrice,
+        })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'upgraded'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const expansionRevenue = upgradesResult.reduce((sum, upgrade) => {
+        const oldPrice = parseFloat(upgrade.oldPrice || '0');
+        const newPrice = parseFloat(upgrade.newPrice || '0');
+        return sum + Math.max(0, newPrice - oldPrice);
+      }, 0);
+
       const metrics: RevenueMetrics = {
         mrr,
         arr,
@@ -342,8 +382,8 @@ export class CeoService {
         arrGrowth,
         revenueGrowth: mrrGrowth,
         arpu,
-        churnedRevenue: 0, // TODO: Calculate from canceled subscriptions
-        expansionRevenue: 0, // TODO: Calculate from upgrades
+        churnedRevenue,
+        expansionRevenue,
         revenueByPlan: Object.values(revenueByPlan).map((item) => ({
           ...item,
           percentage: mrr > 0 ? (item.revenue / mrr) * 100 : 0,
@@ -546,11 +586,95 @@ export class CeoService {
 
       const prevActiveSubscriptions = prevActiveSubsResult[0]?.count || 0;
 
+      // Count canceled subscriptions in period
+      const canceledSubsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'canceled'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const canceledSubscriptions = canceledSubsResult[0]?.count || 0;
+
+      // Count upgrades in period
+      const upgradesCountResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'upgraded'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const upgrades = upgradesCountResult[0]?.count || 0;
+
+      // Count downgrades in period
+      const downgradesCountResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'downgraded'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const downgrades = downgradesCountResult[0]?.count || 0;
+
+      // Count cancellations in period (same as canceledSubscriptions)
+      const cancellations = canceledSubscriptions;
+
+      // Calculate trial conversion rate
+      // Find trials created in period
+      const trialsCreatedResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.eventType, 'created'),
+            eq(subscriptionHistory.oldStatus, 'trialing'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const trialsCreated = trialsCreatedResult[0]?.count || 0;
+
+      // Find trials that converted to active in period
+      const trialsConvertedResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(subscriptionHistory)
+        .where(
+          and(
+            eq(subscriptionHistory.tenantId, tenantId),
+            eq(subscriptionHistory.oldStatus, 'trialing'),
+            eq(subscriptionHistory.newStatus, 'active'),
+            gte(subscriptionHistory.eventTime, startDate),
+            lte(subscriptionHistory.eventTime, endDate)
+          )
+        );
+
+      const trialsConverted = trialsConvertedResult[0]?.count || 0;
+
+      // Calculate conversion rate percentage
+      const trialConversionRate = trialsCreated > 0 ? (trialsConverted / trialsCreated) * 100 : 0;
+
       const metrics: SubscriptionMetrics = {
         totalSubscriptions,
         activeSubscriptions,
         trialingSubscriptions,
-        canceledSubscriptions: 0, // TODO: Count canceled in period
+        canceledSubscriptions,
         subscriptionsByPlan: subsByPlan.map((item) => ({
           planId: item.planId,
           planName: item.planName,
@@ -563,10 +687,10 @@ export class CeoService {
           percentage: activeSubscriptions > 0 ? (item.count / activeSubscriptions) * 100 : 0,
         })),
         newSubscriptions,
-        upgrades: 0, // TODO: Count upgrades in period
-        downgrades: 0, // TODO: Count downgrades in period
-        cancellations: 0, // TODO: Count cancellations in period
-        trialConversionRate: 75, // TODO: Calculate actual conversion rate
+        upgrades,
+        downgrades,
+        cancellations,
+        trialConversionRate,
         previousPeriod: {
           totalSubscriptions: prevActiveSubscriptions,
           activeSubscriptions: prevActiveSubscriptions,

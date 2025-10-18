@@ -6,6 +6,15 @@
  */
 
 import { Elysia, t } from 'elysia';
+import { db } from '@/db';
+import { eq, and, gte, lte, desc, sql, inArray } from 'drizzle-orm';
+import {
+  newsArticles,
+  socialMentions,
+  sentimentScores,
+  sentimentHistory,
+  sentimentAlerts,
+} from '../schema/sentiment.schema';
 import { websocketStreamingService } from '../services/streaming/websocket-streaming.service';
 import { hybridSentimentService } from '../services/analysis/sentiment-hybrid.service';
 import { sentimentAggregator } from '../services/aggregator/sentiment-aggregator.service';
@@ -15,6 +24,43 @@ import { rssFeedsService } from '../services/sources/rss-feeds.service';
 import { cryptoPanicService } from '../services/sources/cryptopanic.service';
 import { twitterService } from '../services/sources/twitter.service';
 import { redditService } from '../services/sources/reddit.service';
+
+/**
+ * Helper: Parse timeframe string to milliseconds
+ */
+function parseTimeframe(timeframe: string): number {
+  const match = timeframe.match(/^(\d+)([mhd])$/);
+  if (!match) return 86400000; // Default 24h
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 'm': return value * 60 * 1000; // minutes
+    case 'h': return value * 60 * 60 * 1000; // hours
+    case 'd': return value * 24 * 60 * 60 * 1000; // days
+    default: return 86400000;
+  }
+}
+
+/**
+ * Helper: Calculate Pearson correlation coefficient
+ */
+function calculatePearsonCorrelation(x: number[], y: number[]): number {
+  if (x.length !== y.length || x.length === 0) return 0;
+
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+  const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  return denominator === 0 ? 0 : numerator / denominator;
+}
 
 /**
  * Sentiment Routes Plugin
@@ -245,13 +291,80 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
     const { symbol } = params;
     const { timeframe } = query as { timeframe?: string };
 
-    // TODO: Fetch sentiment and price data from database
-    // For now, return mock structure
-    return {
-      symbol: symbol.toUpperCase(),
-      correlations: [],
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      const symbolUpper = symbol.toUpperCase();
+      const timeMs = parseTimeframe(timeframe || '7d');
+      const cutoffDate = new Date(Date.now() - timeMs);
+
+      // Fetch sentiment history from database
+      const history = await db
+        .select()
+        .from(sentimentHistory)
+        .where(
+          and(
+            eq(sentimentHistory.symbol, symbolUpper),
+            gte(sentimentHistory.timestamp, cutoffDate)
+          )
+        )
+        .orderBy(sentimentHistory.timestamp);
+
+      if (history.length < 2) {
+        return {
+          symbol: symbolUpper,
+          correlations: [],
+          message: 'Insufficient data for correlation analysis',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      // Extract sentiment scores and prices (if available)
+      const sentimentScores = history
+        .filter((h) => h.score !== null)
+        .map((h) => parseFloat(h.score as any));
+
+      const prices = history
+        .filter((h) => h.price !== null)
+        .map((h) => parseFloat(h.price as any));
+
+      let correlation = null;
+
+      // Calculate correlation if we have price data
+      if (prices.length === sentimentScores.length && prices.length >= 2) {
+        const coefficient = calculatePearsonCorrelation(sentimentScores, prices);
+
+        // Simple significance test (t-test approximation)
+        const n = sentimentScores.length;
+        const tStat = coefficient * Math.sqrt((n - 2) / (1 - coefficient * coefficient));
+        const pValue = 2 * (1 - 0.5 * (1 + Math.sign(tStat) * Math.sqrt(1 - Math.exp(-2.77 * tStat * tStat / n))));
+
+        correlation = {
+          coefficient: parseFloat(coefficient.toFixed(4)),
+          pValue: parseFloat(pValue.toFixed(4)),
+          significance: pValue < 0.05 ? 'significant' : 'not_significant',
+          direction: coefficient > 0 ? 'positive' : coefficient < 0 ? 'negative' : 'none',
+          strength:
+            Math.abs(coefficient) > 0.7 ? 'strong' :
+            Math.abs(coefficient) > 0.4 ? 'moderate' : 'weak',
+          dataPoints: n,
+        };
+      }
+
+      return {
+        symbol: symbolUpper,
+        correlation,
+        timeframe: timeframe || '7d',
+        dataPoints: history.length,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching correlation data:', error);
+      return {
+        symbol: symbol.toUpperCase(),
+        correlations: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      };
+    }
   }, {
     params: t.Object({
       symbol: t.String(),
@@ -268,12 +381,136 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
   .get('/signals/:symbol', async ({ params }) => {
     const { symbol } = params;
 
-    // TODO: Generate signals from sentiment and price data
-    return {
-      symbol: symbol.toUpperCase(),
-      signals: [],
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      const symbolUpper = symbol.toUpperCase();
+
+      // Fetch current sentiment score
+      const currentSentiment = await db
+        .select()
+        .from(sentimentScores)
+        .where(
+          and(
+            eq(sentimentScores.symbol, symbolUpper),
+            eq(sentimentScores.timeframe, '24h')
+          )
+        )
+        .limit(1);
+
+      if (currentSentiment.length === 0) {
+        return {
+          symbol: symbolUpper,
+          signal: 'HOLD',
+          confidence: 0,
+          reasoning: ['No sentiment data available'],
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      const sentiment = currentSentiment[0];
+      const score = parseFloat(sentiment.overallScore as any);
+      const totalMentions = sentiment.totalMentions || 0;
+      const trendPercentage = parseFloat(sentiment.trendPercentage as any) || 0;
+
+      // Fetch recent history for trend analysis
+      const recentHistory = await db
+        .select()
+        .from(sentimentHistory)
+        .where(
+          and(
+            eq(sentimentHistory.symbol, symbolUpper),
+            gte(sentimentHistory.timestamp, new Date(Date.now() - 3600000)) // Last 1 hour
+          )
+        )
+        .orderBy(desc(sentimentHistory.timestamp))
+        .limit(12); // 12 x 5m = 1 hour
+
+      // Calculate velocity (rate of change)
+      let velocity = 0;
+      if (recentHistory.length >= 2) {
+        const scores = recentHistory.map((h) => parseFloat(h.score as any));
+        velocity = (scores[0] - scores[scores.length - 1]) / scores.length;
+      }
+
+      // Determine signal based on score, trend, velocity, and volume
+      let signal: 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL' = 'HOLD';
+      let confidence = 50;
+      const reasoning: string[] = [];
+
+      // Strong bullish sentiment
+      if (score > 70 && trendPercentage > 0) {
+        signal = 'STRONG_BUY';
+        confidence = 85;
+        reasoning.push(`Very positive sentiment (${score.toFixed(1)})`);
+        reasoning.push(`Improving trend (+${trendPercentage.toFixed(1)}%)`);
+      }
+      // Moderate bullish sentiment
+      else if (score > 50 && trendPercentage > 0) {
+        signal = 'BUY';
+        confidence = 70;
+        reasoning.push(`Positive sentiment (${score.toFixed(1)})`);
+        reasoning.push(`Improving trend (+${trendPercentage.toFixed(1)}%)`);
+      }
+      // Strong bearish sentiment
+      else if (score < -70 && trendPercentage < 0) {
+        signal = 'STRONG_SELL';
+        confidence = 85;
+        reasoning.push(`Very negative sentiment (${score.toFixed(1)})`);
+        reasoning.push(`Deteriorating trend (${trendPercentage.toFixed(1)}%)`);
+      }
+      // Moderate bearish sentiment
+      else if (score < -50 && trendPercentage < 0) {
+        signal = 'SELL';
+        confidence = 70;
+        reasoning.push(`Negative sentiment (${score.toFixed(1)})`);
+        reasoning.push(`Deteriorating trend (${trendPercentage.toFixed(1)}%)`);
+      }
+      // Neutral
+      else {
+        signal = 'HOLD';
+        confidence = 60;
+        reasoning.push(`Neutral sentiment (${score.toFixed(1)})`);
+      }
+
+      // Adjust confidence based on volume
+      if (totalMentions > 1000) {
+        confidence = Math.min(95, confidence + 10);
+        reasoning.push(`High volume (${totalMentions} mentions)`);
+      } else if (totalMentions < 50) {
+        confidence = Math.max(30, confidence - 15);
+        reasoning.push(`Low volume (${totalMentions} mentions)`);
+      }
+
+      // Adjust confidence based on velocity
+      if (Math.abs(velocity) > 10) {
+        confidence = Math.min(95, confidence + 5);
+        reasoning.push(`Rapid ${velocity > 0 ? 'improvement' : 'deterioration'} detected`);
+      }
+
+      return {
+        symbol: symbolUpper,
+        signal,
+        confidence,
+        reasoning,
+        metrics: {
+          sentimentScore: score,
+          trendPercentage,
+          velocity: parseFloat(velocity.toFixed(2)),
+          totalMentions,
+          fearGreedIndex: parseFloat(sentiment.fearGreedIndex as any) || null,
+        },
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error generating trading signals:', error);
+      return {
+        symbol: symbol.toUpperCase(),
+        signal: 'HOLD',
+        confidence: 0,
+        reasoning: ['Error generating signal'],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      };
+    }
   }, {
     params: t.Object({
       symbol: t.String(),
@@ -449,50 +686,6 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
   })
 
   /**
-   * POST /sentiment/correlation
-   * Calculate sentiment-price correlation
-   */
-  .post('/correlation', async ({ body }) => {
-    const { symbol, timeframe } = body as {
-      symbol: string;
-      timeframe?: string;
-    };
-
-    // Mock correlation data for testing
-    // TODO: Implement full correlation calculation with real data
-    const mockCorrelation = {
-      symbol: symbol.toUpperCase(),
-      correlation: {
-        coefficient: 0.65,
-        pValue: 0.03,
-        significance: 'significant',
-        direction: 'positive',
-        strength: 'moderate',
-      },
-      analysis: {
-        sentimentTrend: 'bullish',
-        priceTrend: 'bullish',
-        alignment: 'aligned',
-        confidence: 0.75,
-      },
-      timeframe: timeframe || '7d',
-      dataPoints: 168,
-      timestamp: new Date().toISOString(),
-    };
-
-    return {
-      success: true,
-      data: mockCorrelation,
-      timestamp: new Date().toISOString(),
-    };
-  }, {
-    body: t.Object({
-      symbol: t.String(),
-      timeframe: t.Optional(t.String()),
-    }),
-  })
-
-  /**
    * POST /sentiment/batch
    * Batch analyze sentiment for multiple symbols
    */
@@ -551,26 +744,126 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
     const { symbol } = params;
     const { timeWindow } = query as { timeWindow?: string };
 
-    // TODO: Fetch from database
-    // For now, return mock data structure
-    return {
-      symbol: symbol.toUpperCase(),
-      score: 0,
-      magnitude: 0,
-      label: 'neutral' as const,
-      confidence: 0.5,
-      trend: {
-        direction: 'stable' as const,
-        strength: 0,
-        velocity: 0,
-      },
-      volume: 0,
-      change: 0,
-      sourceBreakdown: {},
-      timeWindow: parseInt(timeWindow || '86400000', 10),
-      dataPoints: 0,
-      lastUpdated: new Date(),
-    };
+    try {
+      const symbolUpper = symbol.toUpperCase();
+      const timeframe = timeWindow || '24h';
+
+      // Fetch current sentiment score from database
+      const currentSentiment = await db
+        .select()
+        .from(sentimentScores)
+        .where(
+          and(
+            eq(sentimentScores.symbol, symbolUpper),
+            eq(sentimentScores.timeframe, timeframe)
+          )
+        )
+        .limit(1);
+
+      if (currentSentiment.length === 0) {
+        // Return default neutral sentiment if no data
+        return {
+          symbol: symbolUpper,
+          score: 0,
+          magnitude: 0,
+          label: 'neutral' as const,
+          confidence: 0.5,
+          trend: {
+            direction: 'stable' as const,
+            strength: 0,
+            velocity: 0,
+          },
+          volume: 0,
+          change: 0,
+          sourceBreakdown: {
+            news: { score: 0, count: 0 },
+            social: { score: 0, count: 0 },
+          },
+          timeWindow: parseTimeframe(timeframe),
+          dataPoints: 0,
+          lastUpdated: new Date(),
+        };
+      }
+
+      const sentiment = currentSentiment[0];
+
+      // Calculate velocity from recent history
+      const recentHistory = await db
+        .select()
+        .from(sentimentHistory)
+        .where(
+          and(
+            eq(sentimentHistory.symbol, symbolUpper),
+            gte(sentimentHistory.timestamp, new Date(Date.now() - 3600000)) // Last hour
+          )
+        )
+        .orderBy(desc(sentimentHistory.timestamp))
+        .limit(12);
+
+      let velocity = 0;
+      if (recentHistory.length >= 2) {
+        const scores = recentHistory.map((h) => parseFloat(h.score as any));
+        velocity = (scores[0] - scores[scores.length - 1]) / scores.length;
+      }
+
+      // Determine trend strength
+      const trendPercentage = parseFloat(sentiment.trendPercentage as any) || 0;
+      const trendStrength = Math.min(1, Math.abs(trendPercentage) / 50); // Normalize to 0-1
+
+      return {
+        symbol: symbolUpper,
+        score: parseFloat(sentiment.overallScore as any),
+        magnitude: parseFloat(sentiment.overallMagnitude as any),
+        label: sentiment.overallLabel as any,
+        confidence: parseFloat(sentiment.confidence as any) || 0.5,
+        trend: {
+          direction: sentiment.trend as any,
+          strength: parseFloat(trendStrength.toFixed(2)),
+          velocity: parseFloat(velocity.toFixed(2)),
+        },
+        volume: sentiment.totalMentions || 0,
+        change: trendPercentage,
+        sourceBreakdown: {
+          news: {
+            score: parseFloat(sentiment.newsScore as any) || 0,
+            count: sentiment.newsMentions || 0,
+          },
+          social: {
+            score: parseFloat(sentiment.socialScore as any) || 0,
+            count: sentiment.socialMentions || 0,
+          },
+        },
+        fearGreed: {
+          index: parseFloat(sentiment.fearGreedIndex as any) || 50,
+          label: sentiment.fearGreedLabel,
+        },
+        timeWindow: parseTimeframe(timeframe),
+        dataPoints: sentiment.totalMentions || 0,
+        lastUpdated: sentiment.updatedAt,
+      };
+    } catch (error) {
+      console.error('Error fetching sentiment:', error);
+      // Return default on error
+      return {
+        symbol: symbol.toUpperCase(),
+        score: 0,
+        magnitude: 0,
+        label: 'neutral' as const,
+        confidence: 0.5,
+        trend: {
+          direction: 'stable' as const,
+          strength: 0,
+          velocity: 0,
+        },
+        volume: 0,
+        change: 0,
+        sourceBreakdown: {},
+        timeWindow: parseTimeframe(timeWindow || '24h'),
+        dataPoints: 0,
+        lastUpdated: new Date(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }, {
     params: t.Object({
       symbol: t.String(),
@@ -627,8 +920,8 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
       }
     },
 
-    error(ws, error) {
-      console.error('[WebSocket] Error:', error);
+    error(ws: any) {
+      console.error('[WebSocket] Connection error');
       const clientId = (ws as any).clientId;
 
       if (clientId) {
@@ -780,18 +1073,112 @@ export const sentimentRoutes = new Elysia({ prefix: '/sentiment' })
   .post('/correlation', async ({ body }) => {
     const { symbol, timeframe } = body;
 
-    const correlation = await priceCorrelationService.calculateCorrelation(
-      symbol,
-      timeframe || '7d'
-    );
+    try {
+      const symbolUpper = symbol.toUpperCase();
+      const timeMs = parseTimeframe(timeframe || '7d');
+      const cutoffDate = new Date(Date.now() - timeMs);
 
-    return {
-      success: true,
-      data: correlation,
-      symbol,
-      timeframe: timeframe || '7d',
-      timestamp: new Date().toISOString(),
-    };
+      // Fetch sentiment history from database
+      const history = await db
+        .select()
+        .from(sentimentHistory)
+        .where(
+          and(
+            eq(sentimentHistory.symbol, symbolUpper),
+            gte(sentimentHistory.timestamp, cutoffDate)
+          )
+        )
+        .orderBy(sentimentHistory.timestamp);
+
+      if (history.length < 2) {
+        return {
+          success: false,
+          message: 'Insufficient data for correlation analysis',
+          symbol: symbolUpper,
+          timeframe: timeframe || '7d',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      // Extract sentiment scores and prices (if available)
+      const sentimentScores = history
+        .filter((h) => h.score !== null)
+        .map((h) => parseFloat(h.score as any));
+
+      const prices = history
+        .filter((h) => h.price !== null)
+        .map((h) => parseFloat(h.price as any));
+
+      if (prices.length !== sentimentScores.length || prices.length < 2) {
+        return {
+          success: false,
+          message: 'Insufficient price data for correlation analysis',
+          symbol: symbolUpper,
+          timeframe: timeframe || '7d',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      // Calculate Pearson correlation
+      const coefficient = calculatePearsonCorrelation(sentimentScores, prices);
+
+      // Calculate significance (t-test approximation)
+      const n = sentimentScores.length;
+      const tStat = coefficient * Math.sqrt((n - 2) / (1 - coefficient * coefficient));
+      const pValue = 2 * (1 - 0.5 * (1 + Math.sign(tStat) * Math.sqrt(1 - Math.exp(-2.77 * tStat * tStat / n))));
+
+      // Determine correlation strength and direction
+      const isSignificant = pValue < 0.05;
+      const strength: 'weak' | 'moderate' | 'strong' =
+        Math.abs(coefficient) > 0.7 ? 'strong' :
+        Math.abs(coefficient) > 0.4 ? 'moderate' : 'weak';
+      const direction: 'positive' | 'negative' | 'none' =
+        coefficient > 0.1 ? 'positive' :
+        coefficient < -0.1 ? 'negative' : 'none';
+
+      // Calculate lag (simple: check if sentiment leads or lags price)
+      let lag = 0;
+      if (sentimentScores.length >= 3) {
+        // Check correlation at different lags
+        const lagScores = sentimentScores.slice(0, -1);
+        const lagPrices = prices.slice(1);
+        const lagCoeff = calculatePearsonCorrelation(lagScores, lagPrices);
+
+        if (Math.abs(lagCoeff) > Math.abs(coefficient)) {
+          lag = 1; // Sentiment leads price
+        }
+      }
+
+      const correlationData = {
+        symbol: symbolUpper,
+        coefficient: parseFloat(coefficient.toFixed(4)),
+        pValue: parseFloat(pValue.toFixed(4)),
+        isSignificant,
+        strength,
+        direction,
+        lag,
+        dataPoints: n,
+        timeframe: timeframe || '7d',
+        calculatedAt: new Date(),
+      };
+
+      return {
+        success: true,
+        data: correlationData,
+        symbol: symbolUpper,
+        timeframe: timeframe || '7d',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error calculating correlation:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        symbol: symbol.toUpperCase(),
+        timeframe: timeframe || '7d',
+        timestamp: new Date().toISOString(),
+      };
+    }
   }, {
     body: t.Object({
       symbol: t.String(),

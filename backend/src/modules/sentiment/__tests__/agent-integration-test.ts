@@ -122,7 +122,6 @@ async function fetchRealNews() {
           source: 'rss_coindesk',
           category: 'general',
           enabled: true,
-          priority: 'high',
           pollInterval: 300000,
         },
         {
@@ -131,7 +130,6 @@ async function fetchRealNews() {
           source: 'rss_cointelegraph',
           category: 'general',
           enabled: true,
-          priority: 'high',
           pollInterval: 300000,
         },
       ],
@@ -204,8 +202,7 @@ async function agentAnalyzesNews(agentId: string, articles: any[]) {
       const sentiment = await sentimentService.analyze(text, {
         context: {
           source: article.source,
-          symbols: article.symbols,
-          isImportant: article.isImportant,
+          symbol: article.symbols[0],
         },
       });
 
@@ -340,9 +337,9 @@ Please provide a concise analysis (3-4 sentences) and clear recommendations.`;
     console.log('-'.repeat(80));
 
     console.log(`\n📊 Query Stats:`);
-    console.log(`   Model: ${response.model}`);
-    console.log(`   Tokens: ${response.tokenUsage?.totalTokens || 'N/A'}`);
-    console.log(`   Response time: ${response.processingTime || 'N/A'}ms`);
+    console.log(`   Model: ${response.metadata.model}`);
+    console.log(`   Tokens: ${response.metadata.tokens}`);
+    console.log(`   Response time: ${response.metadata.responseTimeMs}ms`);
 
     return response;
   } catch (error) {

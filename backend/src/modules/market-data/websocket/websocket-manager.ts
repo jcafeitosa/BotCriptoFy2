@@ -20,7 +20,7 @@ import type {
  * NOTE: Requires ccxt.pro for actual implementation
  */
 interface ExchangeConnection {
-  exchange: any; // Would be ccxt.pro.Exchange with ccxt.pro
+  exchange: ccxt.Exchange;
   exchangeId: string;
   connected: boolean;
   subscriptions: Map<string, SubscriptionRequest>;
@@ -28,6 +28,9 @@ interface ExchangeConnection {
   lastPing?: Date;
   lastPong?: Date;
   error?: string;
+  pollers: Map<string, NodeJS.Timeout>;
+  lastTradeTimestamps: Map<string, number>;
+  lastOhlcvTimestamps: Map<string, number>;
 }
 
 /**

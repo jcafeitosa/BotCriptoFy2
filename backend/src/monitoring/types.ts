@@ -103,6 +103,52 @@ export interface MetricsRegistry {
   nodejsCpuUsage: Gauge<string>;
   nodejsGcRuns: Counter<string>;
   nodejsEventLoopLag: Gauge<string>;
+
+  // Bot metrics
+  botsActive: Gauge<string>;
+  botsExecutionsTotal: Counter<string>;
+  botsErrors: Counter<string>;
+  botsWinRate: Gauge<string>;
+  botsProfitFactor: Gauge<string>;
+  botsPnl: Gauge<string>;
+  botsTradesTotal: Counter<string>;
+  botsUptime: Gauge<string>;
+  botsHealthScore: Gauge<string>;
+  botsCapitalUtilization: Gauge<string>;
+  botsExecutionTime: Histogram<string>;
+  botsSharpeRatio: Gauge<string>;
+  botsDrawdown: Gauge<string>;
+
+  // Risk metrics
+  riskScore: Gauge<string>;
+  riskValueAtRisk: Gauge<string>;
+  riskDrawdown: Gauge<string>;
+  riskMaxDrawdown: Gauge<string>;
+  riskSharpeRatio: Gauge<string>;
+  riskSortinoRatio: Gauge<string>;
+  riskCalmarRatio: Gauge<string>;
+  riskExposure: Gauge<string>;
+  riskLeverage: Gauge<string>;
+  riskConcentration: Gauge<string>;
+  riskLimitViolations: Counter<string>;
+  riskPositionSize: Gauge<string>;
+  riskVolatility: Gauge<string>;
+
+  // Trading metrics
+  tradingOrdersTotal: Counter<string>;
+  tradingOrdersFilledTotal: Counter<string>;
+  tradingVolumeTotal: Counter<string>;
+  tradingOrdersCancelledTotal: Counter<string>;
+  tradingPositionsOpenedTotal: Counter<string>;
+  tradingPositionsClosedTotal: Counter<string>;
+  tradingPnlTotal: Gauge<string>;
+  tradingPositionsActive: Gauge<string>;
+  tradingLiquidationRisk: Gauge<string>;
+  tradingPortfolioValue: Gauge<string>;
+  tradingUnrealizedPnl: Gauge<string>;
+  tradingMarginLevel: Gauge<string>;
+  tradingExecutionTime: Histogram<string>;
+  tradingApiErrors: Counter<string>;
 }
 
 /**

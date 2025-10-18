@@ -921,8 +921,6 @@ export class LargeOrderDetectionService {
         orderSize: detection.maxSize.toString(),
         spoofingType: detection.spoofingType,
         confidenceScore: detection.confidence.toString(),
-        placementCount: detection.placementCount,
-        cancellationRate: ((detection.cancellationCount / detection.placementCount) * 100).toString(),
       });
 
       logger.warn('Stored spoofing detection', {

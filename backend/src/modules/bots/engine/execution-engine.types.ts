@@ -142,6 +142,7 @@ export interface RiskValidationResult {
 export type ExecutionEventType =
   | 'state_change'
   | 'tick'
+  | 'price_update'
   | 'evaluation_start'
   | 'evaluation_complete'
   | 'signal_generated'

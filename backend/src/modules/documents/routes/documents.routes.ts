@@ -6,19 +6,26 @@
 import { Elysia, t } from 'elysia';
 import { documentsService } from '../services/documents.service';
 import logger from '../../../utils/logger';
+import { sessionGuard } from '../../auth/middleware/session.middleware';
+import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { BadRequestError } from '../../../utils/errors';
 
 export const documentsRoutes = new Elysia({ prefix: '/documents' })
+  .use(sessionGuard)
   /**
    * Upload document
    * POST /api/v1/documents/upload
    */
   .post(
     '/upload',
-    async ({ body, set }) => {
+    async ({ user, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         // Extract file
         const { file, ...metadata } = body;
@@ -92,11 +99,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/',
-    async ({ query, set }) => {
+    async ({ user, query, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const filters = {
           folderId: query.folderId,
@@ -160,11 +170,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/:id',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.getDocumentById(
           params.id,
@@ -204,11 +217,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .patch(
     '/:id',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.updateDocument(
           params.id,
@@ -262,11 +278,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .delete(
     '/:id',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.deleteDocument(
           params.id,
@@ -307,11 +326,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/:id/download',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.downloadDocument(
           params.id,
@@ -361,11 +383,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .post(
     '/:id/versions',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const { file } = body;
 
@@ -424,11 +449,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/:id/versions',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.getDocumentVersions(
           params.id,
@@ -468,11 +496,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .post(
     '/:id/versions/:version/restore',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.restoreVersion(
           params.id,
@@ -514,11 +545,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/search',
-    async ({ query, set }) => {
+    async ({ user, query, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         if (!query.q) {
           set.status = 400;

@@ -701,19 +701,81 @@ export class PriceImpactService {
 
   /**
    * Store price impact estimate in database
-   * TODO: Refactor to match schema fields (size1k, size5k, etc)
+   * Calculates impact for all standard order size tiers
    */
   static async storePriceImpactEstimate(
     estimate: PriceImpactEstimate
   ): Promise<void> {
     try {
-      // TODO: Map estimate fields to schema fields correctly
-      // Schema uses: size1k, size5k, size10k, size50k, size100k, size500k, size1m
-      // and slippage1k, slippage10k, slippage100k
-      logger.warn('storePriceImpactEstimate needs refactoring to match schema');
+      // Calculate impacts for all size tiers
+      const sizeTiers = [1000, 5000, 10000, 50000, 100000, 500000, 1000000]; // USD
+      const impacts: Record<string, string> = {};
+      const slippages: Record<string, string> = {};
 
-      // Temporarily disabled until schema alignment
-      return;
+      // Get order book snapshot for calculations
+      const snapshot = await OrderBookSnapshotService.getLatestSnapshot(
+        estimate.exchangeId,
+        estimate.symbol
+      );
+
+      if (!snapshot) {
+        throw new BadRequestError('No order book data available');
+      }
+
+      // Calculate impact for each tier
+      for (const sizeUSD of sizeTiers) {
+        try {
+          // Convert USD to base currency (approximate using current price)
+          const baseSize = sizeUSD / estimate.bestPrice;
+
+          const tierEstimate = await this.estimatePriceImpact(
+            estimate.exchangeId,
+            estimate.symbol,
+            estimate.side,
+            baseSize
+          );
+
+          // Map to schema field names
+          const tierKey = sizeUSD >= 1000000 ? '1m' : `${sizeUSD / 1000}k`;
+          impacts[`size${tierKey}`] = tierEstimate.impactPercent.toFixed(4);
+
+          // Store slippage for 1k, 10k, 100k tiers
+          if ([1000, 10000, 100000].includes(sizeUSD)) {
+            slippages[`slippage${tierKey}`] = tierEstimate.slippageUSD.toFixed(8);
+          }
+        } catch (error) {
+          // If tier size exceeds liquidity, use null
+          const tierKey = sizeUSD >= 1000000 ? '1m' : `${sizeUSD / 1000}k`;
+          impacts[`size${tierKey}`] = '0';
+          if ([1000, 10000, 100000].includes(sizeUSD)) {
+            slippages[`slippage${tierKey}`] = '0';
+          }
+        }
+      }
+
+      // Store in database
+      await db.insert(priceImpactEstimates).values({
+        exchangeId: estimate.exchangeId,
+        symbol: estimate.symbol,
+        calculatedAt: estimate.timestamp,
+        size1k: impacts.size1k || '0',
+        size5k: impacts.size5k || '0',
+        size10k: impacts.size10k || '0',
+        size50k: impacts.size50k || '0',
+        size100k: impacts.size100k || '0',
+        size500k: impacts.size500k || '0',
+        size1m: impacts.size1m || '0',
+        slippage1k: slippages.slippage1k || '0',
+        slippage10k: slippages.slippage10k || '0',
+        slippage100k: slippages.slippage100k || '0',
+        liquidityScore: estimate.liquidityConsumed.toFixed(4),
+      });
+
+      logger.info('Stored price impact estimate', {
+        exchangeId: estimate.exchangeId,
+        symbol: estimate.symbol,
+        tiers: Object.keys(impacts).length,
+      });
     } catch (error) {
       logger.error('Failed to store price impact estimate', {
         error: error instanceof Error ? error.message : String(error),
@@ -787,10 +849,33 @@ export class PriceImpactService {
         throw new BadRequestError('No historical data available');
       }
 
-      // TODO: Refactor to use correct schema fields
-      // For now, use size10k as default impact
-      const impacts = historical.map(h => parseFloat(h.size10k ?? '0'));
-      const slippages = historical.map(h => parseFloat(h.slippage10k ?? '0'));
+      // Select appropriate size tier based on order size (in USD)
+      // Tiers: 1k, 5k, 10k, 50k, 100k, 500k, 1m
+      const selectTierField = (sizeUSD: number): {
+        impactField: keyof typeof historical[0];
+        slippageField: keyof typeof historical[0];
+      } => {
+        if (sizeUSD >= 1000000) return { impactField: 'size1m' as any, slippageField: 'slippage100k' as any };
+        if (sizeUSD >= 500000) return { impactField: 'size500k' as any, slippageField: 'slippage100k' as any };
+        if (sizeUSD >= 100000) return { impactField: 'size100k' as any, slippageField: 'slippage100k' as any };
+        if (sizeUSD >= 50000) return { impactField: 'size50k' as any, slippageField: 'slippage10k' as any };
+        if (sizeUSD >= 10000) return { impactField: 'size10k' as any, slippageField: 'slippage10k' as any };
+        if (sizeUSD >= 5000) return { impactField: 'size5k' as any, slippageField: 'slippage1k' as any };
+        return { impactField: 'size1k' as any, slippageField: 'slippage1k' as any };
+      };
+
+      // Get average price from historical data to estimate USD value
+      const avgPrice = historical.length > 0
+        ? parseFloat(historical[0].size10k ?? '0') > 0
+          ? parseFloat(historical[0].size10k ?? '0')
+          : 1
+        : 1;
+
+      const estimatedSizeUSD = orderSize * avgPrice;
+      const { impactField, slippageField } = selectTierField(estimatedSizeUSD);
+
+      const impacts = historical.map(h => parseFloat((h[impactField] as string) ?? '0'));
+      const slippages = historical.map(h => parseFloat((h[slippageField] as string) ?? '0'));
 
       const avgImpactPercent = impacts.reduce((sum, val) => sum + val, 0) / impacts.length;
       const avgSlippageUSD = slippages.reduce((sum, val) => sum + val, 0) / slippages.length;

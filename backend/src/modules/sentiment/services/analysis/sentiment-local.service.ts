@@ -53,6 +53,7 @@ const CRYPTO_LEXICON: Record<string, number> = {
   'rug': -5,
   'rugpull': -5,
   'dump': -5,
+  'dumping': -4,
   'ponzi': -5,
   'fraud': -5,
   'hack': -5,
@@ -63,8 +64,6 @@ const CRYPTO_LEXICON: Record<string, number> = {
   // Negative (-2 to -4)
   'sell': -4,
   'selling': -4,
-  'dump': -4,
-  'dumping': -4,
   'fall': -3,
   'drop': -3,
   'decline': -3,
@@ -374,12 +373,12 @@ export class SentimentLocalService {
 
     const entities = {
       coins: [] as string[],
-      people: properNouns.filter((noun) => {
+      people: properNouns.filter((noun: string) => {
         const lower = noun.toLowerCase();
         return !knownExchanges.includes(lower) && !knownTech.includes(lower);
       }),
-      exchanges: properNouns.filter((noun) => knownExchanges.includes(noun.toLowerCase())),
-      technologies: properNouns.filter((noun) => knownTech.includes(noun.toLowerCase())),
+      exchanges: properNouns.filter((noun: string) => knownExchanges.includes(noun.toLowerCase())),
+      technologies: properNouns.filter((noun: string) => knownTech.includes(noun.toLowerCase())),
     };
 
     // Extract coin symbols ($BTC, $ETH)

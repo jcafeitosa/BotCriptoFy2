@@ -3,6 +3,7 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import os from 'os';
+import { AsyncLocalStorage } from 'async_hooks';
 
 /**
  * Enterprise-Grade Logging System for BotCriptoFy2
@@ -39,10 +40,72 @@ const systemMetadata = {
   pid: process.pid,
 };
 
-// Get or create correlation ID from context (AsyncLocalStorage in future)
+interface LoggerContext {
+  correlationId: string;
+  requestId?: string;
+  userId?: string;
+  tenantId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+const loggerContext = new AsyncLocalStorage<LoggerContext>();
+
+const mergeContext = (context?: Record<string, any>): Record<string, any> | undefined => {
+  const store = loggerContext.getStore();
+  if (!store) {
+    return context;
+  }
+
+  const baseContext: Record<string, any> = {
+    ...(store.metadata || {}),
+    ...(context || {}),
+  };
+
+  if (store.correlationId && baseContext.correlation_id === undefined) {
+    baseContext.correlation_id = store.correlationId;
+  }
+
+  if (store.userId && baseContext.user_id === undefined) {
+    baseContext.user_id = store.userId;
+  }
+
+  if (store.tenantId && baseContext.tenant_id === undefined) {
+    baseContext.tenant_id = store.tenantId;
+  }
+
+  if (store.requestId && baseContext.request_id === undefined) {
+    baseContext.request_id = store.requestId;
+  }
+
+  return baseContext;
+};
+
+export const setLoggerContext = (context: LoggerContext): void => {
+  loggerContext.enterWith(context);
+};
+
+export const updateLoggerContext = (context: Partial<LoggerContext>): void => {
+  const store = loggerContext.getStore();
+  if (store) {
+    Object.assign(store, context);
+    return;
+  }
+
+  const correlationId = context.correlationId ?? randomUUID();
+  loggerContext.enterWith({ correlationId, ...context });
+};
+
+export const getLoggerContext = (): LoggerContext | undefined => loggerContext.getStore();
+
 export const getCorrelationId = (): string => {
-  // TODO: Replace with AsyncLocalStorage for proper request context
-  return randomUUID();
+  const store = loggerContext.getStore();
+  if (store?.correlationId) {
+    return store.correlationId;
+  }
+
+  const correlationId = randomUUID();
+  loggerContext.enterWith({ correlationId });
+  return correlationId;
 };
 
 /**
@@ -286,9 +349,7 @@ export const logRequest = (
   delete cleanContext.user_agent; // Too verbose
   delete cleanContext.ip; // Only keep for errors
   
-  const logData = {
-    ...cleanContext,
-  };
+  const logData = mergeContext(cleanContext);
 
   // Log at appropriate level
   if (statusCode >= 500) {
@@ -304,6 +365,7 @@ export const logRequest = (
  * Log error with full stack trace and context
  */
 export const logError = (error: Error, context?: Record<string, any>) => {
+  const metadata = mergeContext(context);
   logger.error(error.message, {
     error: {
       name: error.name,
@@ -311,7 +373,7 @@ export const logError = (error: Error, context?: Record<string, any>) => {
       stack: error.stack,
       ...(error.cause && typeof error.cause === 'object' ? { cause: error.cause } : {}),
     },
-    ...(context || {}),
+    ...(metadata || {}),
   });
 };
 
@@ -319,6 +381,7 @@ export const logError = (error: Error, context?: Record<string, any>) => {
  * Log fatal error (process-exiting)
  */
 export const logFatal = (message: string, error?: Error, context?: Record<string, any>) => {
+  const metadata = mergeContext(context);
   logger.log('fatal', message, {
     ...(error && {
       error: {
@@ -327,7 +390,7 @@ export const logFatal = (message: string, error?: Error, context?: Record<string
         stack: error.stack,
       },
     }),
-    ...context,
+    ...(metadata || {}),
   });
 };
 
@@ -335,42 +398,42 @@ export const logFatal = (message: string, error?: Error, context?: Record<string
  * Log info with context
  */
 export const logInfo = (message: string, context?: Record<string, any>) => {
-  logger.info(message, context);
+  logger.info(message, mergeContext(context));
 };
 
 /**
  * Log debug with context
  */
 export const logDebug = (message: string, context?: Record<string, any>) => {
-  logger.debug(message, context);
+  logger.debug(message, mergeContext(context));
 };
 
 /**
  * Log trace (very detailed)
  */
 export const logTrace = (message: string, context?: Record<string, any>) => {
-  logger.log('trace', message, context);
+  logger.log('trace', message, mergeContext(context));
 };
 
 /**
  * Log warning with context
  */
 export const logWarn = (message: string, context?: Record<string, any>) => {
-  logger.warn(message, context);
+  logger.warn(message, mergeContext(context));
 };
 
 /**
  * Log business metric or KPI
  */
 export const logMetric = (metric: string, value: number, unit: string, context?: Record<string, any>) => {
-  logger.info(`Metric: ${metric}`, {
+  logger.info(`Metric: ${metric}`, mergeContext({
     metric: {
       name: metric,
       value,
       unit,
     },
-    ...context,
-  });
+    ...(context || {}),
+  }));
 };
 
 /**
@@ -381,13 +444,13 @@ export const logPerformance = (
   duration: number,
   context?: Record<string, any>
 ) => {
-  logger.debug(`Performance: ${operation}`, {
+  logger.debug(`Performance: ${operation}`, mergeContext({
     performance: {
       operation,
       duration_ms: duration,
     },
-    ...context,
-  });
+    ...(context || {}),
+  }));
 };
 
 /**
@@ -400,13 +463,13 @@ export const logSecurity = (
 ) => {
   const level = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
 
-  logger.log(level, `Security: ${event}`, {
+  logger.log(level, `Security: ${event}`, mergeContext({
     security: {
       event,
       severity,
     },
-    ...context,
-  });
+    ...(context || {}),
+  }));
 };
 
 /**
@@ -419,7 +482,7 @@ export const logAudit = (
   result: 'success' | 'failure',
   context?: Record<string, any>
 ) => {
-  logger.info(`Audit: ${action} ${resource}`, {
+  logger.info(`Audit: ${action} ${resource}`, mergeContext({
     audit: {
       action,
       resource,
@@ -427,8 +490,8 @@ export const logAudit = (
       result,
       timestamp: new Date().toISOString(),
     },
-    ...context,
-  });
+    ...(context || {}),
+  }));
 };
 
 /**

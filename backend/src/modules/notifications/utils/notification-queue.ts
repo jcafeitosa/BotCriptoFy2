@@ -39,7 +39,7 @@ interface QueueConfig {
     port: number;
     password?: string;
     db?: number;
-    maxRetriesPerRequest?: number;
+    maxRetriesPerRequest?: number | null; // BullMQ requires null
   };
   queue: {
     maxConcurrent: number;
@@ -69,7 +69,7 @@ class NotificationQueue {
         port: config.redis?.port || parseInt(process.env.REDIS_PORT || '6379', 10),
         password: config.redis?.password || process.env.REDIS_PASSWORD,
         db: config.redis?.db || parseInt(process.env.REDIS_DB || '0', 10),
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: null, // BullMQ requires this to be null
       },
       queue: {
         maxConcurrent: config.queue?.maxConcurrent || 10,

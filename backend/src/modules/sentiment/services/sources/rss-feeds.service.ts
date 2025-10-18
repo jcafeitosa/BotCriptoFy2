@@ -451,6 +451,17 @@ export class RSSFeedsService {
       Object.assign(feed, updates);
     }
   }
+
+  /**
+   * Get service statistics
+   */
+  getStats(): { feeds: number; articles: number } {
+    const enabledFeeds = Array.from(this.feeds.values()).filter((feed) => feed.enabled);
+    return {
+      feeds: enabledFeeds.length,
+      articles: 0, // Could be tracked via a counter in fetchFeed if needed
+    };
+  }
 }
 
 // Export singleton instance

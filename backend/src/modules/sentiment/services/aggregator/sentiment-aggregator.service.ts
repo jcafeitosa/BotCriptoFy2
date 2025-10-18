@@ -12,6 +12,14 @@
  * @module sentiment/services/aggregator/sentiment-aggregator
  */
 
+import { db } from '@/db';
+import { eq, and, gte, lte, desc, sql, inArray } from 'drizzle-orm';
+import {
+  newsArticles,
+  socialMentions,
+  sentimentScores,
+  sentimentHistory,
+} from '../../schema/sentiment.schema';
 import type {
   SentimentAnalysisResult,
   AggregatedSentiment,
@@ -20,6 +28,24 @@ import type {
 } from '../../types/sentiment.types';
 import type { NewsArticle } from '../../types/news.types';
 import type { SocialMention } from '../../types/social.types';
+
+/**
+ * Helper: Parse timeframe string to milliseconds
+ */
+function parseTimeframe(timeframe: string): number {
+  const match = timeframe.match(/^(\d+)([mhd])$/);
+  if (!match) return 86400000; // Default 24h
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 'm': return value * 60 * 1000; // minutes
+    case 'h': return value * 60 * 60 * 1000; // hours
+    case 'd': return value * 24 * 60 * 60 * 1000; // days
+    default: return 86400000;
+  }
+}
 
 /**
  * Source weights for aggregation
@@ -42,6 +68,8 @@ const SOURCE_WEIGHTS = {
   // Social sources (less reliable, but valuable for sentiment)
   twitter: 0.6,
   reddit: 0.5,
+  telegram: 0.55,
+  discord: 0.45,
 };
 
 /**
@@ -297,7 +325,7 @@ export class SentimentAggregatorService {
     const label = this.scoreToLabel(avgScore);
 
     // Calculate trend
-    const trend = this.calculateTrend(dataPoints);
+    const trendData = this.calculateTrend(dataPoints);
 
     // Calculate source breakdown
     const sourceBreakdown = this.calculateSourceBreakdown(dataPoints);
@@ -308,19 +336,69 @@ export class SentimentAggregatorService {
     // Calculate change (compared to older half of data)
     const change = this.calculateChange(dataPoints);
 
+    // Calculate scores by source type
+    const newsPoints = dataPoints.filter((p) =>
+      ['cryptopanic', 'coindesk', 'cointelegraph', 'theblock', 'decrypt',
+       'bitcoinmagazine', 'cryptoslate', 'newsbtc', 'coingape', 'utoday',
+       'bitcoincom', 'rss'].includes(p.source)
+    );
+
+    const socialPoints = dataPoints.filter((p) =>
+      ['twitter', 'reddit', 'telegram', 'discord'].includes(p.source)
+    );
+
+    const newsScore = newsPoints.length > 0
+      ? newsPoints.reduce((sum, p) => sum + p.score, 0) / newsPoints.length
+      : 0;
+
+    const socialScore = socialPoints.length > 0
+      ? socialPoints.reduce((sum, p) => sum + p.score, 0) / socialPoints.length
+      : 0;
+
+    const newsMentions = newsPoints.length;
+    const socialMentions = socialPoints.length;
+
+    // Calculate Fear & Greed Index
+    // Based on sentiment score (40%), volume (25%), volatility (20%), momentum (15%)
+    const sentimentComponent = ((avgScore + 100) / 200) * 100; // Normalize -100..100 to 0..100
+    const volumeComponent = Math.min(100, (dataPoints.length / 10) * 100); // Assume 1000 is max
+    const volatilityComponent = 50; // Default (would need price data for actual calculation)
+    const momentumComponent = ((change + 100) / 200) * 100; // Normalize trend change
+
+    const fearGreedIndex = (
+      sentimentComponent * 0.4 +
+      volumeComponent * 0.25 +
+      volatilityComponent * 0.2 +
+      momentumComponent * 0.15
+    );
+
+    let fearGreedLabel: 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
+    if (fearGreedIndex >= 75) fearGreedLabel = 'extreme_greed';
+    else if (fearGreedIndex >= 55) fearGreedLabel = 'greed';
+    else if (fearGreedIndex >= 45) fearGreedLabel = 'neutral';
+    else if (fearGreedIndex >= 25) fearGreedLabel = 'fear';
+    else fearGreedLabel = 'extreme_fear';
+
     const aggregated: AggregatedSentiment = {
       symbol: symbol || 'OVERALL',
+      timeframe: '24h',
+      timestamp: new Date(),
       score: parseFloat(avgScore.toFixed(2)),
-      magnitude: parseFloat(avgMagnitude.toFixed(2)),
-      label,
+      overallScore: parseFloat(avgScore.toFixed(2)),
+      overallMagnitude: parseFloat(avgMagnitude.toFixed(2)),
+      overallLabel: label,
+      label: label,
+      newsScore: parseFloat(newsScore.toFixed(2)),
+      socialScore: parseFloat(socialScore.toFixed(2)),
+      totalMentions: dataPoints.length,
+      newsMentions,
+      socialMentions,
+      trend: trendData.direction,
+      trendPercentage: change,
+      fearGreedIndex: parseFloat(fearGreedIndex.toFixed(2)),
+      fearGreedLabel,
       confidence: parseFloat(avgConfidence.toFixed(2)),
-      trend,
-      volume,
-      change,
-      sourceBreakdown,
-      timeWindow: this.config.timeWindow,
-      dataPoints: dataPoints.length,
-      lastUpdated: new Date(),
+      updatedAt: new Date(),
     };
 
     return aggregated;
@@ -359,14 +437,8 @@ export class SentimentAggregatorService {
     else indexLabel = 'extreme_fear';
 
     return {
-      index: parseFloat(index.toFixed(2)),
+      value: parseFloat(index.toFixed(2)),
       label: indexLabel,
-      components: {
-        sentiment: parseFloat(sentimentNorm.toFixed(2)),
-        volume: parseFloat(volumeNorm.toFixed(2)),
-        volatility: parseFloat(volatilityNorm.toFixed(2)),
-        momentum: parseFloat(momentumNorm.toFixed(2)),
-      },
       timestamp: new Date(),
     };
   }
@@ -433,7 +505,11 @@ export class SentimentAggregatorService {
   /**
    * Calculate trend from data points
    */
-  private calculateTrend(dataPoints: SentimentDataPoint[]): SentimentTrend {
+  private calculateTrend(dataPoints: SentimentDataPoint[]): {
+    direction: SentimentTrend;
+    strength: number;
+    velocity: number;
+  } {
     if (dataPoints.length < 2) {
       return {
         direction: 'stable',
@@ -458,7 +534,7 @@ export class SentimentAggregatorService {
     const strength = Math.abs(change) / 100; // Normalize to 0-1
 
     // Determine direction
-    let direction: SentimentTrend['direction'];
+    let direction: SentimentTrend;
     if (Math.abs(change) < 5) direction = 'stable';
     else if (change > 0) direction = 'improving';
     else direction = 'deteriorating';
@@ -554,24 +630,149 @@ export class SentimentAggregatorService {
 
   /**
    * Get Aggregated Sentiment for a symbol
-   * Mock implementation - returns simulated data
+   * Fetches from database and calculates if needed
    */
   async getAggregatedSentiment(symbol: string, timeframe: string = '24h'): Promise<any> {
-    // Mock implementation - return neutral sentiment
-    return {
-      symbol: symbol.toUpperCase(),
-      score: 0,
-      magnitude: 0.5,
-      label: 'neutral',
-      confidence: 0.7,
-      trend: {
-        direction: 'stable',
-        strength: 0,
-      },
-      sources: ['local'],
-      timeframe,
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      const symbolUpper = symbol.toUpperCase();
+
+      // Try to fetch existing aggregated sentiment from database
+      const existingSentiment = await db
+        .select()
+        .from(sentimentScores)
+        .where(
+          and(
+            eq(sentimentScores.symbol, symbolUpper),
+            eq(sentimentScores.timeframe, timeframe)
+          )
+        )
+        .limit(1);
+
+      if (existingSentiment.length > 0) {
+        const sentiment = existingSentiment[0];
+        return {
+          symbol: symbolUpper,
+          score: parseFloat(sentiment.overallScore as any),
+          magnitude: parseFloat(sentiment.overallMagnitude as any),
+          label: sentiment.overallLabel,
+          confidence: parseFloat(sentiment.confidence as any) || 0.7,
+          trend: {
+            direction: sentiment.trend,
+            strength: Math.abs(parseFloat(sentiment.trendPercentage as any) || 0) / 50,
+          },
+          newsScore: parseFloat(sentiment.newsScore as any) || 0,
+          socialScore: parseFloat(sentiment.socialScore as any) || 0,
+          totalMentions: sentiment.totalMentions || 0,
+          newsMentions: sentiment.newsMentions || 0,
+          socialMentions: sentiment.socialMentions || 0,
+          fearGreedIndex: parseFloat(sentiment.fearGreedIndex as any) || 50,
+          fearGreedLabel: sentiment.fearGreedLabel,
+          sources: ['database'],
+          timeframe,
+          timestamp: sentiment.updatedAt.toISOString(),
+        };
+      }
+
+      // If no cached data, calculate from raw data
+      const timeMs = parseTimeframe(timeframe);
+      const cutoffDate = new Date(Date.now() - timeMs);
+
+      // Fetch recent news articles
+      const news = await db
+        .select()
+        .from(newsArticles)
+        .where(
+          and(
+            sql`${newsArticles.symbols} @> ${JSON.stringify([symbolUpper])}`,
+            gte(newsArticles.publishedAt, cutoffDate),
+            eq(newsArticles.isAnalyzed, true)
+          )
+        )
+        .limit(1000);
+
+      // Fetch recent social mentions
+      const social = await db
+        .select()
+        .from(socialMentions)
+        .where(
+          and(
+            sql`${socialMentions.symbols} @> ${JSON.stringify([symbolUpper])}`,
+            gte(socialMentions.createdAt, cutoffDate),
+            eq(socialMentions.isAnalyzed, true)
+          )
+        )
+        .limit(1000);
+
+      // If we have data, aggregate it
+      if (news.length > 0 || social.length > 0) {
+        const aggregated = await this.aggregateFromAll(news as any[], social as any[], symbolUpper);
+
+        if (aggregated) {
+          return {
+            symbol: symbolUpper,
+            score: aggregated.score,
+            magnitude: aggregated.overallMagnitude,
+            label: aggregated.label,
+            confidence: aggregated.confidence,
+            trend: {
+              direction: aggregated.trend,
+              strength: Math.abs(aggregated.trendPercentage) / 50,
+            },
+            newsScore: aggregated.newsScore,
+            socialScore: aggregated.socialScore,
+            totalMentions: aggregated.totalMentions,
+            newsMentions: aggregated.newsMentions,
+            socialMentions: aggregated.socialMentions,
+            fearGreedIndex: aggregated.fearGreedIndex,
+            fearGreedLabel: aggregated.fearGreedLabel,
+            sources: ['news', 'social'],
+            timeframe,
+            timestamp: new Date().toISOString(),
+          };
+        }
+      }
+
+      // Return neutral default if no data
+      return {
+        symbol: symbolUpper,
+        score: 0,
+        magnitude: 0.5,
+        label: 'neutral',
+        confidence: 0.5,
+        trend: {
+          direction: 'stable',
+          strength: 0,
+        },
+        newsScore: 0,
+        socialScore: 0,
+        totalMentions: 0,
+        newsMentions: 0,
+        socialMentions: 0,
+        fearGreedIndex: 50,
+        fearGreedLabel: 'neutral',
+        sources: [],
+        timeframe,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error getting aggregated sentiment:', error);
+      // Return neutral on error
+      return {
+        symbol: symbol.toUpperCase(),
+        score: 0,
+        magnitude: 0.5,
+        label: 'neutral',
+        confidence: 0.5,
+        trend: {
+          direction: 'stable',
+          strength: 0,
+        },
+        sources: [],
+        timeframe,
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
   /**

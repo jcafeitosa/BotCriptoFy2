@@ -41,6 +41,7 @@ export type NewsCategory =
  */
 export interface NewsArticle {
   id: string;
+  platformId?: string; // External platform ID (e.g., CryptoPanic ID)
   source: NewsSource;
   sourceUrl: string;
   title: string;

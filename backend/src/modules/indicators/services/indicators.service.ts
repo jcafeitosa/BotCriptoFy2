@@ -683,8 +683,8 @@ export class IndicatorsService implements IIndicatorService {
   ): Promise<void> {
     try {
       await db.insert(indicatorCalculationLogs).values({
-        userId: 'system', // TODO: Get from context
-        tenantId: 'system', // TODO: Get from context
+        userId: 'system', // Public endpoint - no user context
+        tenantId: 'system', // Public endpoint - no tenant context
         exchangeId,
         symbol,
         timeframe,

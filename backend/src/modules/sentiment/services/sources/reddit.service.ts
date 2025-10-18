@@ -151,34 +151,36 @@ export class RedditService {
   /**
    * Get post comments
    */
-  async getPostComments(postId: string, limit: number = 100): Promise<RedditMention[]> {
-    try {
-      const submission = await this.client.getSubmission(postId);
-      await submission.expandReplies({ limit, depth: 1 });
+  getPostComments(postId: string, limit: number = 100): Promise<RedditMention[]> {
+    return Promise.resolve().then(async () => {
+      try {
+        const submission: any = await (this.client.getSubmission(postId) as Promise<any>);
+        await submission.expandReplies({ limit, depth: 1 });
 
-      const comments: RedditMention[] = [];
+        const comments: RedditMention[] = [];
 
-      const processComment = (comment: Comment) => {
-        if (comment instanceof Comment) {
-          const mention = this.transformCommentToMention(comment);
-          if (mention) {
-            comments.push(mention);
+        const processComment = (comment: any): void => {
+          if (comment && typeof comment === 'object') {
+            const mention = this.transformCommentToMention(comment);
+            if (mention) {
+              comments.push(mention);
+            }
+
+            // Process replies
+            if (comment.replies && Array.isArray(comment.replies)) {
+              comment.replies.forEach(processComment);
+            }
           }
+        };
 
-          // Process replies
-          if (comment.replies && Array.isArray(comment.replies)) {
-            comment.replies.forEach(processComment);
-          }
-        }
-      };
+        submission.comments.forEach(processComment);
 
-      submission.comments.forEach(processComment);
-
-      return comments;
-    } catch (error) {
-      console.error(`Error fetching comments for post ${postId}:`, error);
-      throw error;
-    }
+        return comments;
+      } catch (error) {
+        console.error(`Error fetching comments for post ${postId}:`, error);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -337,7 +339,7 @@ export class RedditService {
   /**
    * Transform Reddit comment to RedditMention
    */
-  private transformCommentToMention(comment: Comment): RedditMention | null {
+  private transformCommentToMention(comment: any): RedditMention | null {
     try {
       const symbols = this.extractSymbols(comment.body || '');
 
@@ -467,13 +469,18 @@ export class RedditService {
   /**
    * Health check
    */
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.client.getSubreddit('cryptocurrency').fetch();
-      return true;
-    } catch {
-      return false;
-    }
+  healthCheck(): Promise<boolean> {
+    const checkHealthAsync = async (): Promise<boolean> => {
+      try {
+        const subreddit: any = this.client.getSubreddit('cryptocurrency');
+        await subreddit.fetch();
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    return checkHealthAsync();
   }
 }
 
@@ -485,7 +492,7 @@ export function createRedditService(config: {
   clientSecret: string;
   username: string;
   password: string;
-  userAgent?: string;
+  userAgent: string;
 }): RedditService {
   return new RedditService(config);
 }

@@ -175,10 +175,10 @@ export class TwitterService {
         this.handleReconnect(rules, onTweet, onError);
       });
 
-      stream.on(ETwitterStreamEvent.Error, (error) => {
+      stream.on(ETwitterStreamEvent.Error, (error: any) => {
         console.error('Stream error:', error);
         if (onError) {
-          onError(error);
+          onError(error instanceof Error ? error : new Error(String(error)));
         }
       });
 

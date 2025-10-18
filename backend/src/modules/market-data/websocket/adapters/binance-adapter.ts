@@ -150,8 +150,8 @@ export class BinanceAdapter extends BaseExchangeAdapter {
       high24h: parseFloat(message.h),
       low24h: parseFloat(message.l),
       volume24h: parseFloat(message.v),
-      // miniTicker doesn't have percentage change, calculate if possible
-      change24h: message.P ? parseFloat(message.P) : undefined,
+      // miniTicker doesn't have percentage change, use 0 as fallback
+      change24h: message.P ? parseFloat(message.P) : 0,
     };
 
     this.emitTypedEvent('ticker', ticker);

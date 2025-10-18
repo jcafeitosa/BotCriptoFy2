@@ -46,6 +46,8 @@ export interface SocialMention {
 
   // Sentiment (populated after analysis)
   sentimentScore?: number;
+  sentimentMagnitude?: number; // 0 to 1
+  sentimentConfidence?: number; // 0 to 1
   sentimentLabel?: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
 
   // Flags
@@ -130,17 +132,21 @@ export interface SocialVolumeMetrics {
  * Trending Topic
  */
 export interface TrendingTopic {
+  id?: string; // Optional ID for tracking
   keyword: string;
   type: 'hashtag' | 'cashtag' | 'keyword';
   symbol?: string;
+  symbols?: string[]; // Alternative plural form for compatibility
 
   // Volume metrics
   mentionCount: number;
   mentionGrowth: number; // % growth in last hour
+  score?: number; // Overall trending score (0-100)
 
   // Sentiment
   averageSentiment: number;
   sentimentTrend: 'improving' | 'stable' | 'deteriorating';
+  trendType?: 'rising' | 'falling' | 'stable' | 'emerging' | 'peak' | 'declining' | 'sustained'; // Trend classification
 
   // Platforms
   platforms: Array<{

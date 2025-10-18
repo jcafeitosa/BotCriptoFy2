@@ -6,9 +6,9 @@
 console.log('🧪 Testing All Sentiment Endpoints\n');
 console.log('='.repeat(80));
 
-const BASE_URL = 'http://localhost:3000';
+const SENTIMENT_BASE_URL = 'http://localhost:3000';
 
-interface TestResult {
+interface SentimentTestResult {
   endpoint: string;
   method: string;
   status: 'PASSED' | 'FAILED' | 'SKIPPED';
@@ -17,19 +17,19 @@ interface TestResult {
   error?: string;
 }
 
-const results: TestResult[] = [];
+const sentimentResults: SentimentTestResult[] = [];
 
 /**
  * Helper to test endpoint
  */
-async function testEndpoint(
+async function testSentimentEndpoint(
   method: string,
   path: string,
   body?: any,
   description?: string
-): Promise<TestResult> {
+): Promise<SentimentTestResult> {
   const startTime = Date.now();
-  const fullPath = `${BASE_URL}${path}`;
+  const fullPath = `${SENTIMENT_BASE_URL}${path}`;
 
   console.log(`\n🔄 Testing: ${method} ${path}`);
   if (description) {
@@ -53,7 +53,7 @@ async function testEndpoint(
 
     const isSuccess = response.status >= 200 && response.status < 300;
 
-    let data;
+    let data: any;
     try {
       data = await response.json();
     } catch (e) {
@@ -65,7 +65,7 @@ async function testEndpoint(
       console.log(`   ⏱️  Response Time: ${responseTime}ms`);
 
       // Show sample of response
-      if (typeof data === 'object') {
+      if (typeof data === 'object' && data !== null) {
         const keys = Object.keys(data);
         console.log(`   📦 Response Keys: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''}`);
       }
@@ -107,7 +107,7 @@ async function testEndpoint(
 /**
  * Test WebSocket
  */
-async function testWebSocket(): Promise<TestResult> {
+async function testSentimentWebSocket(): Promise<SentimentTestResult> {
   console.log(`\n🔄 Testing: WebSocket /sentiment/stream`);
 
   return new Promise((resolve) => {
@@ -193,11 +193,11 @@ async function testWebSocket(): Promise<TestResult> {
 /**
  * Check if server is running
  */
-async function checkServer(): Promise<boolean> {
+async function checkSentimentServer(): Promise<boolean> {
   console.log('\n🔍 Checking if server is running...');
 
   try {
-    const response = await fetch(`${BASE_URL}/health`, { method: 'GET' });
+    const response = await fetch(`${SENTIMENT_BASE_URL}/health`, { method: 'GET' });
     if (response.ok) {
       console.log('✅ Server is running\n');
       return true;
@@ -214,13 +214,13 @@ async function checkServer(): Promise<boolean> {
 /**
  * Run all endpoint tests
  */
-async function runEndpointTests() {
+async function runSentimentEndpointTests() {
   const startTime = Date.now();
 
   console.log('\n🚀 Starting Endpoint Tests...\n');
 
   // Check if server is running
-  const serverRunning = await checkServer();
+  const serverRunning = await checkSentimentServer();
   if (!serverRunning) {
     console.log('💡 To start the server: bun run dev');
     console.log('💡 Then run this test again');
@@ -232,7 +232,7 @@ async function runEndpointTests() {
   console.log('='.repeat(80));
 
   // Test 1: Health Check
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/health',
     undefined,
@@ -240,14 +240,14 @@ async function runEndpointTests() {
   ));
 
   // Test 2: Get Sentiment for Symbol
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/BTC',
     undefined,
     'Get aggregated sentiment for BTC'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/ETH?timeWindow=3600000',
     undefined,
@@ -255,14 +255,14 @@ async function runEndpointTests() {
   ));
 
   // Test 3: Trending Topics
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/trending',
     undefined,
     'Get all trending topics'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/trending?symbol=BTC&limit=10',
     undefined,
@@ -270,14 +270,14 @@ async function runEndpointTests() {
   ));
 
   // Test 4: News Articles
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/news?limit=10',
     undefined,
     'Get recent news articles'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/news?symbol=BTC&source=cryptopanic&limit=5',
     undefined,
@@ -285,14 +285,14 @@ async function runEndpointTests() {
   ));
 
   // Test 5: Social Media
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/social/twitter?symbol=BTC&limit=10',
     undefined,
     'Get Twitter mentions for BTC'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/social/reddit?symbol=ETH&limit=10',
     undefined,
@@ -300,7 +300,7 @@ async function runEndpointTests() {
   ));
 
   // Test 6: Analyze Text
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'POST',
     '/sentiment/analyze',
     {
@@ -315,7 +315,7 @@ async function runEndpointTests() {
     'Analyze bullish text'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'POST',
     '/sentiment/analyze',
     {
@@ -330,7 +330,7 @@ async function runEndpointTests() {
   ));
 
   // Test 7: Batch Analyze
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'POST',
     '/sentiment/analyze/batch',
     {
@@ -344,14 +344,14 @@ async function runEndpointTests() {
   ));
 
   // Test 8: Correlation
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/correlation/BTC',
     undefined,
     'Get sentiment-price correlation for BTC'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/correlation/ETH?timeframe=24h',
     undefined,
@@ -359,14 +359,14 @@ async function runEndpointTests() {
   ));
 
   // Test 9: Signals
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/signals/BTC',
     undefined,
     'Get trading signals for BTC'
   ));
 
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/signals/ETH',
     undefined,
@@ -374,7 +374,7 @@ async function runEndpointTests() {
   ));
 
   // Test 10: Stats
-  results.push(await testEndpoint(
+  sentimentResults.push(await testSentimentEndpoint(
     'GET',
     '/sentiment/stats',
     undefined,
@@ -386,18 +386,18 @@ async function runEndpointTests() {
   console.log('='.repeat(80));
 
   // Test 11: WebSocket
-  results.push(await testWebSocket());
+  sentimentResults.push(await testSentimentWebSocket());
 
   // Final Summary
   const duration = Date.now() - startTime;
-  const passed = results.filter((r) => r.status === 'PASSED').length;
-  const failed = results.filter((r) => r.status === 'FAILED').length;
-  const skipped = results.filter((r) => r.status === 'SKIPPED').length;
+  const passed = sentimentResults.filter((r) => r.status === 'PASSED').length;
+  const failed = sentimentResults.filter((r) => r.status === 'FAILED').length;
+  const skipped = sentimentResults.filter((r) => r.status === 'SKIPPED').length;
 
   console.log('\n' + '='.repeat(80));
   console.log('📊 TEST SUMMARY');
   console.log('='.repeat(80));
-  console.log(`Total Endpoints: ${results.length}`);
+  console.log(`Total Endpoints: ${sentimentResults.length}`);
   console.log(`✅ Passed: ${passed}`);
   console.log(`❌ Failed: ${failed}`);
   console.log(`⏭️  Skipped: ${skipped}`);
@@ -407,7 +407,7 @@ async function runEndpointTests() {
   // Detailed Results
   if (failed > 0) {
     console.log('\n❌ FAILED TESTS:');
-    results
+    sentimentResults
       .filter((r) => r.status === 'FAILED')
       .forEach((r) => {
         console.log(`\n  ${r.method} ${r.endpoint}`);
@@ -420,34 +420,34 @@ async function runEndpointTests() {
 
   // Performance Summary
   const avgResponseTime =
-    results
+    sentimentResults
       .filter((r) => r.responseTime !== undefined)
-      .reduce((sum, r) => sum + (r.responseTime || 0), 0) / results.length;
+      .reduce((sum, r) => sum + (r.responseTime || 0), 0) / sentimentResults.length;
 
   console.log('\n📈 PERFORMANCE:');
   console.log(`Average Response Time: ${avgResponseTime.toFixed(0)}ms`);
 
-  const fastestEndpoint = results.reduce((fastest, current) => {
+  const fastestEndpoint = sentimentResults.reduce((fastest, current) => {
     if (!current.responseTime) return fastest;
     if (!fastest.responseTime) return current;
     return current.responseTime < fastest.responseTime ? current : fastest;
-  }, results[0]);
+  }, sentimentResults[0]);
 
-  const slowestEndpoint = results.reduce((slowest, current) => {
+  const slowestEndpoint = sentimentResults.reduce((slowest, current) => {
     if (!current.responseTime) return slowest;
     if (!slowest.responseTime) return current;
     return current.responseTime > slowest.responseTime ? current : slowest;
-  }, results[0]);
+  }, sentimentResults[0]);
 
   console.log(`Fastest: ${fastestEndpoint.method} ${fastestEndpoint.endpoint} (${fastestEndpoint.responseTime}ms)`);
   console.log(`Slowest: ${slowestEndpoint.method} ${slowestEndpoint.endpoint} (${slowestEndpoint.responseTime}ms)`);
 
   console.log('\n' + '='.repeat(80));
 
-  if (passed === results.length) {
+  if (passed === sentimentResults.length) {
     console.log('🎉 ALL TESTS PASSED!');
   } else if (passed > 0) {
-    console.log(`⚠️  PARTIAL SUCCESS: ${passed}/${results.length} tests passed`);
+    console.log(`⚠️  PARTIAL SUCCESS: ${passed}/${sentimentResults.length} tests passed`);
   } else {
     console.log('💥 ALL TESTS FAILED');
   }
@@ -456,7 +456,7 @@ async function runEndpointTests() {
 }
 
 // Run tests
-runEndpointTests().catch((error) => {
+runSentimentEndpointTests().catch((error) => {
   console.error('\n💥 Test Suite Failed:', error);
   process.exit(1);
 });

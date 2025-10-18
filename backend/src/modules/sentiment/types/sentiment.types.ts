@@ -68,9 +68,11 @@ export interface AggregatedSentiment {
   timestamp: Date;
 
   // Overall sentiment
+  score: number;              // -100 to 100 (alias for overallScore)
   overallScore: number;       // -100 to 100
   overallMagnitude: number;   // 0 to 1
   overallLabel: SentimentLabel;
+  label: SentimentLabel;      // alias for overallLabel
 
   // Source breakdown
   newsScore: number;
@@ -197,6 +199,8 @@ export interface TextAnalysisOptions {
     symbol?: string;
     author?: string;
     source?: string;
+    isInfluencer?: boolean;
+    isImportant?: boolean;
   };
 
   // Language
@@ -227,4 +231,18 @@ export interface BatchAnalysisResult {
   totalProcessed: number;
   totalErrors: number;
   averageProcessingTime: number;
+}
+
+/**
+ * Sentiment Trend Direction
+ */
+export type SentimentTrend = 'improving' | 'stable' | 'deteriorating';
+
+/**
+ * Fear & Greed Index Value
+ */
+export interface FearGreedIndex {
+  value: number; // 0-100
+  label: 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
+  timestamp: Date;
 }

@@ -8,6 +8,9 @@
 
 import { Elysia, t } from 'elysia';
 import { indicatorsService } from '../services/indicators.service';
+import { sessionGuard } from '../../auth/middleware/session.middleware';
+import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { BadRequestError } from '../../../utils/errors';
 import type {
   CalculateIndicatorRequest,
   BatchCalculateRequest,
@@ -346,16 +349,108 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
   )
 
   /**
+   * Clear cache
+   * DELETE /indicators/cache
+   */
+  .delete(
+    '/cache',
+    async ({ body, set }) => {
+      try {
+        logger.info('Clearing indicator cache', body || {});
+
+        await indicatorsService.clearCache(
+          body?.exchangeId,
+          body?.symbol,
+          body?.indicatorType as IndicatorType | undefined
+        );
+
+        return {
+          success: true,
+          message: 'Cache cleared successfully',
+        };
+      } catch (error) {
+        logger.error('Failed to clear cache', { error });
+        set.status = 500;
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Internal server error',
+        };
+      }
+    },
+    {
+      body: t.Optional(ClearCacheRequestSchema),
+      response: {
+        200: t.Object({
+          success: t.Literal(true),
+          message: t.String(),
+        }),
+        500: t.Object({
+          success: t.Literal(false),
+          error: t.String(),
+        }),
+      },
+      detail: {
+        tags: ['Cache'],
+        summary: 'Clear indicator cache',
+        description:
+          'Clear cached indicator results with optional filters. ' +
+          'Filters can be combined to clear specific cache entries.',
+      },
+    }
+  )
+
+  /**
+   * Health check endpoint
+   * GET /indicators/health
+   */
+  .get(
+    '/health',
+    () => {
+      return {
+        status: 'healthy',
+        module: 'indicators',
+        version: '2.0.0',
+        library: '@ixjb94/indicators v1.2.4',
+        indicators: 106,
+        timestamp: new Date().toISOString(),
+      };
+    },
+    {
+      response: t.Object({
+        status: t.String(),
+        module: t.String(),
+        version: t.String(),
+        library: t.String(),
+        indicators: t.Number(),
+        timestamp: t.String(),
+      }),
+      detail: {
+        tags: ['Health'],
+        summary: 'Health check',
+        description: 'Check if the indicators module is operational.',
+      },
+    }
+  )
+
+  // ==================================================
+  // PROTECTED ROUTES (Require Authentication)
+  // ==================================================
+  .use(sessionGuard)
+
+  /**
    * List indicator presets
    * GET /indicators/presets
    */
   .get(
     '/presets',
-    async ({ query, set }) => {
+    async ({ user, query, set }) => {
       try {
-        // TODO: Get userId and tenantId from auth context
-        const userId = 'system';
-        const tenantId = 'system';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const presets = await indicatorsService.getPresets(userId, tenantId, {
           category: query.category as IndicatorCategory | undefined,
@@ -409,11 +504,14 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .post(
     '/presets',
-    async ({ body, set }) => {
+    async ({ user, body, set }) => {
       try {
-        // TODO: Get userId and tenantId from auth context
-        const userId = 'system';
-        const tenantId = 'system';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         logger.info('Creating indicator preset', { name: body.name });
 
@@ -522,11 +620,14 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .patch(
     '/presets/:id',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get userId and tenantId from auth context
-        const userId = 'system';
-        const tenantId = 'system';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         logger.info('Updating indicator preset', { id: params.id });
 
@@ -584,11 +685,14 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
    */
   .delete(
     '/presets/:id',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get userId and tenantId from auth context
-        const userId = 'system';
-        const tenantId = 'system';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         logger.info('Deleting indicator preset', { id: params.id });
 
@@ -635,67 +739,19 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
   )
 
   /**
-   * Clear cache
-   * DELETE /indicators/cache
-   */
-  .delete(
-    '/cache',
-    async ({ body, set }) => {
-      try {
-        logger.info('Clearing indicator cache', body || {});
-
-        await indicatorsService.clearCache(
-          body?.exchangeId,
-          body?.symbol,
-          body?.indicatorType as IndicatorType | undefined
-        );
-
-        return {
-          success: true,
-          message: 'Cache cleared successfully',
-        };
-      } catch (error) {
-        logger.error('Failed to clear cache', { error });
-        set.status = 500;
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Internal server error',
-        };
-      }
-    },
-    {
-      body: t.Optional(ClearCacheRequestSchema),
-      response: {
-        200: t.Object({
-          success: t.Literal(true),
-          message: t.String(),
-        }),
-        500: t.Object({
-          success: t.Literal(false),
-          error: t.String(),
-        }),
-      },
-      detail: {
-        tags: ['Cache'],
-        summary: 'Clear indicator cache',
-        description:
-          'Clear cached indicator results with optional filters. ' +
-          'Filters can be combined to clear specific cache entries.',
-      },
-    }
-  )
-
-  /**
    * Get usage statistics
    * GET /indicators/statistics
    */
   .get(
     '/statistics',
-    async ({ set }) => {
+    async ({ user, set }) => {
       try {
-        // TODO: Get userId and tenantId from auth context
-        const userId = 'system';
-        const tenantId = 'system';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const stats = await indicatorsService.getStatistics(userId, tenantId);
 
@@ -739,39 +795,6 @@ export const indicatorsRoutes = new Elysia({ prefix: '/indicators' })
         description:
           'Retrieve indicator calculation statistics and performance metrics. ' +
           'Includes cache hit rate, average calculation time, and most used indicators.',
-      },
-    }
-  )
-
-  /**
-   * Health check endpoint
-   * GET /indicators/health
-   */
-  .get(
-    '/health',
-    () => {
-      return {
-        status: 'healthy',
-        module: 'indicators',
-        version: '2.0.0',
-        library: '@ixjb94/indicators v1.2.4',
-        indicators: 106,
-        timestamp: new Date().toISOString(),
-      };
-    },
-    {
-      response: t.Object({
-        status: t.String(),
-        module: t.String(),
-        version: t.String(),
-        library: t.String(),
-        indicators: t.Number(),
-        timestamp: t.String(),
-      }),
-      detail: {
-        tags: ['Health'],
-        summary: 'Health check',
-        description: 'Check if the indicators module is operational.',
       },
     }
   );

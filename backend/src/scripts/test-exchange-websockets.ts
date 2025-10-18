@@ -177,19 +177,24 @@ async function testExchange(config: TestConfig): Promise<ExchangeTestResult> {
     });
 
     // Connect to exchange
-    const exchangeConfig = EXCHANGE_CONFIGS[config.exchange];
+    const exchangeConfig = EXCHANGE_CONFIGS[config.exchange as keyof typeof EXCHANGE_CONFIGS];
+    if (!exchangeConfig) {
+      throw new Error(`Exchange ${config.exchange} not configured`);
+    }
     const wsUrl = exchangeConfig.mainnet; // Use mainnet for real testing
 
     console.log(`\nConnecting to ${config.exchange}...`);
     await manager.connect(config.exchange, {
       url: wsUrl,
       timeout: 30000,
+      pingInterval: 30000,
+      pongTimeout: 10000,
       reconnection: {
-        enabled: true,
-        maxRetries: 5,
+        maxAttempts: 5,
         initialDelay: 1000,
         maxDelay: 30000,
         backoffMultiplier: 2,
+        jitterFactor: 0.1,
       },
     });
 
@@ -450,7 +455,11 @@ async function main(): Promise<void> {
   const results: ExchangeTestResult[] = [];
 
   for (const exchange of exchanges) {
-    const exchangeConfig = EXCHANGE_CONFIGS[exchange];
+    const exchangeConfig = EXCHANGE_CONFIGS[exchange as keyof typeof EXCHANGE_CONFIGS];
+    if (!exchangeConfig) {
+      console.error(`Exchange ${exchange} not configured, skipping...`);
+      continue;
+    }
     const testSymbol = symbol || exchangeConfig.defaultSymbol;
 
     const result = await testExchange({

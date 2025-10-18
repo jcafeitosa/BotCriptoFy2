@@ -4,13 +4,16 @@
  * Tests all endpoints from Agents, Sentiment, and Indicators modules
  */
 
+// Make this a module
+export {};
+
 const BASE_URL = 'http://localhost:3000';
 const TENANT_ID = 'test-tenant-endpoints';
 
 interface TestResult {
   endpoint: string;
   method: string;
-  status: 'PASS' | 'FAIL' | 'SKIP';
+  status: 'PASSED' | 'FAILED' | 'SKIPPED';
   statusCode?: number;
   responseTime?: number;
   error?: string;
@@ -31,7 +34,7 @@ async function testEndpoint(
     return {
       endpoint,
       method,
-      status: 'SKIP',
+      status: 'SKIPPED',
     };
   }
 
@@ -55,7 +58,7 @@ async function testEndpoint(
     return {
       endpoint,
       method,
-      status: response.ok ? 'PASS' : 'FAIL',
+      status: response.ok ? 'PASSED' : 'FAILED',
       statusCode: response.status,
       responseTime,
       error: response.ok ? undefined : await response.text(),
@@ -64,7 +67,7 @@ async function testEndpoint(
     return {
       endpoint,
       method,
-      status: 'FAIL',
+      status: 'FAILED',
       responseTime: Date.now() - startTime,
       error: error instanceof Error ? error.message : String(error),
     };
@@ -109,7 +112,7 @@ const createAgentResult = await testEndpoint('POST', '/agents', {
 results.push(createAgentResult);
 
 let agentId: string | undefined;
-if (createAgentResult.status === 'PASS') {
+if (createAgentResult.status === 'PASSED') {
   // Parse agent ID from response
   const response = await fetch(`${BASE_URL}/agents`, {
     method: 'POST',
@@ -129,7 +132,7 @@ if (createAgentResult.status === 'PASS') {
       },
     }),
   });
-  const data = await response.json();
+  const data = await response.json() as any;
   agentId = data.data?.id;
   console.log(`    ✅ Agent created with ID: ${agentId}`);
 }
@@ -314,9 +317,9 @@ console.log('\n\n📊 ============================================');
 console.log('   TEST RESULTS SUMMARY');
 console.log('============================================\n');
 
-const passed = results.filter((r) => r.status === 'PASS').length;
-const failed = results.filter((r) => r.status === 'FAIL').length;
-const skipped = results.filter((r) => r.status === 'SKIP').length;
+const passed = results.filter((r) => r.status === 'PASSED').length;
+const failed = results.filter((r) => r.status === 'FAILED').length;
+const skipped = results.filter((r) => r.status === 'SKIPPED').length;
 const total = results.length;
 
 console.log(`Total Tests: ${total}`);
@@ -341,7 +344,7 @@ const otherResults = results.filter(
 if (otherResults.length > 0) {
   console.log('🏥 Health & System:');
   otherResults.forEach((r) => {
-    const icon = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
+    const icon = r.status === 'PASSED' ? '✅' : r.status === 'FAILED' ? '❌' : '⏭️';
     const time = r.responseTime ? ` (${r.responseTime}ms)` : '';
     console.log(`  ${icon} ${r.endpoint}${time}`);
     if (r.error) console.log(`     Error: ${r.error.substring(0, 100)}`);
@@ -350,10 +353,10 @@ if (otherResults.length > 0) {
 }
 
 if (agentResults.length > 0) {
-  const agentPass = agentResults.filter((r) => r.status === 'PASS').length;
+  const agentPass = agentResults.filter((r) => r.status === 'PASSED').length;
   console.log(`🤖 Agents Module (${agentPass}/${agentResults.length} passed):`);
   agentResults.forEach((r) => {
-    const icon = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
+    const icon = r.status === 'PASSED' ? '✅' : r.status === 'FAILED' ? '❌' : '⏭️';
     const time = r.responseTime ? ` (${r.responseTime}ms)` : '';
     console.log(`  ${icon} ${r.endpoint}${time}`);
     if (r.error) console.log(`     Error: ${r.error.substring(0, 100)}`);
@@ -362,10 +365,10 @@ if (agentResults.length > 0) {
 }
 
 if (sentimentResults.length > 0) {
-  const sentimentPass = sentimentResults.filter((r) => r.status === 'PASS').length;
+  const sentimentPass = sentimentResults.filter((r) => r.status === 'PASSED').length;
   console.log(`😊 Sentiment Module (${sentimentPass}/${sentimentResults.length} passed):`);
   sentimentResults.forEach((r) => {
-    const icon = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
+    const icon = r.status === 'PASSED' ? '✅' : r.status === 'FAILED' ? '❌' : '⏭️';
     const time = r.responseTime ? ` (${r.responseTime}ms)` : '';
     console.log(`  ${icon} ${r.endpoint}${time}`);
     if (r.error) console.log(`     Error: ${r.error.substring(0, 100)}`);
@@ -374,10 +377,10 @@ if (sentimentResults.length > 0) {
 }
 
 if (indicatorResults.length > 0) {
-  const indicatorPass = indicatorResults.filter((r) => r.status === 'PASS').length;
+  const indicatorPass = indicatorResults.filter((r) => r.status === 'PASSED').length;
   console.log(`📈 Indicators Module (${indicatorPass}/${indicatorResults.length} passed):`);
   indicatorResults.forEach((r) => {
-    const icon = r.status === 'PASS' ? '✅' : r.status === 'FAIL' ? '❌' : '⏭️';
+    const icon = r.status === 'PASSED' ? '✅' : r.status === 'FAILED' ? '❌' : '⏭️';
     const time = r.responseTime ? ` (${r.responseTime}ms)` : '';
     console.log(`  ${icon} ${r.endpoint}${time}`);
     if (r.error) console.log(`     Error: ${r.error.substring(0, 100)}`);

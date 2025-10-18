@@ -6,19 +6,26 @@
 import { Elysia, t } from 'elysia';
 import { documentsService } from '../services/documents.service';
 import logger from '../../../utils/logger';
+import { sessionGuard } from '../../auth/middleware/session.middleware';
+import { getUserPrimaryTenantId } from '../../auth/services/session.service';
+import { BadRequestError } from '../../../utils/errors';
 
 export const sharesRoutes = new Elysia({ prefix: '/documents' })
+  .use(sessionGuard)
   /**
    * Share document
    * POST /api/v1/documents/:id/share
    */
   .post(
     '/:id/share',
-    async ({ params, body, set }) => {
+    async ({ user, params, body, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.shareDocument(
           {
@@ -73,11 +80,14 @@ export const sharesRoutes = new Elysia({ prefix: '/documents' })
    */
   .get(
     '/:id/shares',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         // First verify user has access to document
         const docResult = await documentsService.getDocumentById(
@@ -91,12 +101,19 @@ export const sharesRoutes = new Elysia({ prefix: '/documents' })
           return docResult;
         }
 
-        // TODO: Implement getDocumentShares in service
-        // For now return empty array
-        return {
-          success: true,
-          data: [],
-        };
+        // Get document shares
+        const result = await documentsService.getDocumentShares(
+          params.id,
+          userId,
+          tenantId
+        );
+
+        if (!result.success) {
+          set.status = result.code === 'NOT_FOUND' ? 404 : 400;
+          return result;
+        }
+
+        return result;
       } catch (error) {
         logger.error('Get shares endpoint error', {
           error: error instanceof Error ? error.message : String(error),
@@ -123,11 +140,14 @@ export const sharesRoutes = new Elysia({ prefix: '/documents' })
    */
   .delete(
     '/shares/:shareId',
-    async ({ params, set }) => {
+    async ({ user, params, set }) => {
       try {
-        // TODO: Get user from auth context
-        const userId = 'mock-user-id';
-        const tenantId = 'mock-tenant-id';
+        const userId = user.id;
+        const tenantId = await getUserPrimaryTenantId(user.id);
+
+        if (!tenantId) {
+          throw new BadRequestError('User has no tenant membership');
+        }
 
         const result = await documentsService.revokeShare(
           params.shareId,

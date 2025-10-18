@@ -173,30 +173,29 @@ export class TrendingTopicsService {
 
       const trending: TrendingTopic = {
         id: crypto.randomUUID(),
-        topic: stats.topic,
+        keyword: stats.topic,
         type: topic.startsWith('#') ? 'hashtag' : 'keyword',
-        mentions: recentPoints.length,
-        score,
-        velocity: stats.velocity,
-        sentiment: 0, // Will be calculated separately
         symbols: relatedSymbols,
-        peakTime,
+        mentionCount: recentPoints.length,
+        mentionGrowth: stats.velocity * 100,
+        score,
+        averageSentiment: 0, // Will be calculated separately
+        sentimentTrend: 'stable',
         trendType,
-        firstSeen: stats.firstSeen,
-        lastSeen: stats.lastSeen,
-        sources: Array.from(stats.sources),
-        engagement: {
-          total: recentPoints.reduce((sum, p) => sum + p.engagement, 0),
-          average: recentPoints.reduce((sum, p) => sum + p.engagement, 0) / recentPoints.length,
-        },
-        createdAt: now,
+        platforms: Array.from(stats.sources).map(source => ({
+          platform: source as any,
+          count: recentPoints.filter(p => p.source === source).length,
+        })),
+        period: '1h',
+        timestamp: now,
+        topPosts: [],
       };
 
       trendingList.push(trending);
     });
 
     // Sort by score descending
-    trendingList.sort((a, b) => b.score - a.score);
+    trendingList.sort((a, b) => (b.score || 0) - (a.score || 0));
 
     // Return top N
     return trendingList.slice(0, this.config.maxTopics);
@@ -207,7 +206,7 @@ export class TrendingTopicsService {
    */
   getTrendingForSymbol(symbol: string): TrendingTopic[] {
     const all = this.getTrendingTopics();
-    return all.filter((t) => t.symbols.includes(symbol));
+    return all.filter((t) => t.symbols && t.symbols.includes(symbol));
   }
 
   /**

@@ -302,10 +302,10 @@ export class PriceCorrelationService {
     }
 
     // Factor 2: Sentiment trend
-    if (currentSentiment.trend.direction === 'improving') {
+    if (currentSentiment.trend === 'improving') {
       signalStrength += 0.5;
       reasoning.push('Sentiment improving');
-    } else if (currentSentiment.trend.direction === 'deteriorating') {
+    } else if (currentSentiment.trend === 'deteriorating') {
       signalStrength -= 0.5;
       reasoning.push('Sentiment deteriorating');
     }
